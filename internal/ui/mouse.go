@@ -88,6 +88,10 @@ func (a *App) onMouse(m tea.Mouse, click bool) tea.Cmd {
 		}
 		return nil
 	}
+	if click && a.onTreeEdge(m) {
+		a.dragging = true
+		return nil
+	}
 	tree, reader := a.paneRects()
 	switch {
 	case tree.has(m.X, m.Y):
@@ -112,6 +116,38 @@ func (a *App) onMouse(m tea.Mouse, click bool) tea.Cmd {
 		}
 	case click && m.Y == a.h-1:
 		return a.barClick(m.X)
+	}
+	return nil
+}
+
+// onTreeEdge reports whether m is on the line between the sidebar and the
+// reader: the sidebar's right border or the reader's left one (the divider
+// when unframed).
+func (a *App) onTreeEdge(m tea.Mouse) bool {
+	if !a.treeVisible() || m.Y < 1 || m.Y > a.bodyH() {
+		return false
+	}
+	return m.X == a.treeW()-1 || m.X == a.treeW()
+}
+
+// drag follows a held sidebar edge: the sidebar ends at the pointer. The text
+// is re-rendered once the pointer rests, and the width saved on release.
+func (a *App) drag(m tea.Mouse, released bool) tea.Cmd {
+	if !a.dragging {
+		return nil
+	}
+	if tw := clampTreeW(m.X+1, a.w); tw != a.treeW() {
+		a.state.TreeWidth = tw
+		a.layout()
+	}
+	if released {
+		a.dragging = false
+		a.persist()
+		return a.relayout()
+	}
+	if a.hasItem && a.renderedW != a.textW() {
+		a.resizeSeq++
+		return a.tick(resizeQuiet, resizeTickMsg{a.resizeSeq})
 	}
 	return nil
 }

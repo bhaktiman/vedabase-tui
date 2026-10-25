@@ -90,6 +90,7 @@ type App struct {
 	report     bool    // say how the running check ended, even when nothing is newer
 	updatedTo  string  // tag installed by a finished update
 	installDir string
+	dragging   bool   // the sidebar's edge is held with the mouse
 	updating   bool   // Apply is running
 	restart    bool   // the app quit to be started again
 	updCmd     string // shown in the bottom bar until the next key
@@ -174,7 +175,7 @@ func New(o Options) *App {
 
 // State is what gets persisted on quit.
 func (a *App) State() store.State {
-	s := store.State{LastRef: a.ref, Scroll: a.reader.offset, Parts: a.parts, PartsSet: true, TreeHidden: a.state.TreeHidden, Wide: a.state.Wide, HideHints: a.state.HideHints, Zen: a.state.Zen, Theme: a.state.Theme}
+	s := store.State{LastRef: a.ref, Scroll: a.reader.offset, Parts: a.parts, PartsSet: true, TreeHidden: a.state.TreeHidden, Wide: a.state.Wide, HideHints: a.state.HideHints, Zen: a.state.Zen, Theme: a.state.Theme, TreeWidth: a.state.TreeWidth}
 	if a.restoreRef == a.ref {
 		s.Scroll = a.restore // the first render has not happened yet
 	}
@@ -225,6 +226,10 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmd := a.onMouse(tea.Mouse(m), true)
 		a.syncCollections()
 		return a, cmd
+	case tea.MouseMotionMsg:
+		return a, a.drag(tea.Mouse(m), false)
+	case tea.MouseReleaseMsg:
+		return a, a.drag(tea.Mouse(m), true)
 	case tea.MouseWheelMsg:
 		return a, a.onMouse(tea.Mouse(m), false)
 	case libraryMsg:

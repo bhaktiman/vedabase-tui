@@ -103,7 +103,8 @@ current group.
 | `Tab` | Move focus between the tree and the reader. |
 
 With the mouse you can click a pane to focus it, click a tree row to select or
-open it, and use the wheel to scroll.
+open it, and use the wheel to scroll. Drag the line between the sidebar and the
+reader to make the sidebar wider or narrower; the width is remembered.
 
 ## Contents tree
 
@@ -219,7 +220,7 @@ Press `?` in the app for the same list.
 | `U` | Check for a new version; when one is out, `U` installs it |
 | `?` | Help |
 | `q` / `Esc` | Close overlay; quit |
-| Mouse | Click a pane to focus it, a tree row to select or open it, a part label to toggle it, `↗ vedabase.cc` (reader) or the `vedabase.cc` tag (sidebar) to open the website; the wheel scrolls |
+| Mouse | Drag the line between the sidebar and the reader to resize the sidebar. Click a pane to focus it, a tree row to select or open it, a part label to toggle it, `↗ vedabase.cc` (reader) or the `vedabase.cc` tag (sidebar) to open the website; the wheel scrolls |
 
 While mouse mode is on, selecting text in most terminals (Windows Terminal,
 iTerm2, GNOME Terminal) needs Shift+drag, or set `mouse = false`.

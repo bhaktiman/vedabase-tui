@@ -15,7 +15,20 @@ func (a *App) treeVisible() bool {
 	return a.lib != nil && !a.state.TreeHidden && !a.state.Zen && a.w >= minTreeCols
 }
 
-func (a *App) treeW() int { return min(max(a.w*30/100, 24), 40) }
+// Limits of a sidebar width the user has dragged.
+const (
+	treeMinW   = 16
+	readerMinW = 30
+)
+
+func (a *App) treeW() int {
+	if a.state.TreeWidth > 0 {
+		return clampTreeW(a.state.TreeWidth, a.w)
+	}
+	return min(max(a.w*30/100, 24), 40)
+}
+
+func clampTreeW(tw, w int) int { return max(min(tw, w-readerMinW), treeMinW) }
 
 func (a *App) bodyH() int { return max(a.h-2, 1) }
 
