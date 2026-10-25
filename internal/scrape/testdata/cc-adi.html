@@ -1,0 +1,499 @@
+<!DOCTYPE html><html class="font-size-6 justify use-font-serif theme-light" lang="en" dir="ltr" data-astro-cid-5hce7sga> <head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport"><!-- Critical reset, inlined so the body never paints with the UA default 8px
+     margin while the bundled stylesheet is still in flight (notably on the
+     ~40% of traffic still on HTTP/1.1). Kills the body 8px→0 CLS shift. --><title>Ādi-līlā — Śrī Caitanya-caritāmṛta</title><link rel="icon" href="/favicon.ico"><link rel="manifest" href="/manifest.json"><link rel="preload" href="/fonts/NotoSans_Regular-s.p.fd7fec97.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="/fonts/NotoSans_Bold-s.p.82c94123.woff2" as="font" type="font/woff2" crossorigin><meta name="theme-color" content="#da9d5b"><link rel="apple-touch-icon" href="/icon-192.png"><meta name="description" content="The only digital Vedabase verified against scans of Śrīla Prabhupāda’s original 1972 printed books — Bhagavad-gītā, Śrīmad-Bhāgavatam, Caitanya-caritāmṛta, lectures, letters and more."><meta name="application-name" content="Vedabase Original"><link rel="canonical" href="https://vedabase.cc/cc/adi/"><link rel="alternate" hreflang="en" href="https://vedabase.cc/cc/adi/"><link rel="alternate" hreflang="es" href="https://vedabase.cc/es/cc/adi/"><link rel="alternate" hreflang="hi" href="https://vedabase.cc/hi/cc/adi/"><link rel="alternate" hreflang="pt" href="https://vedabase.cc/pt/cc/adi/"><link rel="alternate" hreflang="ru" href="https://vedabase.cc/ru/cc/adi/"><link rel="alternate" hreflang="x-default" href="https://vedabase.cc/cc/adi/"><script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Vedabase Original","alternateName":"vedabase.cc","url":"https://vedabase.cc","inLanguage":["en","es","pt","hi","ru"],"description":"Online library of the original, pre-revision editions of A. C. Bhaktivedanta Swami Prabhupāda's books.","sameAs":["https://www.wikidata.org/wiki/Q140290079"],"about":{"@type":"Thing","name":"Gaudiya Vaishnavism","sameAs":"https://www.wikidata.org/wiki/Q1144575"},"publisher":{"@type":"Organization","name":"Vedabase Original","url":"https://vedabase.cc"}}</script><!-- Open Graph --><meta property="og:title" content="Ādi-līlā — Śrī Caitanya-caritāmṛta"><meta property="og:description" content="The only digital Vedabase verified against scans of Śrīla Prabhupāda’s original 1972 printed books — Bhagavad-gītā, Śrīmad-Bhāgavatam, Caitanya-caritāmṛta, lectures, letters and more."><meta property="og:type" content="website"><meta property="og:url" content="https://vedabase.cc/cc/adi/"><meta property="og:site_name" content="Vedabase Original"><meta property="og:locale" content="en_US"><meta property="og:image" content="https://vedabase.cc/images/og-cc.jpg"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="Ādi-līlā — Śrī Caitanya-caritāmṛta"><!-- Twitter Card --><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Ādi-līlā — Śrī Caitanya-caritāmṛta"><meta name="twitter:description" content="The only digital Vedabase verified against scans of Śrīla Prabhupāda’s original 1972 printed books — Bhagavad-gītā, Śrīmad-Bhāgavatam, Caitanya-caritāmṛta, lectures, letters and more."><meta name="twitter:image" content="https://vedabase.cc/images/og-cc.jpg"><meta name="twitter:image:alt" content="Ādi-līlā — Śrī Caitanya-caritāmṛta"><script>
+(function(){
+  try {
+    // Apply preferences to BOTH <html> and #theme-wrapper (the wrapper has
+    // higher CSS specificity for many rules; updating only <html> leaves
+    // hardcoded wrapper classes overriding the theme/font.)
+    function apply(cls, on) {
+      var html = document.documentElement;
+      var wrap = document.getElementById('theme-wrapper');
+      if (on) { html.classList.add(cls); if (wrap) wrap.classList.add(cls); }
+      else    { html.classList.remove(cls); if (wrap) wrap.classList.remove(cls); }
+    }
+    var t = localStorage.getItem('vb-theme');
+    if (t === 'dark') { apply('theme-light', false); apply('theme-dark', true); }
+    var fs = localStorage.getItem('vb-font-size');
+    if (fs) {
+      for (var i = 1; i <= 8; i++) document.documentElement.classList.remove('font-size-' + i);
+      document.documentElement.classList.add(fs);
+    }
+    var ff = localStorage.getItem('vb-font-family');
+    if (ff === 'sans') { apply('use-font-serif', false); apply('use-font-sans', true); }
+    var jst = localStorage.getItem('vb-justify');
+    if (jst === 'no') {
+      document.documentElement.classList.remove('justify');
+      document.documentElement.classList.add('no-justify');
+      var w = document.getElementById('theme-wrapper');
+      if (w) { w.classList.remove('justify'); w.classList.add('no-justify'); }
+    }
+  } catch(e) {}
+  // Wait for #theme-wrapper to exist (since this script runs in <head> before
+  // <body>), then re-apply.
+  document.addEventListener('DOMContentLoaded', function(){
+    try {
+      var w = document.getElementById('theme-wrapper');
+      if (!w) return;
+      var html = document.documentElement;
+      ['theme-dark','use-font-sans','no-justify'].forEach(function(c){
+        if (html.classList.contains(c)) {
+          if (c === 'theme-dark') { w.classList.remove('theme-light'); }
+          if (c === 'use-font-sans') { w.classList.remove('use-font-serif'); }
+          if (c === 'no-justify') { w.classList.remove('justify'); }
+          w.classList.add(c);
+        }
+      });
+    } catch(e) {}
+  });
+})();
+</script><!-- Preload only NotoSerif Regular (used everywhere above the fold). Italic
+     (~80 KB) and Sans Regular (~61 KB) load on demand via font-display:swap
+     and the Arial fallback fills in instantly thanks to size-adjust overrides
+     in vedabase.css. Cuts cold-load font payload from ~227 KB to ~86 KB. --><link rel="preload" href="/fonts/NotoSerif_Regular-s.p.0bcdbe20.woff2" as="font" type="font/woff2" crossorigin><script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Library","item":"https://vedabase.cc/en/library/"},{"@type":"ListItem","position":2,"name":"Śrī Caitanya-caritāmṛta","item":"https://vedabase.cc/cc/"}]}</script><style>#preserve-card[data-astro-cid-c33gdkfk]{margin:3rem auto 1rem;max-width:640px;padding:1.25rem 1.5rem 1.1rem;border-top:2px solid #b8945a;background:linear-gradient(180deg,#b8945a0f,#b8945a05);font-family:Georgia,EB Garamond,Cormorant Garamond,serif;color:#4a3520;position:relative;opacity:0;transform:translateY(8px);transition:opacity .5s ease-out,transform .5s ease-out}#preserve-card[data-astro-cid-c33gdkfk].is-visible{opacity:1;transform:translateY(0)}#preserve-card[data-astro-cid-c33gdkfk].is-hiding{opacity:0;transform:translateY(-4px);transition:opacity .3s,transform .3s}#preserve-card[data-astro-cid-c33gdkfk] .pc-headline[data-astro-cid-c33gdkfk]{font-size:1.05rem;font-style:italic;line-height:1.45;margin:0 0 .55rem;color:#5a4128}#preserve-card[data-astro-cid-c33gdkfk] .pc-meta[data-astro-cid-c33gdkfk]{font-family:Inter,-apple-system,sans-serif;font-size:.78rem;letter-spacing:.08em;color:#8a6f48;margin:0 0 .65rem}#preserve-card[data-astro-cid-c33gdkfk] .pc-meta[data-astro-cid-c33gdkfk] strong[data-astro-cid-c33gdkfk]{color:#6a4d2c;font-weight:600}#preserve-card[data-astro-cid-c33gdkfk] .pc-cta[data-astro-cid-c33gdkfk]{display:inline-flex;align-items:center;gap:.35rem;font-family:Inter,-apple-system,sans-serif;font-size:.85rem;font-weight:500;letter-spacing:.05em;color:#8c6020;text-decoration:none;border-bottom:1px solid rgba(184,148,90,.4);padding-bottom:1px;transition:color .2s,border-color .2s}#preserve-card[data-astro-cid-c33gdkfk] .pc-cta[data-astro-cid-c33gdkfk]:hover,#preserve-card[data-astro-cid-c33gdkfk] .pc-cta[data-astro-cid-c33gdkfk]:focus-visible{color:#b8794c;border-color:#b8794c;outline:none}#preserve-card[data-astro-cid-c33gdkfk] .pc-cta[data-astro-cid-c33gdkfk] .pc-arrow[data-astro-cid-c33gdkfk]{transition:transform .22s ease}#preserve-card[data-astro-cid-c33gdkfk] .pc-cta[data-astro-cid-c33gdkfk]:hover .pc-arrow[data-astro-cid-c33gdkfk]{transform:translate(3px)}#preserve-card[data-astro-cid-c33gdkfk] .pc-dismiss[data-astro-cid-c33gdkfk]{position:absolute;top:.55rem;right:.65rem;background:transparent;border:0;width:24px;height:24px;font-size:1.1rem;line-height:1;color:#b3997a;cursor:pointer;border-radius:50%;transition:color .2s,background .2s}#preserve-card[data-astro-cid-c33gdkfk] .pc-dismiss[data-astro-cid-c33gdkfk]:hover{color:#5a4128;background:#b8945a1f}@media(max-width:540px){#preserve-card[data-astro-cid-c33gdkfk]{margin:2.2rem 1rem .5rem;padding:1.05rem 1.2rem}#preserve-card[data-astro-cid-c33gdkfk] .pc-headline[data-astro-cid-c33gdkfk]{font-size:1rem}}.syn-link{color:var(--color-vb-link,#b91c1c);text-decoration:none;border-bottom:1px dotted rgba(var(--color-vb-link-rgb,185,28,28),.4)}.syn-link:hover{border-bottom-color:currentColor;background:rgba(var(--color-vb-header-top-rgb,146,64,14),.08)}.syn-link:focus-visible{outline:2px solid var(--color-vb-link,#b91c1c);outline-offset:2px}.syn-link em{font-style:italic}.av-revised{max-width:46rem;margin:1.6rem auto 0;padding:.7rem 1rem;text-align:center;font-size:.9rem;border-radius:8px;background:rgba(var(--color-vb-header-top-rgb,146,64,14),.07);border:1px solid rgba(var(--color-vb-header-top-rgb,146,64,14),.18)}.av-revised a{color:inherit}.vb-crumbrow{display:flex;align-items:baseline;gap:1rem}.vb-crumbrow ol{flex:1 1 auto;min-width:0;margin:0}.vb-crumbnav{flex:0 0 auto;display:flex;align-items:baseline;gap:.9rem;white-space:nowrap}.vb-crumbnav a{color:var(--color-vb-link,#1a7a6d);text-decoration:none;font-variant-numeric:tabular-nums;display:inline-flex;gap:.3rem;align-items:baseline}.vb-crumbnav a:hover{text-decoration:underline}.vb-crumbnav a:focus-visible{outline:2px solid currentColor;outline-offset:3px;border-radius:3px}@media(max-width:640px){.vb-crumbnav-ref{display:none}.vb-crumbnav{gap:1.1rem}.vb-crumbnav a{font-size:1.5em;line-height:1}}
+</style><link rel="stylesheet" href="/_astro/Base.B9kv2mTn.css"><link rel="stylesheet" href="/_astro/vedabase.BXiRVqqD.css"><script type="module" src="/_astro/page.R81pKFVA.js"></script></head> <body data-astro-cid-5hce7sga> <div class="use-font-serif justify" id="theme-wrapper" data-astro-cid-5hce7sga> <script>
+/* The head script above fixes <html> before first paint, but #theme-wrapper
+   does not exist yet at that point, so it used to be corrected only on
+   DOMContentLoaded — after the page was already visible. The wrapper wins on
+   CSS specificity for theme/font/justify, so that late swap relaid out the
+   whole document: Web Analytics logged CLS up to 0.491 on body and 0.378 on
+   div.av-purport for readers whose saved preferences differ from the
+   defaults shipped in the markup.
+   Running the same sync here, inline right after the element, executes it
+   during parsing — the wrapper exists, nothing below has painted yet. The
+   DOMContentLoaded pass stays as a safety net. */
+(function(){
+  try {
+    var w = document.getElementById('theme-wrapper');
+    if (!w) return;
+    var html = document.documentElement;
+    if (html.classList.contains('theme-dark'))   { w.classList.remove('theme-light');   w.classList.add('theme-dark'); }
+    if (html.classList.contains('use-font-sans')){ w.classList.remove('use-font-serif'); w.classList.add('use-font-sans'); }
+    if (html.classList.contains('no-justify'))   { w.classList.remove('justify');        w.classList.add('no-justify'); }
+  } catch(e) {}
+})();
+</script> <div style="background:var(--color-vb-body,#fffdf7)" data-astro-cid-5hce7sga> <div style="display:flex;flex-direction:column;min-height:100vh;min-height:100dvh;color:var(--color-vb-normal-text,#1f2937)" data-astro-cid-5hce7sga> <div id="vb-header" style="width:100%;z-index:30;background:rgba(var(--color-vb-body-rgb,255,253,247),0.95);" data-astro-cid-3ef6ksr2> <nav style="width:100%;position:static;margin-bottom:0.25rem;font-size:1rem;" data-astro-cid-3ef6ksr2> <!-- Bar 1: Logo + Language --> <div style="background:var(--color-vb-header-top,#92400e);padding-top:1rem;padding-bottom:1rem;" data-astro-cid-3ef6ksr2> <div class="hdr-bar1-inner" style="align-items:center;max-width:80rem;margin-left:auto;margin-right:auto;display:flex;padding-left:1rem;padding-right:1rem;" data-astro-cid-3ef6ksr2> <div style="align-items:center;justify-content:space-between;display:block;" data-astro-cid-3ef6ksr2> <a style="color:var(--color-vb-header-top-text,#fff);font-family:var(--vb-font-noto-sans-vedabase,-apple-system,BlinkMacSystemFont,sans-serif);text-decoration:none;" href="/en" data-astro-cid-3ef6ksr2> <span style="font-size:1.25rem;font-weight:700;display:block;line-height:1.2;" data-astro-cid-3ef6ksr2>Vedabase<span class="hdr-original-full" data-astro-cid-3ef6ksr2> Original</span></span> <span style="font-size:0.7rem;opacity:0.8;font-weight:400;" data-astro-cid-3ef6ksr2>The books as Śrīla Prabhupāda wrote them</span> </a> </div> <div style="flex:1 1 0%;display:block;padding-bottom:0;margin-top:0;" data-astro-cid-3ef6ksr2> <ul class="hdr-space-x" style="justify-content:flex-end;align-items:center;display:flex;" data-astro-cid-3ef6ksr2> <!-- Theme quick-toggle --> <li style="color:var(--color-vb-header-top-text,#fff);display:inline-flex;align-items:center;" data-astro-cid-3ef6ksr2> <button id="hdr-theme-quick" type="button" aria-label="Toggle theme" title="Toggle theme" style="background:transparent;border:none;color:inherit;cursor:pointer;padding:6px;line-height:0;display:inline-flex;align-items:center;" data-astro-cid-3ef6ksr2> <svg id="hdr-theme-icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none" data-astro-cid-3ef6ksr2><circle cx="12" cy="12" r="4" data-astro-cid-3ef6ksr2></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" data-astro-cid-3ef6ksr2></path></svg> <svg id="hdr-theme-icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-astro-cid-3ef6ksr2><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" data-astro-cid-3ef6ksr2></path></svg> </button> </li> <!-- Settings --> <li style="color:var(--color-vb-header-top-text,#fff);cursor:pointer;display:inline-flex;align-items:center;position:relative;" data-astro-cid-3ef6ksr2> <button type="button" id="settings-toggle" aria-haspopup="true" aria-expanded="false" aria-controls="settings-dropdown" aria-label="Settings" style="cursor:pointer;display:flex;align-items:center;border:none;background:none;color:inherit;font:inherit;padding:0;" data-astro-cid-3ef6ksr2> <svg style="margin-right:4px;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" data-astro-cid-3ef6ksr2><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" data-astro-cid-3ef6ksr2></path><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" data-astro-cid-3ef6ksr2></path></svg> <span class="hdr-lang-name-full" data-astro-cid-3ef6ksr2>Settings</span> <svg style="margin-left:4px;" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" data-astro-cid-3ef6ksr2><path d="M7 10l5 5 5-5z" data-astro-cid-3ef6ksr2></path></svg> </button> <div id="settings-dropdown" style="visibility:hidden;opacity:0;transition:opacity 0.12s;position:absolute;inset-inline-end:0;top:32px;z-index:9999;background:#fff;border:1px solid #ddd;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.15);padding:16px 20px;min-width:240px;color:#333;font-size:14px;contain:layout paint;" data-astro-cid-3ef6ksr2> <div style="font-weight:700;margin-bottom:12px;font-size:15px;" data-astro-cid-3ef6ksr2>Settings</div> <div style="margin-bottom:14px;" data-astro-cid-3ef6ksr2> <div style="margin-bottom:6px;font-weight:600;" data-astro-cid-3ef6ksr2>Font Size</div> <div style="display:flex;align-items:center;gap:8px;" data-astro-cid-3ef6ksr2> <button style="width:44px;height:44px;border:1px solid #ccc;border-radius:6px;background:#f5f5f5;cursor:pointer;font-size:16px;font-weight:700;" data-astro-cid-3ef6ksr2>A-</button> <span id="vb-fontsize-label" style="flex:1;text-align:center;font-size:13px;color:#888;" data-astro-cid-3ef6ksr2>Normal</span> <button style="width:44px;height:44px;border:1px solid #ccc;border-radius:6px;background:#f5f5f5;cursor:pointer;font-size:16px;font-weight:700;" data-astro-cid-3ef6ksr2>A+</button> </div> </div> <div style="margin-bottom:14px;" data-astro-cid-3ef6ksr2> <div style="margin-bottom:6px;font-weight:600;" data-astro-cid-3ef6ksr2>Font</div> <div style="display:flex;gap:6px;" data-astro-cid-3ef6ksr2> <button id="vb-font-serif-btn" style="flex:1;padding:12px 6px;border:1px solid #ccc;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:13px;" data-astro-cid-3ef6ksr2>Serif</button> <button id="vb-font-sans-btn" style="flex:1;padding:12px 6px;border:1px solid #ccc;border-radius:6px;cursor:pointer;font-family:sans-serif;font-size:13px;" data-astro-cid-3ef6ksr2>Sans</button> </div> </div> </div> </li> <!-- Language --> <li style="color:var(--color-vb-header-top-text,#fff);cursor:pointer;display:inline-flex;align-items:center;position:relative;" data-astro-cid-3ef6ksr2> <button type="button" id="lang-toggle" aria-haspopup="true" aria-expanded="false" aria-controls="lang-dropdown" aria-label="English" style="cursor:pointer;display:flex;align-items:center;border:none;background:none;color:inherit;font:inherit;padding:0;" data-astro-cid-3ef6ksr2> <svg style="margin-right:6px;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-astro-cid-3ef6ksr2><circle cx="12" cy="12" r="10" data-astro-cid-3ef6ksr2></circle><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" data-astro-cid-3ef6ksr2></path></svg> <span class="hdr-lang-name-full" data-astro-cid-3ef6ksr2>English</span> <span class="hdr-lang-name-short" style="text-transform:uppercase;" data-astro-cid-3ef6ksr2>en</span> <svg style="margin-left:4px;" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" data-astro-cid-3ef6ksr2><path d="M7 10l5 5 5-5z" data-astro-cid-3ef6ksr2></path></svg> </button> <div id="lang-dropdown" style="visibility:hidden;opacity:0;transition:opacity 0.12s;position:absolute;inset-inline-end:0;top:32px;z-index:9999;background:#fff;border:1px solid #ddd;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.15);padding:8px 0;min-width:200px;max-height:400px;overflow-y:auto;contain:layout paint;" data-astro-cid-3ef6ksr2> <a style="display:block;padding:8px 16px;font-size:14px;color:#333;text-decoration:none;cursor:pointer;font-weight:bold;background:#f5f5f5;" href="/cc/adi/" data-lang-code="en" data-astro-cid-3ef6ksr2> English <span style="color:#999;text-transform:uppercase;font-size:11px;" data-astro-cid-3ef6ksr2>en</span> </a><a style="display:block;padding:8px 16px;font-size:14px;color:#333;text-decoration:none;cursor:pointer;" href="/es/cc/adi/" data-lang-code="es" data-astro-cid-3ef6ksr2> Español <span style="color:#999;text-transform:uppercase;font-size:11px;" data-astro-cid-3ef6ksr2>es</span> </a><a style="display:block;padding:8px 16px;font-size:14px;color:#333;text-decoration:none;cursor:pointer;" href="/pt/cc/adi/" data-lang-code="pt" data-astro-cid-3ef6ksr2> Português <span style="color:#999;text-transform:uppercase;font-size:11px;" data-astro-cid-3ef6ksr2>pt</span> </a><a style="display:block;padding:8px 16px;font-size:14px;color:#333;text-decoration:none;cursor:pointer;" href="/hi/cc/adi/" data-lang-code="hi" data-astro-cid-3ef6ksr2> हिन्दी <span style="color:#999;text-transform:uppercase;font-size:11px;" data-astro-cid-3ef6ksr2>hi</span> </a><a style="display:block;padding:8px 16px;font-size:14px;color:#333;text-decoration:none;cursor:pointer;" href="/ru/cc/adi/" data-lang-code="ru" data-astro-cid-3ef6ksr2> Russian <span style="color:#999;text-transform:uppercase;font-size:11px;" data-astro-cid-3ef6ksr2>ru</span> </a><a style="display:block;padding:8px 16px;font-size:14px;color:#333;text-decoration:none;cursor:pointer;" href="/ar/" data-lang-code="ar" data-astro-cid-3ef6ksr2> العربية <span style="color:#999;text-transform:uppercase;font-size:11px;" data-astro-cid-3ef6ksr2>ar</span> </a> </div> </li> </ul> </div> </div> </div> <!-- Bar 2: Nav links + Search --> <div style="background:var(--color-vb-header-bottom,#fef3c7);" data-astro-cid-3ef6ksr2> <div class="hdr-bar2-inner" style="align-items:center;padding-left:1rem;padding-right:1rem;max-width:80rem;margin-left:auto;margin-right:auto;display:flex;padding-top:0.75rem;padding-bottom:0.75rem;" data-astro-cid-3ef6ksr2> <div class="hdr-hamburger" style="align-items:center;" data-astro-cid-3ef6ksr2> <button id="mobile-menu-btn" class="hdr-menu-btn" style="color:var(--color-vb-normal-text,#1f2937);background:none;border:none;cursor:pointer;" aria-label="Main Menu" data-astro-cid-3ef6ksr2> <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" data-astro-cid-3ef6ksr2><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" data-astro-cid-3ef6ksr2></path></svg> </button> </div> <div class="hdr-desktop-nav" style="flex:1 1 0%;align-items:center;" data-astro-cid-3ef6ksr2> <ul class="hdr-desktop-nav-ul" style="justify-content:flex-start;align-items:center;" data-astro-cid-3ef6ksr2> <li class="hdr-dd-wrap" data-astro-cid-3ef6ksr2><a class="hdr-nav-link" style="display:block;font-weight:600;font-size:0.875rem;color:var(--color-vb-normal-text,#1f2937);" href="/en/library/" data-astro-cid-3ef6ksr2>Books</a> <div class="hdr-dd-panel" data-astro-cid-3ef6ksr2> <a href="/en/library/" data-astro-cid-3ef6ksr2>All books</a> <a href="/en/tools/audio/" data-astro-cid-3ef6ksr2>Audio</a> <a href="/music/" data-astro-cid-3ef6ksr2>Music</a> <a href="/en/library/transcripts/" data-astro-cid-3ef6ksr2>Transcripts</a> <a href="/en/library/letters/" data-astro-cid-3ef6ksr2>Letters</a> <a href="/en/library/btg/" data-astro-cid-3ef6ksr2>BTG</a> </div> </li> <li class="hdr-dd-wrap" data-astro-cid-3ef6ksr2><a class="hdr-nav-link" style="display:block;font-weight:600;font-size:0.875rem;color:var(--color-vb-normal-text,#1f2937);" href="/en/study/word-index/" data-astro-cid-3ef6ksr2>Study</a> <div class="hdr-dd-panel" data-astro-cid-3ef6ksr2> <a href="/en/study/word-index/" data-astro-cid-3ef6ksr2>Word Index</a> <a href="/en/study/sanskrit-index/" data-astro-cid-3ef6ksr2>Sanskrit Verses</a> <a href="/en/study/siksamrta/" data-astro-cid-3ef6ksr2>Sikṣāmṛta</a> <a href="/en/qa/" data-astro-cid-3ef6ksr2>Q&amp;A</a>  <a href="/en/changes/" data-astro-cid-3ef6ksr2>Bhagavad-gītā changes</a> <a href="/en/changes/what-prabhupada-said/" data-astro-cid-3ef6ksr2>What Prabhupāda said</a> </div> </li>  <li class="hdr-dd-wrap" data-astro-cid-3ef6ksr2><a class="hdr-nav-link" style="display:block;font-weight:600;font-size:0.875rem;color:var(--color-vb-normal-text,#1f2937);" href="/en/tools/" data-astro-cid-3ef6ksr2>Tools</a> <div class="hdr-dd-panel" data-astro-cid-3ef6ksr2> <a href="/en/tools/apps/" data-astro-cid-3ef6ksr2>Offline Apps</a> <a href="/en/tools/downloads/" data-astro-cid-3ef6ksr2>Downloads</a> <a href="/en/tools/ai/" data-astro-cid-3ef6ksr2>AI Search</a> <a href="/en/tools/research/" data-astro-cid-3ef6ksr2>Research</a> <a href="/disciples/" data-astro-cid-3ef6ksr2>Disciples</a> </div> </li> <li class="hdr-dd-wrap" data-astro-cid-3ef6ksr2><a class="hdr-nav-link" style="display:block;font-weight:600;font-size:0.875rem;color:var(--color-vb-normal-text,#1f2937);" href="/en/about/" data-astro-cid-3ef6ksr2>About</a> <div class="hdr-dd-panel" data-astro-cid-3ef6ksr2> <a href="/en/about/" data-astro-cid-3ef6ksr2>Originals</a> <a href="/en/tools/preservation/" data-astro-cid-3ef6ksr2>Preservation</a> <a href="/print-errata/" data-astro-cid-3ef6ksr2>Print errata</a> <a href="/en/about/first-printings/" data-astro-cid-3ef6ksr2>How to tell a first printing</a> <a href="/en/contact/" data-astro-cid-3ef6ksr2>Contact</a> </div> </li> <li data-astro-cid-3ef6ksr2><a class="hdr-nav-link" style="display:block;font-weight:600;font-size:0.875rem;color:var(--color-vb-normal-text,#1f2937);" href="/en/explore/" data-astro-cid-3ef6ksr2>Explore</a></li> <li data-astro-cid-3ef6ksr2><a class="hdr-nav-link" style="display:block;font-weight:600;font-size:0.875rem;color:var(--color-vb-normal-text,#1f2937);" href="/en/blog/" data-astro-cid-3ef6ksr2>Blog</a></li> <li data-astro-cid-3ef6ksr2><a class="hdr-nav-link" style="display:block;font-weight:600;font-size:0.875rem;color:var(--color-vb-normal-text,#1f2937);" href="/en/donate/" data-astro-cid-3ef6ksr2>Donate</a></li> <li class="hdr-tip-wrap" data-astro-cid-3ef6ksr2><a class="hdr-nav-link" style="display:block;font-weight:600;font-size:0.875rem;color:var(--color-vb-normal-text,#1f2937);" href="/permanent-copy/" data-astro-cid-3ef6ksr2>Archive</a> <div class="hdr-tip" data-astro-cid-3ef6ksr2>A full copy of these books is stored on a public archive that no one can change or delete — not even us. If this site ever disappears, the text remains.</div> </li> </ul> </div> <div class="hdr-search-wrap" style="flex:1 1 0%;display:flex;align-items:center;justify-content:flex-end;margin-top:0.25rem;margin-bottom:0.25rem;margin-left:0.75rem;position:relative;" data-astro-cid-3ef6ksr2> <div class="hdr-search-box" style="background:rgba(var(--color-vb-body-rgb,255,253,247),0.5);border:1px solid;border-color:rgba(var(--color-vb-header-top-rgb,146,64,14),0.7);display:flex;align-items:center;border-radius:0.5rem;height:2.5rem;padding-left:0.75rem;padding-right:0.75rem;width:100%;" data-astro-cid-3ef6ksr2> <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="flex-shrink:0;opacity:0.5;" data-astro-cid-3ef6ksr2><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" data-astro-cid-3ef6ksr2></path></svg> <form id="hdr-search-form" action="/en/search/" role="search" style="display:flex;align-items:center;flex:1;" data-astro-cid-3ef6ksr2> <input id="hdr-search-input" type="text" placeholder="Search books, BTG, Q&amp;A…" aria-label="Search books, BTG, Q&amp;A…" name="query" autocomplete="off" style="background:transparent;border:none;outline:none;font-size:0.875rem;margin-left:0.5rem;width:100%;" data-astro-cid-3ef6ksr2> </form> <button id="hdr-search-help-btn" type="button" aria-label="Search tips" aria-expanded="false" title="Search tips" style="flex-shrink:0;margin-left:6px;width:1.35rem;height:1.35rem;border-radius:9999px;border:1px solid rgba(var(--color-vb-header-top-rgb,146,64,14),0.5);background:transparent;color:var(--color-vb-normal-text,#1f2937);opacity:0.55;cursor:pointer;font-size:0.78rem;line-height:1;font-weight:700;padding:0;" data-astro-cid-3ef6ksr2>?</button> </div> <div id="hdr-search-ac" data-lang="en" data-tips-title="Search tips" data-tip-q="Put &quot;quotes&quot; around an exact phrase." data-tip-w="Several words: results must contain them all." data-no-results="No matches" data-see-all="See all results" style="display:none;position:absolute;top:100%;right:0;left:0;margin-top:4px;background:var(--color-vb-body,#fffdf7);border:1px solid rgba(var(--color-vb-header-top-rgb,146,64,14),0.4);border-radius:0.5rem;box-shadow:0 6px 18px rgba(0,0,0,0.15);max-height:60vh;overflow-y:auto;z-index:8000;font-size:0.85rem;" data-astro-cid-3ef6ksr2></div> <div id="hdr-search-help" role="dialog" aria-label="Search tips" style="display:none;position:absolute;top:100%;right:0;margin-top:6px;width:19rem;max-width:82vw;background:var(--color-vb-body,#fffdf7);border:1px solid rgba(var(--color-vb-header-top-rgb,146,64,14),0.4);border-radius:0.5rem;box-shadow:0 6px 18px rgba(0,0,0,0.15);z-index:8100;padding:12px 14px;font-size:0.85rem;line-height:1.5;color:var(--color-vb-normal-text,#1f2937);" data-astro-cid-3ef6ksr2> <div style="font-weight:700;margin-bottom:6px;" data-astro-cid-3ef6ksr2>Search tips</div> <div style="margin-bottom:5px;" data-astro-cid-3ef6ksr2><span style="font-family:ui-monospace,monospace;background:rgba(0,0,0,0.06);padding:0 4px;border-radius:3px;" data-astro-cid-3ef6ksr2>&quot;&hellip;&quot;</span> Put &quot;quotes&quot; around an exact phrase.</div> <div style="opacity:0.8;" data-astro-cid-3ef6ksr2>Several words: results must contain them all.</div> </div> </div> <script>
+(function(){
+  var inp = document.getElementById('hdr-search-input');
+  var box = document.getElementById('hdr-search-ac');
+  var form = document.getElementById('hdr-search-form');
+  if (!inp || !box || !form) return;
+  var lang = box.getAttribute('data-lang') || 'en';
+  var timer = null, lastQ = '', controller = null;
+  function esc(s){ return (s||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+  function hide(){ box.style.display='none'; box.innerHTML=''; }
+  var tipsTitle = box.getAttribute('data-tips-title')||'';
+  var tipQ = box.getAttribute('data-tip-q')||'';
+  var tipW = box.getAttribute('data-tip-w')||'';
+  function showTips(){
+    if (!tipQ && !tipW) { hide(); return; }
+    box.innerHTML = '<div style="padding:10px 12px;opacity:0.85;line-height:1.5;">'
+      + (tipsTitle?'<div style="font-weight:600;margin-bottom:4px;">'+esc(tipsTitle)+'</div>':'')
+      + '<div style="margin-bottom:3px;"><span style="font-family:ui-monospace,monospace;background:rgba(0,0,0,0.06);padding:0 4px;border-radius:3px;">&quot;&hellip;&quot;</span> '+esc(tipQ)+'</div>'
+      + '<div style="opacity:0.85;">'+esc(tipW)+'</div></div>';
+    box.style.display='block';
+  }
+  var noResultsLabel = box.getAttribute('data-no-results') || 'No matches';
+  var seeAllLabel = box.getAttribute('data-see-all') || 'See all results';
+  function enlace(url, destacado){
+    var a = document.createElement('a');
+    a.setAttribute('href', url);
+    a.style.cssText = 'display:block;padding:8px 12px;text-decoration:none;'
+      + (destacado
+          ? 'color:var(--color-vb-link,#1a7a6d);font-weight:600;text-align:center;'
+          : 'color:inherit;border-bottom:1px solid rgba(0,0,0,0.05);');
+    return a;
+  }
+  function linea(texto, css){
+    var d = document.createElement('div');
+    d.style.cssText = css;
+    d.textContent = texto;
+    return d;
+  }
+  // Las filas se construyen con el DOM en lugar de concatenar HTML. Una
+  // plantilla que escriba el atributo href dentro de un <script> queda en el
+  // HTML que se sirve, y Google la lee como un enlace de verdad: llevaba
+  // tiempo pidiendo /en/'+u+' y su equivalente en cada idioma y seccion,
+  // todas 404. Con nodos del DOM el problema no puede volver.
+  function render(items, q){
+    box.textContent = '';
+    if (!items.length) {
+      box.appendChild(linea(noResultsLabel, 'padding:10px 12px;opacity:0.6;'));
+      box.style.display = 'block';
+      return;
+    }
+    items.forEach(function(it){
+      // The API already returns per-language URLs (lang param below) --
+      // the old /en/ -> /lang/ patch-up was ineffective for short book URLs.
+      var a = enlace(it.url || '#', false);
+      a.appendChild(linea(it.title || '', 'font-weight:600;'));
+      var sn = (it.translation || '').slice(0, 110);
+      if (sn) a.appendChild(linea(sn, 'opacity:0.6;font-size:0.8rem;margin-top:2px;line-height:1.35;'));
+      box.appendChild(a);
+    });
+    var todos = enlace('/' + lang + '/search/?query=' + encodeURIComponent(q), true);
+    todos.textContent = seeAllLabel + ' \u2192';
+    box.appendChild(todos);
+    box.style.display = 'block';
+  }
+  function fetchSuggestions(q){
+    if (controller) controller.abort();
+    controller = new AbortController();
+    fetch('/api/search?query='+encodeURIComponent(q)+'&page=1&lang='+encodeURIComponent(lang), { signal: controller.signal })
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (q !== lastQ) return;
+        render((d.results || []).slice(0,6), q);
+      }).catch(function(){});
+  }
+  inp.addEventListener('input', function(){
+    var q = inp.value.trim();
+    lastQ = q;
+    if (timer) clearTimeout(timer);
+    if (q.length < 2) { showTips(); return; }
+    timer = setTimeout(function(){ fetchSuggestions(q); }, 180);
+  });
+  inp.addEventListener('focus', function(){
+    if (inp.value.trim().length >= 2) box.style.display = 'block';
+    else showTips();
+  });
+  document.addEventListener('click', function(e){
+    if (!box.contains(e.target) && e.target !== inp) hide();
+  });
+  inp.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') { hide(); inp.blur(); }
+  });
+  var help = document.getElementById('hdr-search-help');
+  var helpBtn = document.getElementById('hdr-search-help-btn');
+  if (help && helpBtn) {
+    var closeHelp = function(){ help.style.display='none'; helpBtn.setAttribute('aria-expanded','false'); };
+    helpBtn.addEventListener('click', function(e){
+      e.preventDefault(); e.stopPropagation();
+      if (help.style.display === 'block') { closeHelp(); }
+      else { hide(); help.style.display='block'; helpBtn.setAttribute('aria-expanded','true'); }
+    });
+    document.addEventListener('click', function(e){
+      if (help.style.display==='block' && !help.contains(e.target) && e.target!==helpBtn) closeHelp();
+    });
+    document.addEventListener('keydown', function(e){ if (e.key==='Escape') closeHelp(); });
+  }
+})();
+</script> <a href="/en/bookmarks/" class="hdr-bm-btn" style="display:flex;align-items:center;gap:4px;margin-left:10px;padding:6px 12px;border-radius:0.375rem;border:1px solid rgba(var(--color-vb-header-top-rgb,146,64,14),0.4);color:var(--color-vb-normal-text,#1f2937);text-decoration:none;font-size:0.8rem;font-family:sans-serif;white-space:nowrap;opacity:0.7;" data-astro-cid-3ef6ksr2> <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" data-astro-cid-3ef6ksr2><path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" data-astro-cid-3ef6ksr2></path></svg> <span class="hdr-bm-label" data-astro-cid-3ef6ksr2>My Bookmarks</span> </a> </div> <!-- Mobile menu --> <div id="mobile-menu" class="hdr-mobile-menu" style="display:none;background:var(--color-vb-header-bottom,#fef3c7);padding-left:1rem;padding-right:1rem;padding-bottom:1rem;border-top:1px solid rgba(0,0,0,0.1);" data-astro-cid-3ef6ksr2> <ul class="hdr-mobile-menu-list" style="padding-top:12px;" data-astro-cid-3ef6ksr2> <li data-astro-cid-3ef6ksr2><a class="hdr-nav-link" style="display:block;font-weight:600;font-size:0.875rem;color:var(--color-vb-normal-text,#1f2937);" href="/en/library/" data-astro-cid-3ef6ksr2>Books</a></li> <li style="padding-left:1rem;" data-astro-cid-3ef6ksr2><a class="hdr-nav-link" style="display:block;font-size:0.8rem;color:var(--color-vb-normal-text,#1f2937);opacity:0.7;" href="/en/library/" data-astro-cid-3ef6ksr2>All books</a></li> <li style="padding-left:1rem;" data-astro-cid-3ef6ksr2><a class="hdr-nav-link" style="display:block;font-size:0.8rem;color:var(--color-vb-normal-text,#1f2937);opacity:0.7;" href="/en/tools/audio/" data-astro-cid-3ef6ksr2>Audio</a></li> <li style="padding-left:1rem;" data-astro-cid-3ef6ksr2><a class="hdr-nav-link" style="display:block;font-size:0.8rem;color:var(--color-vb-normal-text,#1f2937);opacity:0.7;" href="/music/" data-astro-cid-3ef6ksr2>Music</a></li> <li style="padding-left:1rem;" data-astro-cid-3ef6ksr2><a class="hdr-nav-link" style="display:block;font-size:0.8rem;color:var(--color-vb-normal-text,#1f2937);opacity:0.7;" href="/en/library/transcripts/" data-astro-cid-3ef6ksr2>Transcripts</a></li> <li style="padding-left:1rem;" data-astro-cid-3ef6ksr2><a class="hdr-nav-link" style="display:block;font-size:0.8rem;color:var(--color-vb-normal-text,#1f2937);opacity:0.7;" href="/en/library/letters/" data-astro-cid-3ef6ksr2>Letters</a></li> <li style="padding-left:1rem;" data-astro-cid-3ef6ksr2><a class="hdr-nav-link" style="display:block;font-size:0.8rem;color:var(--color-vb-normal-text,#1f2937);opacity:0.7;" href="/en/library/btg/" data-astro-cid-3ef6ksr2>BTG</a></li> <li data-astro-cid-3ef6ksr2><a class="hdr-nav-link" style="display:block;font-weight:600;font-size:0.875rem;color:var(--color-vb-normal-text,#1f2937);" href="/en/study/word-index/" data-astro-cid-3ef6ksr2>Study</a></li> <li style="padding-left:1rem;" data-astro-cid-3ef6ksr2><a class="hdr-nav-link" style="display:block;font-size:0.8rem;color:var(--color-vb-normal-text,#1f2937);opacity:0.7;" href="/en/study/word-index/" data-astro-cid-3ef6ksr2>Word Index</a></li> <li style="padding-left:1rem;" data-astro-cid-3ef6ksr2><a class="hdr-nav-link" style="display:block;font-size:0.8rem;color:var(--color-vb-normal-text,#1f2937);opacity:0.7;" href="/en/study/sanskrit-index/" data-astro-cid-3ef6ksr2>Sanskrit Verses</a></li> <li style="padding-left:1rem;" data-astro-cid-3ef6ksr2><a class="hdr-nav-link" style="display:block;font-size:0.8rem;color:var(--color-vb-normal-text,#1f2937);opacity:0.7;" href="/en/study/siksamrta/" data-astro-cid-3ef6ksr2>Sikṣāmṛta</a></li> <li style="padding-left:1rem;" data-astro-cid-3ef6ksr2><a class="hdr-nav-link" style="display:block;font-size:0.8rem;color:var(--color-vb-normal-text,#1f2937);opacity:0.7;" href="/en/qa/" data-astro-cid-3ef6ksr2>Q&amp;A</a></li> <li style="padding-left:1rem;" data-astro-cid-3ef6ksr2><a class="hdr-nav-link" style="display:block;font-size:0.8rem;color:var(--color-vb-normal-text,#1f2937);opacity:0.7;" href="/en/changes/" data-astro-cid-3ef6ksr2>Bhagavad-gītā changes</a></li> <li style="padding-left:1rem;" data-astro-cid-3ef6ksr2><a class="hdr-nav-link" style="display:block;font-size:0.8rem;color:var(--color-vb-normal-text,#1f2937);opacity:0.7;" href="/en/changes/what-prabhupada-said/" data-astro-cid-3ef6ksr2>What Prabhupāda said</a></li> <li data-astro-cid-3ef6ksr2><a class="hdr-nav-link" style="display:block;font-weight:600;font-size:0.875rem;color:var(--color-vb-normal-text,#1f2937);" href="/en/tools/" data-astro-cid-3ef6ksr2>Tools</a></li> <li style="padding-left:1rem;" data-astro-cid-3ef6ksr2><a class="hdr-nav-link" style="display:block;font-size:0.8rem;color:var(--color-vb-normal-text,#1f2937);opacity:0.7;" href="/en/tools/apps/" data-astro-cid-3ef6ksr2>Offline Apps</a></li> <li style="padding-left:1rem;" data-astro-cid-3ef6ksr2><a class="hdr-nav-link" style="display:block;font-size:0.8rem;color:var(--color-vb-normal-text,#1f2937);opacity:0.7;" href="/en/tools/downloads/" data-astro-cid-3ef6ksr2>Downloads</a></li> <li style="padding-left:1rem;" data-astro-cid-3ef6ksr2><a class="hdr-nav-link" style="display:block;font-size:0.8rem;color:var(--color-vb-normal-text,#1f2937);opacity:0.7;" href="/en/tools/ai/" data-astro-cid-3ef6ksr2>AI Search</a></li> <li style="padding-left:1rem;" data-astro-cid-3ef6ksr2><a class="hdr-nav-link" style="display:block;font-size:0.8rem;color:var(--color-vb-normal-text,#1f2937);opacity:0.7;" href="/en/tools/research/" data-astro-cid-3ef6ksr2>Research</a></li> <li style="padding-left:1rem;" data-astro-cid-3ef6ksr2><a class="hdr-nav-link" style="display:block;font-size:0.8rem;color:var(--color-vb-normal-text,#1f2937);opacity:0.7;" href="/disciples/" data-astro-cid-3ef6ksr2>Disciples</a></li> <li data-astro-cid-3ef6ksr2><a class="hdr-nav-link" style="display:block;font-weight:600;font-size:0.875rem;color:var(--color-vb-normal-text,#1f2937);" href="/en/about/" data-astro-cid-3ef6ksr2>About</a></li> <li data-astro-cid-3ef6ksr2><a class="hdr-nav-link" style="display:block;font-weight:600;font-size:0.875rem;color:var(--color-vb-normal-text,#1f2937);" href="/en/explore/" data-astro-cid-3ef6ksr2>Explore</a></li> <li data-astro-cid-3ef6ksr2><a class="hdr-nav-link" style="display:block;font-weight:600;font-size:0.875rem;color:var(--color-vb-normal-text,#1f2937);" href="/en/blog/" data-astro-cid-3ef6ksr2>Blog</a></li> <li style="padding-left:1rem;" data-astro-cid-3ef6ksr2><a class="hdr-nav-link" style="display:block;font-size:0.8rem;color:var(--color-vb-normal-text,#1f2937);opacity:0.7;" href="/en/tools/preservation/" data-astro-cid-3ef6ksr2>Preservation</a></li> <li style="padding-left:1rem;" data-astro-cid-3ef6ksr2><a class="hdr-nav-link" style="display:block;font-size:0.8rem;color:var(--color-vb-normal-text,#1f2937);opacity:0.7;" href="/print-errata/" data-astro-cid-3ef6ksr2>Print errata</a></li> <li style="padding-left:1rem;" data-astro-cid-3ef6ksr2><a class="hdr-nav-link" style="display:block;font-size:0.8rem;color:var(--color-vb-normal-text,#1f2937);opacity:0.7;" href="/en/about/first-printings/" data-astro-cid-3ef6ksr2>How to tell a first printing</a></li> <li style="padding-left:1rem;" data-astro-cid-3ef6ksr2><a class="hdr-nav-link" style="display:block;font-size:0.8rem;color:var(--color-vb-normal-text,#1f2937);opacity:0.7;" href="/en/contact/" data-astro-cid-3ef6ksr2>Contact</a></li> <li data-astro-cid-3ef6ksr2><a class="hdr-nav-link" style="display:block;font-weight:600;font-size:0.875rem;color:var(--color-vb-normal-text,#1f2937);" href="/en/donate/" data-astro-cid-3ef6ksr2>Donate</a></li> <li data-astro-cid-3ef6ksr2><a class="hdr-nav-link" style="display:block;font-weight:600;font-size:0.875rem;color:var(--color-vb-normal-text,#1f2937);" href="/permanent-copy/" data-astro-cid-3ef6ksr2>Archive</a></li> <li style="padding-top:0.5rem;border-top:1px solid rgba(0,0,0,0.1);margin-top:0.5rem;" data-astro-cid-3ef6ksr2><a class="hdr-nav-link" style="display:block;font-size:0.8rem;color:var(--color-vb-normal-text,#1f2937);opacity:0.6;" href="/en/search/" data-astro-cid-3ef6ksr2>Search</a></li> </ul> </div> </div> </nav> </div> <script>
+// Use visibility+opacity (no reflow) for the lang/settings dropdowns to
+// keep INP low; display:none/block was forcing the browser to recompute
+// layout for the whole page on each open (~640ms on slow mobiles).
+function vbToggleDD(id) {
+  var dd = document.getElementById(id);
+  if (!dd) return;
+  var open = dd.style.visibility === 'visible';
+  dd.style.visibility = open ? 'hidden' : 'visible';
+  dd.style.opacity = open ? '0' : '1';
+  // Keep the trigger button's aria-expanded in sync (id is "<x>-dropdown").
+  var toggle = document.getElementById(id.replace('-dropdown', '-toggle'));
+  if (toggle) toggle.setAttribute('aria-expanded', open ? 'false' : 'true');
+}
+document.getElementById('settings-toggle')?.addEventListener('click', function() { vbToggleDD('settings-dropdown'); });
+document.getElementById('lang-toggle')?.addEventListener('click', function() { vbToggleDD('lang-dropdown'); });
+document.getElementById('mobile-menu-btn')?.addEventListener('click', function() {
+  var m = document.getElementById('mobile-menu');
+  if (!m) return;
+  var willOpen = m.style.display !== 'block';
+  m.style.display = willOpen ? 'block' : 'none';
+  this.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+});
+// Close-on-outside-click: deferred via rAF so it never fires synchronously
+// inside the same frame as the click — keeps the dropdown click's INP fast.
+document.addEventListener('click', function(e) {
+  var target = e.target;
+  requestAnimationFrame(function() {
+    ['settings', 'lang'].forEach(function(id) {
+      var toggle = document.getElementById(id + '-toggle');
+      var dropdown = document.getElementById(id + '-dropdown');
+      if (toggle && dropdown && !toggle.contains(target) && !dropdown.contains(target)) {
+        dropdown.style.visibility = 'hidden';
+        dropdown.style.opacity = '0';
+        toggle.setAttribute('aria-expanded', 'false');
+      }
+    });
+  });
+});
+
+// Settings: Font Size
+var _fontSizes = ['font-size-1','font-size-2','font-size-3','font-size-4','font-size-5','font-size-6','font-size-7','font-size-8'];
+var _fontLabels = ['Tiny','Smaller','Small','Medium','Normal','Large','Larger','Largest'];
+function vbGetFontSizeIdx() {
+  var el = document.documentElement;
+  for (var i = 0; i < _fontSizes.length; i++) { if (el.classList.contains(_fontSizes[i])) return i; }
+  return 5;
+}
+function vbSetFontSize(delta) {
+  var cur = vbGetFontSizeIdx();
+  var next = Math.max(0, Math.min(_fontSizes.length - 1, cur + delta));
+  var el = document.documentElement;
+  _fontSizes.forEach(function(c) { el.classList.remove(c); });
+  el.classList.add(_fontSizes[next]);
+  var lbl = document.getElementById('vb-fontsize-label');
+  if (lbl) lbl.textContent = _fontLabels[next];
+  try { localStorage.setItem('vb-font-size', _fontSizes[next]); } catch(e) {}
+}
+function vbSetFont(f) {
+  var els = [document.documentElement, document.getElementById('theme-wrapper')].filter(Boolean);
+  els.forEach(function(el){
+    el.classList.remove('use-font-serif', 'use-font-sans');
+    el.classList.add('use-font-' + f);
+  });
+  vbHighlightBtn('vb-font-serif-btn', f === 'serif');
+  vbHighlightBtn('vb-font-sans-btn', f === 'sans');
+  try { localStorage.setItem('vb-font-family', f); } catch(e) {}
+}
+function vbSetTheme(t) {
+  var els = [document.documentElement, document.getElementById('theme-wrapper')].filter(Boolean);
+  els.forEach(function(el){
+    el.classList.remove('theme-light', 'theme-dark');
+    el.classList.add('theme-' + t);
+  });
+  // Also catch any other ad-hoc theme-tagged elements (e.g. /explore body).
+  document.querySelectorAll('.theme-light,.theme-dark').forEach(function(el) {
+    el.classList.remove('theme-light', 'theme-dark');
+    el.classList.add('theme-' + t);
+  });
+  try { localStorage.setItem('vb-theme', t); } catch(e) {}
+}
+function vbHighlightBtn(id, active) {
+  var btn = document.getElementById(id);
+  if (btn) { btn.style.background = active ? 'var(--color-vb-header-top,#92400e)' : '#f5f5f5';
+             btn.style.color = active ? '#fff' : '#333'; }
+}
+
+// Wire up settings buttons
+document.querySelectorAll('#settings-dropdown button').forEach(function(btn) {
+  var id = btn.id;
+  if (!id) return;
+  if (id === 'vb-font-serif-btn') btn.onclick = function() { vbSetFont('serif'); };
+  else if (id === 'vb-font-sans-btn') btn.onclick = function() { vbSetFont('sans'); };
+});
+// Font size buttons (A- and A+)
+var fsBtns = document.querySelectorAll('#settings-dropdown button:not([id])');
+if (fsBtns.length >= 2) {
+  fsBtns[0].onclick = function() { vbSetFontSize(-1); };
+  fsBtns[1].onclick = function() { vbSetFontSize(1); };
+}
+
+// Restore settings
+try {
+  var lbl = document.getElementById('vb-fontsize-label');
+  if (lbl) lbl.textContent = _fontLabels[vbGetFontSizeIdx()];
+  var curFont = document.documentElement.classList.contains('use-font-sans') ? 'sans' : 'serif';
+  vbHighlightBtn('vb-font-serif-btn', curFont === 'serif');
+  vbHighlightBtn('vb-font-sans-btn', curFont === 'sans');
+} catch(e) {}
+
+// Quick theme toggle in top bar — single click swap, plus icon sync.
+(function(){
+  function syncIcon(){
+    var dark = !!document.querySelector('.theme-dark');
+    var sun = document.getElementById('hdr-theme-icon-sun');
+    var moon = document.getElementById('hdr-theme-icon-moon');
+    if (sun)  sun.style.display  = dark ? 'inline' : 'none';
+    if (moon) moon.style.display = dark ? 'none'   : 'inline';
+  }
+  var btn = document.getElementById('hdr-theme-quick');
+  if (btn) {
+    btn.addEventListener('click', function(){
+      var dark = !!document.querySelector('.theme-dark');
+      vbSetTheme(dark ? 'light' : 'dark');
+      syncIcon();
+    });
+  }
+  syncIcon();
+})();
+
+// Highlight active nav link
+(function(){
+  var path = location.pathname;
+  document.querySelectorAll('.hdr-nav-link').forEach(function(link){
+    var href = link.getAttribute('href');
+    if (!href) return;
+    if (path === href || (href.split('/').length <= 4 && path.startsWith(href) && href !== '/' + path.split('/')[1] + '/')) {
+      link.classList.add('active');
+    }
+  });
+})();
+</script> <!-- Hindi is now live (BG + SB content in D1). The former "coming soon" modal
+     and click-interceptor were removed so the Hindi language link navigates
+     normally to /hi/. -->  <div class="vb-content"> <div class="breadcrumb" style="margin-bottom:2rem;font-size:1rem"> <ol> <li style="display:inline"> » <a style="color:var(--color-vb-link,#1a7a6d)" href="/en/library/">Library</a></li> <li style="display:inline"> » <a style="color:var(--color-vb-link,#1a7a6d)" href="/cc/">Śrī Caitanya-caritāmṛta</a></li> </ol> </div> <main> <h1 class="em-leading-5 em-text-3xl em-mb-3" style="text-align:center;margin-bottom:2rem;">Ādi-līlā — Śrī Caitanya-caritāmṛta</h1> <div style="max-width:48rem;margin:0 auto;"> <div style="margin-bottom:0.5rem;"> <a href="/cc/adi/0a/" style="display:block;padding:0.75rem 0;color:var(--color-vb-link,#b91c1c);font-weight:600;font-size:1.05rem;text-decoration:none;"> Preface </a> </div><div style="margin-bottom:0.5rem;"> <a href="/cc/adi/0b/" style="display:block;padding:0.75rem 0;color:var(--color-vb-link,#b91c1c);font-weight:600;font-size:1.05rem;text-decoration:none;"> Introduction </a> </div><div style="margin-bottom:0.5rem;"> <a href="/cc/adi/1/" style="display:block;padding:0.75rem 0;color:var(--color-vb-link,#b91c1c);font-weight:600;font-size:1.05rem;text-decoration:none;"> Chapter 1: The Spiritual Masters </a> </div><div style="margin-bottom:0.5rem;"> <a href="/cc/adi/2/" style="display:block;padding:0.75rem 0;color:var(--color-vb-link,#b91c1c);font-weight:600;font-size:1.05rem;text-decoration:none;"> Chapter 2: Śrī Caitanya Mahāprabhu, the Supreme Personality of Godhead </a> </div><div style="margin-bottom:0.5rem;"> <a href="/cc/adi/3/" style="display:block;padding:0.75rem 0;color:var(--color-vb-link,#b91c1c);font-weight:600;font-size:1.05rem;text-decoration:none;"> Chapter 3: The Causes for the Descent of Lord Caitanya Mahāprabhu </a> </div><div style="margin-bottom:0.5rem;"> <a href="/cc/adi/4/" style="display:block;padding:0.75rem 0;color:var(--color-vb-link,#b91c1c);font-weight:600;font-size:1.05rem;text-decoration:none;"> Chapter 4: The Confidential Reasons for the Appearance of Lord Caitanya </a> </div><div style="margin-bottom:0.5rem;"> <a href="/cc/adi/5/" style="display:block;padding:0.75rem 0;color:var(--color-vb-link,#b91c1c);font-weight:600;font-size:1.05rem;text-decoration:none;"> Chapter 5: The Glories of Lord Nityānanda Balarāma </a> </div><div style="margin-bottom:0.5rem;"> <a href="/cc/adi/6/" style="display:block;padding:0.75rem 0;color:var(--color-vb-link,#b91c1c);font-weight:600;font-size:1.05rem;text-decoration:none;"> Chapter 6: The Glories of Śrī Advaita Ācārya </a> </div><div style="margin-bottom:0.5rem;"> <a href="/cc/adi/7/" style="display:block;padding:0.75rem 0;color:var(--color-vb-link,#b91c1c);font-weight:600;font-size:1.05rem;text-decoration:none;"> Chapter 7: Lord Caitanya in Five Features </a> </div><div style="margin-bottom:0.5rem;"> <a href="/cc/adi/8/" style="display:block;padding:0.75rem 0;color:var(--color-vb-link,#b91c1c);font-weight:600;font-size:1.05rem;text-decoration:none;"> Chapter 8: The Author&#39;s Receiving the Orders of the Authorities, Kṛṣṇa and Guru </a> </div><div style="margin-bottom:0.5rem;"> <a href="/cc/adi/9/" style="display:block;padding:0.75rem 0;color:var(--color-vb-link,#b91c1c);font-weight:600;font-size:1.05rem;text-decoration:none;"> Chapter 9: The Tree of Devotional Service </a> </div><div style="margin-bottom:0.5rem;"> <a href="/cc/adi/10/" style="display:block;padding:0.75rem 0;color:var(--color-vb-link,#b91c1c);font-weight:600;font-size:1.05rem;text-decoration:none;"> Chapter 10: The Main Trunk of the Caitanya Tree, Its Branches and Its Sub-branches </a> </div><div style="margin-bottom:0.5rem;"> <a href="/cc/adi/11/" style="display:block;padding:0.75rem 0;color:var(--color-vb-link,#b91c1c);font-weight:600;font-size:1.05rem;text-decoration:none;"> Chapter 11: The Expansions of Lord Nityānanda </a> </div><div style="margin-bottom:0.5rem;"> <a href="/cc/adi/12/" style="display:block;padding:0.75rem 0;color:var(--color-vb-link,#b91c1c);font-weight:600;font-size:1.05rem;text-decoration:none;"> Chapter 12: The Expansions of Advaita Ācārya and Gadādhara Paṇḍita </a> </div><div style="margin-bottom:0.5rem;"> <a href="/cc/adi/13/" style="display:block;padding:0.75rem 0;color:var(--color-vb-link,#b91c1c);font-weight:600;font-size:1.05rem;text-decoration:none;"> Chapter 13: The Advent of Lord Śrī Caitanya Mahāprabhu </a> </div><div style="margin-bottom:0.5rem;"> <a href="/cc/adi/14/" style="display:block;padding:0.75rem 0;color:var(--color-vb-link,#b91c1c);font-weight:600;font-size:1.05rem;text-decoration:none;"> Chapter 14: Lord Caitanya&#39;s Childhood Pastimes </a> </div><div style="margin-bottom:0.5rem;"> <a href="/cc/adi/15/" style="display:block;padding:0.75rem 0;color:var(--color-vb-link,#b91c1c);font-weight:600;font-size:1.05rem;text-decoration:none;"> Chapter 15: The Lord&#39;s Paugaṇḍa-līlā </a> </div><div style="margin-bottom:0.5rem;"> <a href="/cc/adi/16/" style="display:block;padding:0.75rem 0;color:var(--color-vb-link,#b91c1c);font-weight:600;font-size:1.05rem;text-decoration:none;"> Chapter 16: The Pastimes of the Lord in His Childhood and Youth </a> </div><div style="margin-bottom:0.5rem;"> <a href="/cc/adi/17/" style="display:block;padding:0.75rem 0;color:var(--color-vb-link,#b91c1c);font-weight:600;font-size:1.05rem;text-decoration:none;"> Chapter 17: The Pastimes of Lord Caitanya Mahāprabhu in His Youth </a> </div> </div>  </main> </div> <div id="footer" style="margin-top:auto;width:100%;background:rgba(var(--color-vb-header-top-rgb,146,64,14),0.08);border-top:1px solid rgba(var(--color-vb-header-top-rgb,146,64,14),0.15);contain:layout;min-height:24rem;" data-astro-cid-sz7xmlte> <div style="max-width:80rem;margin:0 auto;padding:2rem 1.5rem 1rem;" data-astro-cid-sz7xmlte> <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:24px;margin-bottom:1.5rem;font-size:0.85rem;" data-astro-cid-sz7xmlte> <div data-astro-cid-sz7xmlte> <div style="font-weight:700;margin-bottom:10px;font-size:0.95rem;color:var(--color-vb-normal-text,#1f2937);" data-astro-cid-sz7xmlte>Books</div> <a href="/en/library/" style="display:block;padding:4px 0;color:var(--color-vb-normal-text,#1f2937);text-decoration:none;opacity:0.65;" data-astro-cid-sz7xmlte>All books</a> <a href="/en/tools/audio/" style="display:block;padding:4px 0;color:var(--color-vb-normal-text,#1f2937);text-decoration:none;opacity:0.65;" data-astro-cid-sz7xmlte>Audio</a> <a href="/en/library/transcripts/" style="display:block;padding:4px 0;color:var(--color-vb-normal-text,#1f2937);text-decoration:none;opacity:0.65;" data-astro-cid-sz7xmlte>Transcripts</a> <a href="/en/library/letters/" style="display:block;padding:4px 0;color:var(--color-vb-normal-text,#1f2937);text-decoration:none;opacity:0.65;" data-astro-cid-sz7xmlte>Letters</a> <a href="/en/library/btg/" style="display:block;padding:4px 0;color:var(--color-vb-normal-text,#1f2937);text-decoration:none;opacity:0.65;" data-astro-cid-sz7xmlte>BTG</a> </div> <div data-astro-cid-sz7xmlte> <div style="font-weight:700;margin-bottom:10px;font-size:0.95rem;color:var(--color-vb-normal-text,#1f2937);" data-astro-cid-sz7xmlte>Study</div> <a href="/en/answers/" style="display:block;padding:4px 0;color:var(--color-vb-normal-text,#1f2937);text-decoration:none;opacity:0.65;" data-astro-cid-sz7xmlte>Answers</a> <a href="/en/study/" style="display:block;padding:4px 0;color:var(--color-vb-normal-text,#1f2937);text-decoration:none;opacity:0.65;" data-astro-cid-sz7xmlte>All topics</a> <a href="/en/study/word-index/" style="display:block;padding:4px 0;color:var(--color-vb-normal-text,#1f2937);text-decoration:none;opacity:0.65;" data-astro-cid-sz7xmlte>Word Index</a> <a href="/en/study/sanskrit-index/" style="display:block;padding:4px 0;color:var(--color-vb-normal-text,#1f2937);text-decoration:none;opacity:0.65;" data-astro-cid-sz7xmlte>Sanskrit Verses</a> <a href="/en/study/siksamrta/" style="display:block;padding:4px 0;color:var(--color-vb-normal-text,#1f2937);text-decoration:none;opacity:0.65;" data-astro-cid-sz7xmlte>Sikṣāmṛta</a> <a href="/en/qa/" style="display:block;padding:4px 0;color:var(--color-vb-normal-text,#1f2937);text-decoration:none;opacity:0.65;" data-astro-cid-sz7xmlte>Q&amp;A</a> <a href="/en/changes/" style="display:block;padding:4px 0;color:var(--color-vb-normal-text,#1f2937);text-decoration:none;opacity:0.65;" data-astro-cid-sz7xmlte>Bhagavad-gītā changes</a> <a href="/en/changes/what-prabhupada-said/" style="display:block;padding:4px 0;color:var(--color-vb-normal-text,#1f2937);text-decoration:none;opacity:0.65;" data-astro-cid-sz7xmlte>What Prabhupāda said</a> </div> <div data-astro-cid-sz7xmlte> <div style="font-weight:700;margin-bottom:10px;font-size:0.95rem;color:var(--color-vb-normal-text,#1f2937);" data-astro-cid-sz7xmlte>Tools</div> <a href="/en/tools/ai/" style="display:block;padding:4px 0;color:var(--color-vb-normal-text,#1f2937);text-decoration:none;opacity:0.65;" data-astro-cid-sz7xmlte>AI Search</a> <a href="/en/tools/research/" style="display:block;padding:4px 0;color:var(--color-vb-normal-text,#1f2937);text-decoration:none;opacity:0.65;" data-astro-cid-sz7xmlte>Research</a> <a href="/en/tools/apps/" style="display:block;padding:4px 0;color:var(--color-vb-normal-text,#1f2937);text-decoration:none;opacity:0.65;" data-astro-cid-sz7xmlte>Offline Apps</a> <a href="/en/tools/downloads/" style="display:block;padding:4px 0;color:var(--color-vb-normal-text,#1f2937);text-decoration:none;opacity:0.65;" data-astro-cid-sz7xmlte>Downloads</a> <a href="/en/studio/" style="display:block;padding:4px 0;color:var(--color-vb-normal-text,#1f2937);text-decoration:none;opacity:0.65;" data-astro-cid-sz7xmlte>Vedabase Studio</a> <a href="/en/api/" style="display:block;padding:4px 0;color:var(--color-vb-normal-text,#1f2937);text-decoration:none;opacity:0.65;" data-astro-cid-sz7xmlte>API</a> <a href="/print-errata/" style="display:block;padding:4px 0;color:var(--color-vb-normal-text,#1f2937);text-decoration:none;opacity:0.65;" data-astro-cid-sz7xmlte>Print errata</a> <a href="/en/about/first-printings/" style="display:block;padding:4px 0;color:var(--color-vb-normal-text,#1f2937);text-decoration:none;opacity:0.65;" data-astro-cid-sz7xmlte>How to tell a first printing</a> </div> <div data-astro-cid-sz7xmlte> <div style="font-weight:700;margin-bottom:10px;font-size:0.95rem;color:var(--color-vb-normal-text,#1f2937);" data-astro-cid-sz7xmlte>Connect</div> <a href="/en/about/" style="display:block;padding:4px 0;color:var(--color-vb-normal-text,#1f2937);text-decoration:none;opacity:0.65;" data-astro-cid-sz7xmlte>About</a> <a href="/en/tools/preservation/" style="display:block;padding:4px 0;color:var(--color-vb-normal-text,#1f2937);text-decoration:none;opacity:0.65;" data-astro-cid-sz7xmlte>Preservation</a> <a href="/en/contact/" style="display:block;padding:4px 0;color:var(--color-vb-normal-text,#1f2937);text-decoration:none;opacity:0.65;" data-astro-cid-sz7xmlte>Contact</a> <a href="/en/explore/" style="display:block;padding:4px 0;color:var(--color-vb-normal-text,#1f2937);text-decoration:none;opacity:0.65;" data-astro-cid-sz7xmlte>Explore</a> <a href="/en/blog/" style="display:block;padding:4px 0;color:var(--color-vb-normal-text,#1f2937);text-decoration:none;opacity:0.65;" data-astro-cid-sz7xmlte>Blog</a> <a href="/en/donate/" style="display:block;padding:4px 0;color:var(--color-vb-normal-text,#1f2937);text-decoration:none;opacity:0.65;" data-astro-cid-sz7xmlte>Donate</a> <a href="https://t.me/vedabaseoriginal" target="_blank" style="display:flex;align-items:center;gap:6px;padding:4px 0;color:var(--color-vb-normal-text,#1f2937);text-decoration:none;opacity:0.65;" data-astro-cid-sz7xmlte> <svg width="16" height="16" fill="currentColor" viewBox="0 0 496 512" data-astro-cid-sz7xmlte><path d="M248 8C111 8 0 119 0 256s111 248 248 248 248-111 248-248S385 8 248 8zm121.8 169.9l-40.7 191.8c-3 13.6-11.1 16.9-22.4 10.5l-62-45.7-29.9 28.8c-3.3 3.3-6.1 6.1-12.5 6.1l4.4-63.1 114.9-103.8c5-4.4-1.1-6.9-7.7-2.5l-142 89.4-61.2-19.1c-13.3-4.2-13.6-13.3 2.8-19.7l239.1-92.2c11.1-4 20.8 2.7 17.2 19.5z" data-astro-cid-sz7xmlte></path></svg>
+Telegram</a> </div> </div>  <div style="border-top:1px solid rgba(var(--color-vb-header-top-rgb,146,64,14),0.12);margin:0.25rem 0 1.25rem;" data-astro-cid-sz7xmlte></div>  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(19rem,1fr));gap:1rem;margin-bottom:1.5rem;align-items:start;" data-astro-cid-sz7xmlte>  <div style="padding:0.9rem 1.05rem;border:1px solid rgba(var(--color-vb-header-top-rgb,146,64,14),0.22);border-radius:8px;background:rgba(var(--color-vb-header-top-rgb,146,64,14),0.05);display:flex;gap:0.9rem;align-items:flex-start;" data-astro-cid-sz7xmlte> <a href="/en/tools/apps/" style="flex:none;display:block;text-decoration:none;" data-astro-cid-sz7xmlte> <img src="/icon-512.png" alt="" width="512" height="512" loading="lazy" decoding="async" style="display:block;width:76px;height:76px;border-radius:12px;border:1px solid rgba(var(--color-vb-header-top-rgb,146,64,14),0.2);" data-astro-cid-sz7xmlte> </a> <div style="min-width:0;" data-astro-cid-sz7xmlte> <a href="/en/tools/apps/" style="font-weight:600;font-size:0.95rem;color:var(--color-vb-link,#1a7a6d);text-decoration:none;" data-astro-cid-sz7xmlte>Offline Apps</a> <div style="margin-top:2px;font-size:0.82rem;opacity:0.75;line-height:1.5;color:var(--color-vb-normal-text,#1f2937);" data-astro-cid-sz7xmlte>Mobile and desktop apps that work without internet.</div> <div style="margin-top:0.6rem;display:flex;flex-wrap:wrap;gap:0.4rem 1.1rem;font-size:0.85rem;" data-astro-cid-sz7xmlte> <a href="https://apps.apple.com/app/vedabase-original/id6760915620" target="_blank" rel="noopener" style="color:var(--color-vb-link,#1a7a6d);text-decoration:none;" data-astro-cid-sz7xmlte>iPhone &amp; iPad <span aria-hidden="true" style="opacity:0.7;" data-astro-cid-sz7xmlte>&#8599;</span></a> <a href="/downloads/Vedabase-Original-android-universal.apk" style="color:var(--color-vb-link,#1a7a6d);text-decoration:none;" data-astro-cid-sz7xmlte>Android (APK)</a> <a href="/downloads/Vedabase-Original-macos-universal.dmg" style="color:var(--color-vb-link,#1a7a6d);text-decoration:none;" data-astro-cid-sz7xmlte>Mac (DMG)</a> <a href="/downloads/Vedabase-Original-windows-x64-setup.exe" style="color:var(--color-vb-link,#1a7a6d);text-decoration:none;" data-astro-cid-sz7xmlte>Windows</a> <a href="/downloads/Vedabase-Original-linux-x86_64.AppImage" style="color:var(--color-vb-link,#1a7a6d);text-decoration:none;" data-astro-cid-sz7xmlte>Linux</a> </div> </div> </div>  <div style="padding:0.9rem 1.05rem;border:1px solid rgba(var(--color-vb-header-top-rgb,146,64,14),0.22);border-radius:8px;background:rgba(var(--color-vb-header-top-rgb,146,64,14),0.05);display:flex;gap:0.9rem;align-items:flex-start;" data-astro-cid-sz7xmlte> <a href="/music/" style="flex:none;display:block;text-decoration:none;" data-astro-cid-sz7xmlte> <img src="/media/kirtan/album-01-krishna-meditations-350.webp" alt="" width="350" height="350" loading="lazy" decoding="async" style="display:block;width:76px;height:76px;object-fit:cover;border-radius:4px;border:1px solid rgba(var(--color-vb-header-top-rgb,146,64,14),0.2);" data-astro-cid-sz7xmlte> </a> <div style="min-width:0;" data-astro-cid-sz7xmlte> <a href="/music/" style="font-weight:600;font-size:0.95rem;color:var(--color-vb-link,#1a7a6d);text-decoration:none;" data-astro-cid-sz7xmlte>Music</a> <div style="margin-top:2px;font-size:0.82rem;opacity:0.75;line-height:1.5;color:var(--color-vb-normal-text,#1f2937);" data-astro-cid-sz7xmlte>Śrīla Prabhupāda singing: 19 albums, 69 pieces and 474 takes, with his own purport where he recorded one.</div> </div> </div> <div style="padding:0.9rem 1.05rem;border:1px solid rgba(var(--color-vb-header-top-rgb,146,64,14),0.22);border-radius:8px;background:rgba(var(--color-vb-header-top-rgb,146,64,14),0.05);display:flex;gap:0.9rem;align-items:flex-start;" data-astro-cid-sz7xmlte> <a href="https://restore.vedicvault.org/" target="_blank" rel="noopener" style="flex:none;display:block;text-decoration:none;" data-astro-cid-sz7xmlte>  <img src="/images/restore-flyer.jpg" alt="Restore the Original Editions" width="1080" height="1350" loading="lazy" decoding="async" style="display:block;width:76px;height:auto;aspect-ratio:1080/1350;border-radius:4px;border:1px solid rgba(var(--color-vb-header-top-rgb,146,64,14),0.2);" data-astro-cid-sz7xmlte> </a> <div style="min-width:0;" data-astro-cid-sz7xmlte> <a href="https://restore.vedicvault.org/" target="_blank" rel="noopener" style="font-weight:600;font-size:0.95rem;color:var(--color-vb-link,#1a7a6d);text-decoration:none;" data-astro-cid-sz7xmlte>Restore the Original Editions <span aria-hidden="true" style="opacity:0.7;" data-astro-cid-sz7xmlte>&#8599;</span></a> <div style="margin-top:2px;font-size:0.82rem;opacity:0.75;line-height:1.5;color:var(--color-vb-normal-text,#1f2937);" data-astro-cid-sz7xmlte>A formal demand to the directors of the Bhaktivedanta Book Trust International to restore Śrīla Prabhupāda's original editions.</div> </div> </div> </div> </div> <div style="border-top:1px solid rgba(var(--color-vb-header-top-rgb,146,64,14),0.12);margin-bottom:1rem;" data-astro-cid-sz7xmlte></div> <div style="margin-bottom:1.5rem;font-size:0.85rem;" data-astro-cid-sz7xmlte> <div style="font-weight:700;margin-bottom:10px;font-size:0.95rem;color:var(--color-vb-normal-text,#1f2937);" data-astro-cid-sz7xmlte>Vedic Vault network</div> <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:20px;" data-astro-cid-sz7xmlte> <div data-astro-cid-sz7xmlte> <a href="https://diff.vedicvault.org/" target="_blank" rel="noopener" style="font-weight:600;color:var(--color-vb-link,#1a7a6d);text-decoration:none;" data-astro-cid-sz7xmlte>diff.vedicvault.org <span aria-hidden="true" style="opacity:0.7;" data-astro-cid-sz7xmlte>↗</span></a> <div style="color:var(--color-vb-normal-text,#1f2937);opacity:0.6;margin-top:2px;line-height:1.4;" data-astro-cid-sz7xmlte>The original and revised editions, change by change.</div> </div> <div data-astro-cid-sz7xmlte> <a href="https://guardians.vedicvault.org/" target="_blank" rel="noopener" style="font-weight:600;color:var(--color-vb-link,#1a7a6d);text-decoration:none;" data-astro-cid-sz7xmlte>guardians.vedicvault.org <span aria-hidden="true" style="opacity:0.7;" data-astro-cid-sz7xmlte>↗</span></a> <div style="color:var(--color-vb-normal-text,#1f2937);opacity:0.6;margin-top:2px;line-height:1.4;" data-astro-cid-sz7xmlte>Prabhupāda&#39;s works micro-engraved on metal to last for centuries.</div> </div> <div data-astro-cid-sz7xmlte> <a href="https://photos.vedicvault.org/" target="_blank" rel="noopener" style="font-weight:600;color:var(--color-vb-link,#1a7a6d);text-decoration:none;" data-astro-cid-sz7xmlte>photos.vedicvault.org <span aria-hidden="true" style="opacity:0.7;" data-astro-cid-sz7xmlte>↗</span></a> <div style="color:var(--color-vb-normal-text,#1f2937);opacity:0.6;margin-top:2px;line-height:1.4;" data-astro-cid-sz7xmlte>Archive of Śrīla Prabhupāda&#39;s photographs.</div> </div> </div> </div> <div style="border-top:1px solid rgba(var(--color-vb-header-top-rgb,146,64,14),0.12);margin-bottom:1rem;" data-astro-cid-sz7xmlte></div> <div style="padding:0.75rem 1rem;border:1px dashed rgba(var(--color-vb-header-top-rgb,146,64,14),0.2);border-radius:8px;text-align:justify;font-size:0.8rem;opacity:0.75;position:relative;" data-astro-cid-sz7xmlte> <a href="/en/donate/" style="float:right;margin:0 0 0.5rem 0.75rem;border:1px solid var(--color-vb-action-border,#0d4844);background:var(--color-vb-action-bg,#0f766e);color:var(--color-vb-action-text,#fff);border-radius:0.375rem;padding:0.5rem 1.25rem;text-align:center;text-decoration:none;font-weight:600;font-size:0.85rem;" data-astro-cid-sz7xmlte>Donate</a> <span data-astro-cid-sz7xmlte>Thanks to Jaya Sacinatha Dasa; Sergey Orlik; Nathan Gordon; Krisztian Kulcsar; Ani Sargsyan; Pradyumna Dasa; Kalavati Martinez; Sabine Eigner; Olga Lyalyuk; Nirat Sheth; Siva Kumar & family; Bhakta Jorgie; Mahavisnupriya dasi & Gostavihari das; Kuldip Persaud; Gagan Kangovi; Rajendra and Geeta Ramchandani; Jaykumar Prabhakar; Anantha SriSimha das; HG Lakshmipati Narayan Das; HG Prashant Mukund Das; Aneesh Koppula; Radhapati Das; Rajasa das; Yogendra Sharad Puranik; Indradyumna Swami; Geetanjali Nath; Susheela and Rama Krishna Reddy Patlolla; Hari-kirtana das; Kresna Sucandra; Isvari Priya DD & Lokadhyaksa dasa</span> and all others for <a href="/en/donate/" style="color:var(--color-vb-link,#b91c1c);text-decoration:underline;" data-astro-cid-sz7xmlte>supporting</a> this site.
+</div> </div>  </div> </div> </div>   <button id="vb-back-to-top" type="button" aria-label="Back to top" style="display:none;position:fixed;right:18px;bottom:18px;z-index:9000;width:42px;height:42px;border-radius:50%;border:1px solid rgba(0,0,0,0.12);background:var(--color-vb-header-top,#92400e);color:var(--color-vb-header-top-text,#fff);cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,0.18);align-items:center;justify-content:center;font-size:0;line-height:0;" data-astro-cid-5hce7sga> <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:block;" data-astro-cid-5hce7sga><polyline points="18 15 12 9 6 15" data-astro-cid-5hce7sga></polyline></svg> </button> <script>
+(function(){
+  var btn = document.getElementById('vb-back-to-top');
+  if (!btn) return;
+  function onScroll(){
+    var y = window.pageYOffset || document.documentElement.scrollTop;
+    btn.style.display = y > 400 ? 'flex' : 'none';
+  }
+  window.addEventListener('scroll', onScroll, { passive:true });
+  onScroll();
+  btn.addEventListener('click', function(){
+    window.scrollTo({ top:0, behavior:'smooth' });
+  });
+})();
+</script>  <script defer src="/js/vedabase-tools.js"></script>  <script>
+/* Search-result highlight: when ?q=X is in the URL (typically arriving from
+   /en/search/), find that text within the main content, wrap matches with
+   <mark class="vb-search-hl"> and scroll into view.
+
+   The result link also carries a native text-fragment (#:~:text=<snippet
+   word>) pointing at the exact occurrence the snippet matched. We read that
+   same word here and scroll to IT — not to the first occurrence of q — so the
+   page lands on the passage that was shown in the result. Doing the scroll in
+   JS (rather than relying on the native fragment) also covers Firefox, which
+   ships text-fragment scrolling disabled by default. */
+(function(){
+  try {
+    var params = new URLSearchParams(location.search);
+    var q = params.get('q');
+    if (!q || !q.trim()) return;
+    function fold(s){ return (s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase(); }
+    // Phrase searches arrive as "…" in ?q=; strip the surrounding quotes so the
+    // highlighter matches the words, not the literal quote characters.
+    var qClean = q.trim().replace(/^"+|"+$/g, '').trim();
+    var qFolded = fold(qClean);
+    if (!qFolded) return;
+    // Scroll target = the snippet's occurrence. The search page carries it in a
+    // plain query param (&j=<word>) because Chromium/Safari strip the native
+    // #:~:text= directive from location.hash before scripts can read it. Read
+    // &j= first; fall back to the hash (Firefox keeps the unconsumed directive
+    // there), then to q for a bare ?q= link.
+    var jumpFolded = qFolded;
+    var jParam = params.get('j');
+    if (jParam && fold(jParam)) {
+      jumpFolded = fold(jParam);
+    } else {
+      var hash = location.hash || '';
+      var tf = hash.indexOf(':~:text=');
+      if (tf >= 0) {
+        var raw = hash.slice(tf + 8).split('&')[0].split(',').pop();
+        var decoded = raw;
+        try { decoded = decodeURIComponent(raw); } catch(e) { /* keep raw */ }
+        var jf = fold(decoded);
+        if (jf) jumpFolded = jf;
+      }
+    }
+    var qRe = new RegExp(qFolded.replace(/[-\/\\^$*+?.()|[\]{}]/g,'\\$&'), 'g');
+    function escHtml(s){ return s.replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+    var SELECTORS = '.av-translation, .av-purport, .av-synonyms, .av-verse_text, .qa-body, .vbl-row-title, main p, main li, main blockquote, main h1, main h2, main h3';
+    var roots = document.querySelectorAll(SELECTORS);
+    if (!roots.length) roots = document.querySelectorAll('main, body');
+    var firstHit = null;   // first q highlight (fallback scroll target)
+    var jumpHit = null;    // element holding the snippet's occurrence (scroll target)
+    var SKIP_TAGS = { SCRIPT:1, STYLE:1, NAV:1, HEADER:1, NOSCRIPT:1, MARK:1, A:0 };
+    roots.forEach(function(root){
+      var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+        acceptNode: function(n) {
+          var p = n.parentElement;
+          while (p && p !== root) {
+            if (SKIP_TAGS[p.tagName] === 1) return NodeFilter.FILTER_REJECT;
+            p = p.parentElement;
+          }
+          if (!n.nodeValue) return NodeFilter.FILTER_REJECT;
+          // Visit a node if it holds a q match to highlight OR the jump word to
+          // scroll to (the two can differ for multi-word queries).
+          var f = fold(n.nodeValue);
+          return (f.indexOf(qFolded) >= 0 || f.indexOf(jumpFolded) >= 0)
+            ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+        }
+      });
+      var nodes = [];
+      var n;
+      while ((n = walker.nextNode())) nodes.push(n);
+      nodes.forEach(function(node){
+        var orig = node.nodeValue;
+        var folded = fold(orig);
+        var html = '';
+        var lastEnd = 0;
+        var m;
+        var matched = false;
+        qRe.lastIndex = 0;
+        while ((m = qRe.exec(folded)) !== null) {
+          var start = m.index, end = m.index + m[0].length;
+          if (m[0].length === 0) { qRe.lastIndex++; continue; }
+          html += escHtml(orig.slice(lastEnd, start));
+          html += '<mark class="vb-search-hl">' + escHtml(orig.slice(start, end)) + '</mark>';
+          lastEnd = end;
+          matched = true;
+        }
+        var target;
+        if (matched) {
+          html += escHtml(orig.slice(lastEnd));
+          var span = document.createElement('span');
+          span.innerHTML = html;
+          node.parentNode.replaceChild(span, node);
+          if (!firstHit) firstHit = span.querySelector('mark.vb-search-hl');
+          target = span;
+        } else {
+          // No q match here, but the node holds the jump word — keep the
+          // element so we can still scroll to it (Firefox / multi-word q).
+          target = node.parentElement;
+        }
+        if (!jumpHit && folded.indexOf(jumpFolded) >= 0) jumpHit = target;
+      });
+    });
+    var scrollTarget = jumpHit || firstHit;
+    if (scrollTarget) {
+      setTimeout(function(){ scrollTarget.scrollIntoView({ behavior:'smooth', block:'center' }); }, 50);
+    }
+
+    /* Limpiar la barra de direcciones una vez resaltado.
+
+       Al llegar desde /search/ la URL trae ?q=<lo buscado>&j=<palabra del
+       fragmento>. Eso ya ha hecho su trabajo --el resaltado esta en el DOM y
+       el scroll hecho-- pero se queda a la vista, y quien quiere compartir la
+       carta copia de la barra y comparte su propia busqueda pegada detras.
+       Lo conto un lector: "quiero copiar el enlace de la carta y me sale con
+       todo el texto que he buscado".
+
+       Se quitan SOLO q y j, no toda la query: hay paginas que llevan otros
+       parametros legitimos y borrarlos romperia su estado. Y se usa
+       replaceState, no pushState, para no meter una entrada falsa en el
+       historial: el boton de atras debe volver a los resultados.
+
+       Efecto secundario aceptado: recargar despues pierde el resaltado. Es el
+       precio de que la URL visible sea la que se puede compartir, y la que se
+       comparte debe ser la de la carta. */
+    try {
+      if (window.history && history.replaceState) {
+        params.delete('q'); params.delete('j');
+        var resto = params.toString();
+        history.replaceState(null, '', location.pathname + (resto ? '?' + resto : '') + location.hash);
+      }
+    } catch(e) { /* si el navegador no deja, la pagina sigue igual */ }
+  } catch(e) { /* noop */ }
+})();
+</script> <script>
+  /* Register the service worker — makes the site installable and offline-capable. */
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('/sw.js').catch(function () { /* noop */ });
+    });
+  }
+</script> <script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a5025dad1a96c53a',t:'MTc5Mjk0MzMxMA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body> </html>  <script>
+  /* Flechas del teclado para pasar de verso. Cuesta cero espacio y es lo que
+     espera quien lee seguido; no sustituye a las flechas visibles, porque un
+     atajo invisible no lo descubre nadie. Se sale si el foco esta en un campo
+     de texto o si hay modificadores: ahi las flechas ya significan otra cosa. */
+  (function () {
+    document.addEventListener('keydown', function (e) {
+      if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+      var sel = e.key === 'ArrowLeft' ? 'a[rel="prev"]'
+              : e.key === 'ArrowRight' ? 'a[rel="next"]' : null;
+      if (!sel) return;
+      var t = e.target;
+      if (t) {
+        var tag = (t.tagName || '').toLowerCase();
+        if (tag === 'input' || tag === 'textarea' || tag === 'select' || t.isContentEditable) return;
+      }
+      var a = document.querySelector('.vb-crumbnav ' + sel);
+      if (a && a.href) { e.preventDefault(); window.location.href = a.href; }
+    });
+  })();
+</script>

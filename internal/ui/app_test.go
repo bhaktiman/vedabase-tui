@@ -34,6 +34,10 @@ type fakeBackend struct {
 	libCalls int
 	refresh  int
 
+	pages     map[string][]byte // Page(url) fixtures
+	pageErr   error
+	pageCalls []string
+
 	searchCalls []searchCall
 	searchErr   error
 }
@@ -135,7 +139,39 @@ func (b *fakeBackend) searches() []searchCall {
 	return append([]searchCall(nil), b.searchCalls...)
 }
 
-func (b *fakeBackend) Page(ctx context.Context, url string) ([]byte, error) { return nil, nil }
+func (b *fakeBackend) Page(ctx context.Context, url string) ([]byte, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.pageCalls = append(b.pageCalls, url)
+	if b.pageErr != nil {
+		return nil, b.pageErr
+	}
+	return b.pages[url], nil
+}
+
+func (b *fakeBackend) pagesCalled() []string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return append([]string(nil), b.pageCalls...)
+}
+
+// scrapeFixtures serves the recorded site pages.
+func (b *fakeBackend) scrapeFixtures() {
+	b.t.Helper()
+	b.pages = map[string][]byte{}
+	for url, f := range map[string]string{
+		"https://vedabase.cc/bg/":                                  "bg.html",
+		"https://vedabase.cc/en/library/letters/":                  "letters.html",
+		"https://vedabase.cc/en/library/letters/?year=1967":        "letters-1967-p1.html",
+		"https://vedabase.cc/en/library/letters/?year=1967&page=2": "letters-1967-p1.html",
+	} {
+		data, err := os.ReadFile("../scrape/testdata/" + f)
+		if err != nil {
+			b.t.Fatal(err)
+		}
+		b.pages[url] = data
+	}
+}
 
 func (b *fakeBackend) called(ref string) bool {
 	b.mu.Lock()

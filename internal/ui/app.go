@@ -96,6 +96,7 @@ type App struct {
 	seq        keySeq
 	resizeSeq  int
 	prefetched map[string]bool
+	scr        scraped
 	toasts     toaster
 
 	fx       Effects
@@ -111,7 +112,7 @@ func New(o Options) *App {
 		be: o.Backend, cols: o.Collections, settings: o.Settings, state: o.State, save: o.SaveState,
 		pal: render.Default, rend: render.NewRenderer(render.Default),
 		w: 80, h: 24, parts: o.State.Parts, startup: o.Toasts,
-		prefetched: map[string]bool{}, nowFn: o.Now,
+		prefetched: map[string]bool{}, scr: newScraped(), nowFn: o.Now,
 		tick: func(d time.Duration, msg tea.Msg) tea.Cmd {
 			return tea.Tick(d, func(time.Time) tea.Msg { return msg })
 		},
@@ -200,6 +201,14 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmd = tea.Batch(cmd, a.startCountdown(countdown{kind: cdSearch, gen: gen, total: d}))
 		}
 		return a, cmd
+	case titlesMsg:
+		return a, a.onTitles(m)
+	case ExpandLazyMsg:
+		return a, a.onExpandLazy(m.Node)
+	case yearsMsg:
+		return a, a.onYears(m)
+	case yearPageMsg:
+		return a, a.onYearPage(m)
 	case searchOpenMsg:
 		a.focusTree = false
 		return a, a.Open(m.ref)
@@ -267,6 +276,7 @@ func (a *App) onLibrary(m libraryMsg) tea.Cmd {
 	} else {
 		a.tree.SetLibrary(m.lib)
 		a.node = m.lib.Find(a.ref) // nodes are new objects in the new library
+		a.applyScraped()           // the new tree has none of the scraped titles
 	}
 	return tea.Batch(cmds...)
 }
@@ -316,7 +326,7 @@ func (a *App) Open(ref string) tea.Cmd {
 		a.status = ""
 	}
 	be := a.be
-	return tea.Batch(delay, func() tea.Msg {
+	return tea.Batch(delay, a.ancestorTitlesCmd(a.node), func() tea.Msg {
 		it, _, err := be.Item(context.Background(), ref)
 		return itemLoadedMsg{ref: ref, item: it, err: err}
 	})
@@ -331,6 +341,7 @@ func (a *App) onItem(m itemLoadedMsg) tea.Cmd {
 		return a.itemFailed(m.err)
 	}
 	a.item, a.hasItem, a.status = m.item, true, ""
+	a.setItemTitle(a.node, m.item)
 	return a.renderCmd()
 }
 
@@ -541,8 +552,14 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 	}
 	if a.focusTree && a.treeVisible() {
 		var cmd tea.Cmd
+		sel := a.tree.Selected()
+		was := sel != nil && a.tree.expanded[sel.Ref]
 		a.tree, cmd = a.tree.Update(kp)
-		return cmd
+		cmds := []tea.Cmd{cmd, a.nextYearPage()}
+		if sel != nil && !was && a.tree.expanded[sel.Ref] {
+			cmds = append(cmds, a.titlesCmd(sel))
+		}
+		return tea.Batch(cmds...)
 	}
 	switch k {
 	case "h", "left":
