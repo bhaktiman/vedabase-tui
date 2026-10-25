@@ -1,28 +1,28 @@
 # Progress
 
-## Resume here — 2026-10-25 11:57
+## Resume here — 2026-10-25 13:43
 
-**Branch:** `feat/vedabase-tui` (local, not pushed; `main` has only the docs). **Status:** plan Tasks 1–16 done and checked by hand in tmux; Task 17's README and static build are done. The user asked for three more things mid-build, which became Tasks 18 and 19. Task 18 was **running in a background subagent at handoff**.
+**Branch:** `feat/vedabase-tui` (local, not pushed; `main` has only the docs). HEAD `6f9b9bd` plus this handoff commit. Working tree clean. Race suite green and `./vedabase` built.
 
-**Next action:** check whether Task 18 landed. Run `git log --oneline -3` and look for `feat(ui): mouse support and clear pane focus`.
-- **It landed:** read its report, run `CGO_ENABLED=1 go test -race ./...`, try the mouse and the focus border in tmux, then dispatch Task 19.
-- **It didn't:** the working tree holds its partial edits (README.md and internal/store/settings.go were modified at handoff). Re-dispatch Task 18 with its brief and report path. Don't commit the half-finished edits as they are.
+**Status:** plan Tasks 1–17 are done, including the manual smoke run (12/12 pass) and the whole-branch Opus review. The review found 1 blocking issue (numeric entities that decode to ESC). It's fixed, including the int32-wrap case, and re-checked by a fresh Opus agent: closed. The user's mid-build requests are done as Tasks 18–28: mouse and focus, collections in the sidebar plus `z`, themes with a live `T` picker, per-theme accent and gradient, centred column `w`, spinner, no fade, `o` and the vedabase.cc button and tag, gradients (the scroll marker is plain), full book name and link in exports, bottom-bar hints, `H` hints and `F` zen, and search box → results with ctrl-n/p.
 
-**Remaining after Task 18:**
-1. **Task 19:** collections as the first sidebar root (★ Collections), and `z` to collapse all. The brief is ready.
-2. **Task 17, Step 3:** the manual smoke run in tmux, using isolated XDG dirs under the session scratchpad. The plan lists the checks.
-3. **Final Opus review of the whole branch:** run `review-package` over the range from `c99a5e6` to HEAD, and point the reviewer at the ledger's "minor (deferred)" lines. Then one fix wave and one scoped re-review.
-4. Use superpowers:finishing-a-development-branch, then tell the user every `Ruling:` line in the ledger.
+**Next action:** ask the user the three open questions below, then build whatever they say yes to (one subagent at a time; these all touch internal/ui).
+
+**Waiting on the user:**
+1. **Letter footer junk.** API letters end with the site's prev/next links glued on, e.g. `…ACBS/hsLetter to: G. L. KapoorLetter to: Sri Paramanand Patel` (seen in `letters/letter-to-lokanatha-2`). The export link itself works (checked: 200, right page). Proposed: strip the trailing `Letter to: …` nav and the `ACBS/xx` initials in `api.Clean`. I asked whether "the URL doesn't work" meant this line or the link itself, and in which app. No answer yet.
+2. **Collapse button.** `⊟ collapse (z)` in the sidebar's top border (clickable, shrinks to `⊟ (z)`), plus `z collapse` in the bottom-bar hints. The user rejected shift-tab for this; I recommended against it. Awaiting yes.
+3. **Five smoke-run fixes.** Proposed, awaiting yes:
+   - O5: overlays drawn over the dimmed app, so the theme preview is visible behind the picker
+   - O3: Letters › By year jumps the tree to By recipient (same ref in two groups; match the group the way SetLibrary does for collections)
+   - O7: search snippet shown twice
+   - O4: Tab in search doesn't re-run the query
+   - O1: offline uncached load waits 8–30 s (fail fast on connection refused)
+
+**Then:** superpowers:finishing-a-development-branch (merge to main or PR, the user's choice), and tell the user every `Ruling:` line in the ledger.
 
 **Where things are:**
-- Spec: `docs/superpowers/specs/2026-10-25-vedabase-tui-design.md`
-- Plan: `docs/superpowers/plans/2026-10-25-vedabase-tui.md`
-- The ledger, git-ignored but on disk, is the source of truth for done/rulings/minors: `.superpowers/sdd/2026-10-25-vedabase-tui/progress.md`.
-- That same folder holds the briefs and reports: `task-N-brief.md`, `task-N-report.md`, plus the extra `task-18-brief.md` and `task-19-brief.md`, and `implementer-contract.md`, which every dispatch references.
-- Review policy (user's global CLAUDE.md): no per-task reviewer. The coordinator reads each diff and runs the tests, plus one Opus review per branch. Task 6 (collections) already had its own Opus review and passed after one fix round.
+- Ledger, the source of truth for done items, rulings and minors (git-ignored): `.superpowers/sdd/2026-10-25-vedabase-tui/progress.md`. Briefs and reports are in the same folder (`task-N-brief.md` / `task-N-report.md`, `branch-review.md`, `review-fix-*.md`, `task-17-smoke-report.md`, `implementer-contract.md`).
+- Spec: `docs/superpowers/specs/2026-10-25-vedabase-tui-design.md`. Plan: `docs/superpowers/plans/2026-10-25-vedabase-tui.md`.
+- Implementer briefs must say: tests first with RED shown, no `git stash`, stub the App opener in UI tests (a review test once opened real browser tabs), and the commit trailer is Claude Opus 5.5.
 
-**User-visible decisions to report at the end** (the full list is in the ledger):
-- Letters from the API arrive with their line breaks stripped. `api.Clean` rebuilds paragraphs; the cache keeps the raw text.
-- Terminal control characters are stripped from all remote text.
-- Mouse mode means Shift+drag to select text; `mouse = false` turns it off.
-- A fresh launch opens at Bg Dedication (0a).
+**Known minors still open (deferred):** listed in the ledger. Among them: Bg-on-Accent cursor contrast low on Solarized Light, Monokai and Solarized Dark; persist fsyncs inside Update; scroll within an item isn't saved on SIGHUP; review minors 7, 9, 11 and 12.

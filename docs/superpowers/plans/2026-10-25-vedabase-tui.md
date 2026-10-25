@@ -991,7 +991,7 @@ func TestTitleFailureKeepsDefaults(t *testing.T) // Page returns error → row "
   - being a good neighbour: rate limits and caching;
   - a link to https://vedabase.cc/en/api/.
 - [ ] **Step 2:** Run `make test && make build && file vedabase`. Expected: all tests pass, and the output contains `statically linked`. Run `go vet ./...`. Expected: no output.
-- [ ] **Step 3:** Manual smoke run through all of §2's goals:
+- [x] **Step 3:** Manual smoke run through all of §2's goals:
   - read in order across a chapter boundary in BG and SB, and across a līlā in CC;
   - toggle each part;
   - search in each scope and use `n`/`N`;
@@ -1002,7 +1002,7 @@ func TestTitleFailureKeepsDefaults(t *testing.T) // Page returns error → row "
 
   Note any failures in the ledger.
 - [ ] **Step 4:** Commit: `docs: README`
-- [ ] **Step 5:** Run one Opus review of the whole branch, with the bar stated (blocking = breaks behaviour, tests, or the collections safety boundary). Then one fix round if needed, checked by the same reviewer.
+- [x] **Step 5:** Run one Opus review of the whole branch, with the bar stated (blocking = breaks behaviour, tests, or the collections safety boundary). Then one fix round if needed, checked by the same reviewer.
 
 ---
 
