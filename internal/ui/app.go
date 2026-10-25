@@ -82,6 +82,7 @@ type App struct {
 	parts      api.Parts
 	restoreRef string // first render of this ref scrolls to restore
 	restore    int
+	savedRef   string // the ref state.json was last written for on open
 
 	search      Search
 	picker      Picker
@@ -125,7 +126,7 @@ func New(o Options) *App {
 		},
 	}
 	a.fx = Effects{enabled: o.Settings.Animations, tick: func(d time.Duration, m tea.Msg) tea.Cmd { return a.tick(d, m) }}
-	if a.parts == (api.Parts{}) { // a state file with no parts saved: show everything
+	if a.parts == (api.Parts{}) && !o.State.PartsSet { // a state file with no parts saved: show everything
 		a.parts = api.AllParts()
 	}
 	if p, ok := render.ThemeByName(o.State.Theme); ok {
@@ -148,7 +149,7 @@ func New(o Options) *App {
 
 // State is what gets persisted on quit.
 func (a *App) State() store.State {
-	s := store.State{LastRef: a.ref, Scroll: a.reader.offset, Parts: a.parts, TreeHidden: a.state.TreeHidden, Wide: a.state.Wide, HideHints: a.state.HideHints, Zen: a.state.Zen, Theme: a.state.Theme}
+	s := store.State{LastRef: a.ref, Scroll: a.reader.offset, Parts: a.parts, PartsSet: true, TreeHidden: a.state.TreeHidden, Wide: a.state.Wide, HideHints: a.state.HideHints, Zen: a.state.Zen, Theme: a.state.Theme}
 	if a.restoreRef == a.ref {
 		s.Scroll = a.restore // the first render has not happened yet
 	}
@@ -451,19 +452,19 @@ func (a *App) renderCmd() tea.Cmd {
 	if !a.hasItem || w <= 0 {
 		return nil
 	}
-	ref, parts, item, rend := a.ref, a.parts, a.item, a.rend
+	ref, parts, item, rend, pal := a.ref, a.parts, a.item, a.rend, a.pal.Name
 	return func() tea.Msg {
 		md := render.DisplayMarkdown(item, parts)
 		out, err := rend.Render(ref, md, w, parts)
 		if err != nil {
 			out = md
 		}
-		return renderedMsg{ref: ref, width: w, parts: parts, out: out}
+		return renderedMsg{ref: ref, width: w, parts: parts, pal: pal, out: out}
 	}
 }
 
 func (a *App) onRendered(m renderedMsg) tea.Cmd {
-	if m.ref != a.ref || m.width != a.textW() || m.parts != a.parts {
+	if m.ref != a.ref || m.width != a.textW() || m.parts != a.parts || m.pal != a.pal.Name {
 		return nil
 	}
 	fresh := a.reader.Empty()
@@ -474,6 +475,7 @@ func (a *App) onRendered(m renderedMsg) tea.Cmd {
 		a.reader.clamp()
 		a.restoreRef = ""
 	}
+	a.persistOnOpen()
 	return a.prefetch()
 }
 
@@ -533,6 +535,7 @@ func (a *App) togglePart(k string) tea.Cmd {
 	case "5":
 		p.Purport = !p.Purport
 	}
+	a.persist()
 	return a.renderCmd()
 }
 
@@ -599,6 +602,7 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 	switch k {
 	case "H":
 		a.state.HideHints = !a.state.HideHints
+		a.persist()
 		if a.state.HideHints {
 			return a.Toast("Hints hidden", false)
 		}
@@ -611,9 +615,11 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 		}
 		a.state.TreeHidden = !a.state.TreeHidden
 		a.focusTree = a.focusTree && a.treeVisible()
+		a.persist()
 		return a.relayout()
 	case "w":
 		a.state.Wide = !a.state.Wide
+		a.persist()
 		msg := "Centred column"
 		if a.state.Wide {
 			msg = "Full width"
@@ -759,5 +765,6 @@ func (a *App) toggleZen() tea.Cmd {
 		a.filtering = false
 		a.filterIn.Blur()
 	}
+	a.persist()
 	return a.relayout()
 }

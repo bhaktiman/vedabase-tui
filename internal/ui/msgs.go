@@ -15,6 +15,7 @@ type renderedMsg struct {
 	ref   string
 	width int
 	parts api.Parts
+	pal   string // palette name the render started with
 	out   string
 }
 

@@ -83,6 +83,9 @@ type State struct {
 	Wide       bool      `json:"wide"` // text uses the whole pane instead of a centred column
 	HideHints  bool      `json:"hide_hints"`
 	Zen        bool      `json:"zen"` // distraction-free reading: only the text column
+	// PartsSet marks Parts as chosen by the user, so that "all off" is not mistaken
+	// for an old file with no parts saved.
+	PartsSet bool `json:"parts_set"`
 }
 
 // LoadState returns the saved state; a missing or corrupt file gives defaults.

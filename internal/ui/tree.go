@@ -78,6 +78,7 @@ func (t *Tree) SetLibrary(lib *library.Library) {
 	}
 	t.lib = lib
 	t.openNew()
+	t.matchFilter() // the kept filter refers to the old library's nodes
 	t.rebuild()
 	if sel != nil {
 		// A collection item shares its ref with the book node, so match on
@@ -164,8 +165,21 @@ func (t *Tree) Reveal(n *library.Node) {
 func (t *Tree) SetFilter(s string) {
 	prev := t.Selected()
 	t.filter = s
+	t.matchFilter()
+	t.rebuild()
+	t.cursor = 0
+	if prev != nil {
+		if i := t.indexOf(prev); i >= 0 {
+			t.cursor = i
+		}
+	}
+	t.scroll()
+}
+
+// matchFilter recomputes the set of nodes the current filter keeps.
+func (t *Tree) matchFilter() {
 	t.shown = nil
-	if f := fold(s); f != "" {
+	if f := fold(t.filter); f != "" {
 		t.shown = map[*library.Node]bool{}
 		var walk func(n *library.Node) bool
 		walk = func(n *library.Node) bool {
@@ -184,14 +198,6 @@ func (t *Tree) SetFilter(s string) {
 			walk(r)
 		}
 	}
-	t.rebuild()
-	t.cursor = 0
-	if prev != nil {
-		if i := t.indexOf(prev); i >= 0 {
-			t.cursor = i
-		}
-	}
-	t.scroll()
 }
 
 func (t Tree) indexOf(n *library.Node) int {
