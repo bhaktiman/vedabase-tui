@@ -159,6 +159,7 @@ func (a *App) content() string {
 		body[last] = a.placeToast(body[last], a.readerW())
 	}
 	var tl []string
+	a.tree.focused = a.focusTree // before View, so the cursor style follows focus at once
 	if a.treeVisible() {
 		tl = strings.Split(a.tree.View(), "\n")
 		if a.filterShown() {
@@ -166,7 +167,6 @@ func (a *App) content() string {
 		}
 	}
 	if a.framed() {
-		a.tree.focused = a.focusTree
 		btn := ""
 		if a.webButtonOn() {
 			btn = webBtnLabel
