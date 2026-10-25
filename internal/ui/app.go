@@ -86,6 +86,8 @@ type App struct {
 	version    string  // "v0.1.0", or "" when unknown
 	upd        Updater // nil: no update check
 	avail      string  // the newer release's tag, once found
+	checking   bool    // a check is running
+	report     bool    // say how the running check ended, even when nothing is newer
 	updatedTo  string  // tag installed by a finished update
 	installDir string
 	updating   bool   // Apply is running
@@ -287,8 +289,8 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return a, cmd
 		}
-	case updateAvailMsg:
-		return a, a.onUpdateAvail(m)
+	case updateCheckedMsg:
+		return a, a.onUpdateChecked(m)
 	case updateDoneMsg:
 		return a, a.onUpdateDone(m)
 	case updateTickMsg:
@@ -686,6 +688,9 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 		a.openThemes()
 		return nil
 	case "U":
+		if a.avail == "" {
+			return a.checkNow()
+		}
 		return a.startUpdate()
 	case "f":
 		if a.focusTree && a.treeVisible() {

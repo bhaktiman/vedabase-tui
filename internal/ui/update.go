@@ -28,19 +28,55 @@ func versionLabel(v string) string {
 	return v
 }
 
-// checkUpdate asks the updater, in the background, for a newer release.
-// Errors and "none" are silent.
+// checkUpdate asks the updater, in the background, for a newer release. The
+// startup check is silent about errors and "none"; checkNow reports them.
 func (a *App) checkUpdate() tea.Cmd {
+	a.checking = true
 	u := a.upd
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), updateCheckTimeout)
 		defer cancel()
 		tag, err := u.Available(ctx)
-		if err != nil || tag == "" {
-			return nil
-		}
-		return updateAvailMsg{tag}
+		return updateCheckedMsg{tag, err}
 	}
+}
+
+// checkNow is U before any newer release is known: check, and say what came of it.
+func (a *App) checkNow() tea.Cmd {
+	switch {
+	case a.upd == nil:
+		return a.Toast("Updates are unavailable: the app could not find its own file", true)
+	case !update.Release(a.version):
+		return a.Toast("This is a development build ("+a.version+"); it does not update", false)
+	case a.updating, a.checking && a.report: // already asked
+		return nil
+	}
+	toast := a.Toast("Checking for updates…", false)
+	a.report = true
+	if a.checking { // the startup check is still out; report its answer
+		return toast
+	}
+	return tea.Batch(toast, a.checkUpdate())
+}
+
+func (a *App) onUpdateChecked(m updateCheckedMsg) tea.Cmd {
+	report := a.report
+	a.checking, a.report = false, false
+	if report {
+		if t := a.toasts.cur; t != nil && strings.HasPrefix(t.text, "Checking") {
+			a.toasts.cur, a.toasts.queue = nil, nil // the answer replaces it at once
+			a.fx.Stop(Toast)
+		}
+	}
+	switch {
+	case m.err == nil && m.tag != "":
+		return a.onUpdateAvail(m.tag)
+	case !report:
+		return nil
+	case m.err != nil:
+		return a.Toast("Couldn't check for updates: "+m.err.Error(), true)
+	}
+	return a.Toast("vedabase "+a.version+" is up to date", false)
 }
 
 // updateHint is what to show when the binary in dir cannot be replaced: the
@@ -56,9 +92,9 @@ func updateHint(goos, dir, home string) string {
 	return "curl -fsSL " + releasesURL + "/download/install.sh | sudo INSTALL_DIR=" + dir + " sh"
 }
 
-func (a *App) onUpdateAvail(m updateAvailMsg) tea.Cmd {
-	a.avail = m.tag
-	return a.Toast("vedabase "+m.tag+" is available — press U to update", false)
+func (a *App) onUpdateAvail(tag string) tea.Cmd {
+	a.avail = tag
+	return a.Toast("vedabase "+tag+" is available — press U to update", false)
 }
 
 // startUpdate downloads and installs the known release.

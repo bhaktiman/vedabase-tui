@@ -30,7 +30,7 @@ var helpGroups = []struct {
 		{"/", "Search (ctrl-n/p to results)"}, {"n / N", "Next / previous result"},
 		{":", "Go to reference"}, {"s", "Add to collection"},
 		{"'", "Open collections"}, {"e", "Export item"},
-		{"T", "Choose theme"}, {"U", "Update to the new version (when one is offered)"},
+		{"T", "Choose theme"}, {"U", "Check for updates; update when one is out"},
 		{"?", "This help"}, {"q / Esc", "Close overlay; quit"},
 	}},
 }

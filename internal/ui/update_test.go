@@ -21,11 +21,18 @@ import (
 type fakeUpdater struct {
 	mu       sync.Mutex
 	tag      string
+	checkErr error
+	checks   int
 	applyErr error
 	applied  []string
 }
 
-func (f *fakeUpdater) Available(context.Context) (string, error) { return f.tag, nil }
+func (f *fakeUpdater) Available(context.Context) (string, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.checks++
+	return f.tag, f.checkErr
+}
 
 func (f *fakeUpdater) Apply(_ context.Context, tag string, progress func(done, total int64)) error {
 	f.mu.Lock()
@@ -93,6 +100,76 @@ func TestUWithNothingAvailable(t *testing.T) {
 	drive(a, key("U"))
 	if len(u.calls()) != 0 || a.updating {
 		t.Fatalf("applied %v", u.calls())
+	}
+	if u.checks != 2 { // the startup check, then the one U asked for
+		t.Fatalf("checks = %d", u.checks)
+	}
+	if got := toastText(a); got != "vedabase v0.1.0 is up to date" {
+		t.Fatalf("toast %q", got)
+	}
+}
+
+// U before any update is known checks now; the found release is then offered,
+// and the next U installs it.
+func TestUChecksThenOffers(t *testing.T) {
+	u := &fakeUpdater{}
+	a, _ := bootUpd(t, u, 120)
+	u.tag = "v0.2.0" // released after launch
+	clearToast(a)
+	_, cmd := a.Update(key("U"))
+	if !a.checking || toastText(a) != "Checking for updates…" {
+		t.Fatalf("checking=%v toast=%q", a.checking, toastText(a))
+	}
+	drive(a, key("U")) // a second U while checking does not check again
+	if u.checks != 1 || len(a.toasts.queue) != 0 {
+		t.Fatalf("checks = %d, queued toasts %d", u.checks, len(a.toasts.queue))
+	}
+	drive(a, cmd())
+	if a.checking || a.avail != "v0.2.0" || len(u.calls()) != 0 {
+		t.Fatalf("checking=%v avail=%q applied=%v", a.checking, a.avail, u.calls())
+	}
+	if got := toastText(a); got != "vedabase v0.2.0 is available — press U to update" {
+		t.Fatalf("toast %q", got)
+	}
+	drive(a, key("U"))
+	if !reflect.DeepEqual(u.calls(), []string{"v0.2.0"}) {
+		t.Fatalf("applied %v", u.calls())
+	}
+}
+
+func TestUCheckFails(t *testing.T) {
+	u := &fakeUpdater{}
+	a, _ := bootUpd(t, u, 120) // the startup check stays silent on errors
+	u.checkErr = errors.New("no network")
+	if got := toastText(a); got != "" {
+		t.Fatalf("startup toast %q", got)
+	}
+	drive(a, key("U"))
+	if got := toastText(a); got != "Couldn't check for updates: no network" {
+		t.Fatalf("toast %q", got)
+	}
+	if a.toasts.cur == nil || !a.toasts.cur.err {
+		t.Fatal("not an error toast")
+	}
+}
+
+func TestUOnDevBuild(t *testing.T) {
+	sv := &saved{}
+	a := New(Options{Backend: newFake(t), State: store.State{LastRef: "bg/2/13"},
+		SaveState: sv.save, Version: "dev", Updater: &fakeUpdater{}})
+	a.tick = func(time.Duration, tea.Msg) tea.Cmd { return nil }
+	drive(a, tea.WindowSizeMsg{Width: 120, Height: 40}, a.Init()())
+	drive(a, key("U"))
+	if got := toastText(a); got != "This is a development build (dev); it does not update" {
+		t.Fatalf("toast %q", got)
+	}
+}
+
+func TestUWithoutUpdater(t *testing.T) {
+	a, _ := bootUpd(t, nil, 120)
+	drive(a, key("U"))
+	if got := toastText(a); got != "Updates are unavailable: the app could not find its own file" {
+		t.Fatalf("toast %q", got)
 	}
 }
 
@@ -313,5 +390,25 @@ func TestSiteTagStillClickableWithVersion(t *testing.T) {
 	drive(a, click(tag.x+3, tag.y))
 	if !reflect.DeepEqual(*got, []string{"https://vedabase.cc/"}) {
 		t.Fatalf("opened %v", *got)
+	}
+}
+
+func TestUWhileStartupCheckRuns(t *testing.T) {
+	sv, u := &saved{}, &fakeUpdater{}
+	a := New(Options{Backend: newFake(t), State: store.State{LastRef: "bg/2/13"},
+		SaveState: sv.save, Version: "0.1.0", Updater: u})
+	a.tick = func(time.Duration, tea.Msg) tea.Cmd { return nil }
+	drive(a, tea.WindowSizeMsg{Width: 120, Height: 40})
+	a.Init() // the startup check is out; its answer has not arrived
+	clearToast(a)
+	if c := a.checkNow(); c != nil {
+		drive(a, c())
+	}
+	if u.checks != 0 || toastText(a) != "Checking for updates…" || !a.report { // no second check
+		t.Fatalf("checks=%d toast %q report=%v", u.checks, toastText(a), a.report)
+	}
+	drive(a, updateCheckedMsg{})
+	if got := toastText(a); got != "vedabase v0.1.0 is up to date" {
+		t.Fatalf("toast %q", got)
 	}
 }

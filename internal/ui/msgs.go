@@ -35,13 +35,16 @@ type ToastMsg struct {
 
 // Internal timers and background results.
 type (
-	toastExpiredMsg struct{ seq int }
-	resizeTickMsg   struct{ seq int }
-	loadTickMsg     struct{}
-	updateTickMsg   struct{}             // redraws the bottom bar while the download runs
-	updateAvailMsg  struct{ tag string } // the startup check's answer; "" for none
-	updateDoneMsg   struct{ err error }  // the end of Apply
-	prefetchMsg     struct {
+	toastExpiredMsg  struct{ seq int }
+	resizeTickMsg    struct{ seq int }
+	loadTickMsg      struct{}
+	updateTickMsg    struct{} // redraws the bottom bar while the download runs
+	updateCheckedMsg struct { // a check's answer; tag "" for none
+		tag string
+		err error
+	}
+	updateDoneMsg struct{ err error } // the end of Apply
+	prefetchMsg   struct {
 		ref string
 		err error
 	}

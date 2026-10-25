@@ -83,6 +83,10 @@ func (u *Updater) Available(ctx context.Context) (string, error) {
 	return tag, nil
 }
 
+// Release reports whether v is a release tag (vMAJOR.MINOR.PATCH) that can be
+// updated from, as opposed to a development build such as "dev".
+func Release(v string) bool { return tagRe.MatchString(v) }
+
 // Newer reports whether latest is a higher vMAJOR.MINOR.PATCH than current.
 func Newer(current, latest string) bool {
 	c, ok1 := parseVersion(current)
