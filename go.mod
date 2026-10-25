@@ -5,6 +5,7 @@ go 1.26.6
 require (
 	charm.land/bubbles/v2 v2.2.1
 	charm.land/glamour/v2 v2.0.1
+	github.com/BurntSushi/toml v1.6.0
 	golang.org/x/text v0.43.0
 	golang.org/x/time v0.16.0
 )
