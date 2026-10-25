@@ -34,9 +34,7 @@ func Clean(it Item) Item {
 	case "transcripts":
 		it.Purport = cleanTranscript(it.Purport)
 	case "letters":
-		if !strings.Contains(it.Purport, "\n") {
-			it.Purport = cleanLetter(it.Purport)
-		}
+		it.Purport = cleanLetter(it.Purport)
 	}
 	return it
 }
@@ -59,6 +57,11 @@ func cleanLetter(s string) string {
 		return s
 	}
 	body := s[loc[1]:]
+	if strings.Contains(s, "\n") {
+		// Header fields sit on their own lines; the text is already broken
+		// into paragraphs, so only the header goes.
+		return strings.TrimPrefix(body, "\n")
+	}
 	if !salutation.MatchString(body) {
 		if m := placeBefore.FindStringSubmatch(body); m != nil && strings.TrimSpace(m[1]) != "" {
 			body = strings.TrimSpace(m[1]) + "\n\n" + body[len(m[1]):]

@@ -84,3 +84,11 @@ func TestCleanLetterLowercaseDear(t *testing.T) {
 		t.Error(`", X" with space must be left alone`)
 	}
 }
+
+func TestCleanLetterHeaderWithNewlines(t *testing.T) {
+	it := Item{Book: "letters", Purport: "Letter to: Ramakrishna\nDated:\nSeptember 26th 1952\nLocation:\nAllahabad\nLetter to:\nRamakrishna\n52-09-26\nMy Dear Ramakrishna,\nIn reply to your letter."}
+	got := Clean(it).Purport
+	if !strings.HasPrefix(got, "My Dear Ramakrishna,\nIn reply to") {
+		t.Fatalf("got %q", got)
+	}
+}
