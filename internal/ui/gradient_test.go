@@ -232,7 +232,7 @@ func TestReaderScrollThumb(t *testing.T) {
 	if len(m) != h || m[len(m)-1] != a.innerH()-1 {
 		t.Fatalf("bottom: marks %v, want %d rows ending at %d", m, h, a.innerH()-1)
 	}
-	// the thumb is coloured by row, the rest of the edge is the border colour
+	// the thumb is one plain colour (the text colour), the rest of the edge is the border colour
 	lines := strings.Split(a.View().Content, "\n")
 	var cols []cell
 	for i := 0; i < a.innerH(); i++ {
@@ -247,8 +247,8 @@ func TestReaderScrollThumb(t *testing.T) {
 			t.Fatalf("plain edge cell %+v", c)
 		}
 	}
-	if len(thumb) < 2 {
-		t.Fatalf("thumb rows share one colour: %v", thumb)
+	if len(thumb) != 1 || !thumb[rgb(a.pal.Fg)] {
+		t.Fatalf("thumb colours %v, want only the text colour %s", thumb, rgb(a.pal.Fg))
 	}
 	a.reader.SetContent("short\ntext", false)
 	if m := edge(); len(m) != 0 {

@@ -2,7 +2,6 @@ package ui
 
 import (
 	"fmt"
-	"image/color"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -253,10 +252,7 @@ func (a *App) box(lines []string, ow, oh int, title string, focused bool, btn, t
 	}
 	side := edge.Render("│")
 	out := []string{top}
-	var marks []color.Color
-	if len(th) > 0 {
-		marks = ramp(oh-2, stops(a.pal)...)
-	}
+	mark := lipgloss.NewStyle().Foreground(a.pal.Fg).Render("┃") // plain, easy to spot on either border colour
 	for i := 0; i < oh-2; i++ {
 		l := ""
 		if i < len(lines) {
@@ -264,7 +260,7 @@ func (a *App) box(lines []string, ow, oh int, title string, focused bool, btn, t
 		}
 		right := side
 		if len(th) > 0 && i >= th[0].start && i < th[0].start+th[0].h {
-			right = lipgloss.NewStyle().Foreground(marks[i]).Render("┃")
+			right = mark
 		}
 		out = append(out, side+padTo(l, iw)+right)
 	}
