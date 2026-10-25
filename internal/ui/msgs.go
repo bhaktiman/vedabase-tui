@@ -30,7 +30,6 @@ type progressMsg struct{ done, total int64 }
 type ToastMsg struct {
 	Text  string
 	Error bool
-	Star  string // a ref just added to a collection: start the star burst
 }
 
 // Internal timers and background results.

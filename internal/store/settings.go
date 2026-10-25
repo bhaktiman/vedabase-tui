@@ -16,6 +16,8 @@ type Settings struct {
 	ExportDir  string `toml:"export_dir"` // "~/" expanded on load
 	Animations bool   `toml:"animations"`
 	Mouse      bool   `toml:"mouse"` // click and wheel; false leaves text selection to the terminal
+	// ReadingWidth is the widest line of verse text; 0 means the whole pane.
+	ReadingWidth int `toml:"reading_width"`
 }
 
 const defaultConfig = `# vedabase-tui settings
@@ -29,6 +31,9 @@ const defaultConfig = `# vedabase-tui settings
 # Set to false to turn off mouse support, so your terminal's own text
 # selection works without holding Shift.
 # mouse = true
+
+# Widest line of verse text, in columns; the text is centred. 0 = use the whole pane.
+# reading_width = 80
 `
 
 func expandHome(p, home string) string {
@@ -45,7 +50,7 @@ func expandHome(p, home string) string {
 // commented default file so the options are discoverable.
 func LoadSettings(path string) (Settings, error) {
 	home, _ := os.UserHomeDir()
-	s := Settings{ExportDir: filepath.Join(home, "vedabase-exports"), Animations: true, Mouse: true}
+	s := Settings{ExportDir: filepath.Join(home, "vedabase-exports"), Animations: true, Mouse: true, ReadingWidth: 80}
 	b, err := os.ReadFile(path)
 	if os.IsNotExist(err) {
 		if werr := WriteFileAtomic(path, []byte(defaultConfig)); werr != nil {
@@ -57,7 +62,12 @@ func LoadSettings(path string) (Settings, error) {
 		return s, err
 	}
 	if err := toml.Unmarshal(b, &s); err != nil {
-		return Settings{ExportDir: filepath.Join(home, "vedabase-exports"), Animations: true, Mouse: true}, err
+		return Settings{ExportDir: filepath.Join(home, "vedabase-exports"), Animations: true, Mouse: true, ReadingWidth: 80}, err
+	}
+	if s.ReadingWidth < 0 {
+		s.ReadingWidth = 80
+	} else if s.ReadingWidth > 0 && s.ReadingWidth < 30 {
+		s.ReadingWidth = 30
 	}
 	s.ExportDir = expandHome(s.ExportDir, home)
 	return s, nil
@@ -70,6 +80,7 @@ type State struct {
 	Parts      api.Parts `json:"parts"`
 	TreeHidden bool      `json:"tree_hidden"`
 	Theme      string    `json:"theme"`
+	Wide       bool      `json:"wide"` // text uses the whole pane instead of a centred column
 }
 
 // LoadState returns the saved state; a missing or corrupt file gives defaults.

@@ -28,6 +28,9 @@ Press `?` in the app for the same list.
 
 | Key | Action |
 |---|---|
+| `Tab` | Switch focus between tree and reader |
+| `t` | Hide / show the sidebar |
+| `w` | Centred / full-width text |
 | `j` / `k` | Scroll a line (reader); move down / up (tree) |
 | `h` / `l` | Previous / next item (reader); collapse / expand (tree) |
 | `Ctrl-d` / `Ctrl-u` | Half page down / up |
@@ -36,8 +39,6 @@ Press `?` in the app for the same list.
 | `Enter` | Open item / expand (tree) |
 | `f` | Filter the tree |
 | `z` | Collapse all in the tree |
-| `Tab` | Switch focus between tree and reader |
-| `t` | Hide / show the tree |
 | `/` | Full-text search |
 | `n` / `N` | Next / previous search result |
 | `:` | Go to a reference |
@@ -92,6 +93,9 @@ On first run a commented `config.toml` is written for you:
 # Set to false to turn off mouse support, so your terminal's own text
 # selection works without holding Shift.
 # mouse = true
+
+# Widest line of verse text, in columns; the text is centred. 0 = use the whole pane.
+# reading_width = 80
 ```
 
 ## Being a good neighbour

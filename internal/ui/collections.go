@@ -142,7 +142,7 @@ func (p *Picker) add(name string) tea.Cmd {
 	case !added:
 		return toastCmd("Already in "+name, false)
 	}
-	return func() tea.Msg { return ToastMsg{Text: "★ Added to " + name, Star: it.Ref} }
+	return func() tea.Msg { return ToastMsg{Text: "★ Added to " + name} }
 }
 
 func (p *Picker) Update(kp tea.KeyPressMsg) tea.Cmd {

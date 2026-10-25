@@ -12,6 +12,9 @@ var helpGroups = []struct {
 	name string
 	rows []helpRow
 }{
+	{"View", []helpRow{
+		{"tab", "Switch focus"}, {"t", "Hide / show sidebar"}, {"w", "Centred / full width"},
+	}},
 	{"Reader", []helpRow{
 		{"j / k", "Scroll line"}, {"h / l", "Previous / next item"},
 		{"Ctrl-d / Ctrl-u", "Half page"}, {"gg / G", "Top / bottom"},
@@ -20,7 +23,7 @@ var helpGroups = []struct {
 	{"Tree", []helpRow{
 		{"j / k", "Move down / up"}, {"h / l", "Collapse / expand"},
 		{"Enter", "Open item / expand"}, {"gg / G", "First / last"},
-		{"f", "Filter the tree"}, {"z", "Collapse all"}, {"tab", "Switch focus"}, {"t", "Hide / show tree"},
+		{"f", "Filter the tree"}, {"z", "Collapse all"},
 	}},
 	{"Overlays", []helpRow{
 		{"/", "Full-text search"}, {"n / N", "Next / previous result"},

@@ -105,10 +105,9 @@ type App struct {
 	scr        scraped
 	toasts     toaster
 
-	fx       Effects
-	burstRef string // the ref whose ★ is pulsing
-	cd       *countdown
-	cdSeq    int
+	fx    Effects
+	cd    *countdown
+	cdSeq int
 
 	tick func(d time.Duration, msg tea.Msg) tea.Cmd // replaced in tests
 }
@@ -141,14 +140,13 @@ func New(o Options) *App {
 	for _, in := range []*textinput.Model{&a.search.input, &a.picker.input, &a.colview.input, &a.filterIn, &a.gotoBar.input} {
 		themeInput(in, a.pal)
 	}
-	a.tree.pulse = a.starPulse
 	a.layout()
 	return a
 }
 
 // State is what gets persisted on quit.
 func (a *App) State() store.State {
-	s := store.State{LastRef: a.ref, Scroll: a.reader.offset, Parts: a.parts, TreeHidden: a.state.TreeHidden, Theme: a.state.Theme}
+	s := store.State{LastRef: a.ref, Scroll: a.reader.offset, Parts: a.parts, TreeHidden: a.state.TreeHidden, Wide: a.state.Wide, Theme: a.state.Theme}
 	if a.restoreRef == a.ref {
 		s.Scroll = a.restore // the first render has not happened yet
 	}
@@ -243,17 +241,12 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case exportDoneMsg:
 		return a, a.onExportDone(m)
 	case ToastMsg:
-		cmds := []tea.Cmd{a.Toast(m.Text, m.Error)}
-		if m.Star != "" {
-			a.burstRef = m.Star
-			cmds = append(cmds, a.fx.Start(Burst, a.now()))
-		}
-		return a, tea.Batch(cmds...)
+		return a, a.Toast(m.Text, m.Error)
 	case frameMsg:
 		return a, a.onFrame(m)
-	case sparkleDelayMsg:
+	case spinnerDelayMsg:
 		if m.ref == a.ref && !a.hasItem && a.status == loadingStatus {
-			return a, a.fx.Start(Sparkle, a.now())
+			return a, a.fx.Start(Spinner, a.now())
 		}
 	case cdTickMsg:
 		if c := a.cd; c != nil && m.seq == c.seq && !a.fx.enabled {
@@ -399,7 +392,7 @@ func (a *App) open(ref string, from *library.Node) tea.Cmd {
 		a.tree.Reveal(a.node)
 		a.layout() // Reveal may have cleared the filter line
 	}
-	a.fx.Stop(Sparkle)
+	a.fx.Stop(Spinner)
 	if a.cd != nil && a.cd.kind == cdReader {
 		a.cd = nil
 		a.fx.Stop(Countdown)
@@ -408,7 +401,7 @@ func (a *App) open(ref string, from *library.Node) tea.Cmd {
 	if !a.be.Cached(ref) {
 		a.status = loadingStatus
 		if a.fx.enabled {
-			delay = a.tick(sparkleDelay, sparkleDelayMsg{ref})
+			delay = a.tick(spinnerDelay, spinnerDelayMsg{ref})
 		}
 	} else {
 		a.status = ""
@@ -424,7 +417,7 @@ func (a *App) onItem(m itemLoadedMsg) tea.Cmd {
 	if m.ref != a.ref {
 		return nil
 	}
-	a.fx.Stop(Sparkle)
+	a.fx.Stop(Spinner)
 	if m.err != nil {
 		return a.itemFailed(m.err)
 	}
@@ -450,7 +443,7 @@ func (a *App) itemFailed(err error) tea.Cmd {
 // renderCmd renders the current item in the background; the reply is dropped
 // if the ref, width or parts changed meanwhile.
 func (a *App) renderCmd() tea.Cmd {
-	w := a.readerW()
+	w := a.textW()
 	if !a.hasItem || w <= 0 {
 		return nil
 	}
@@ -466,7 +459,7 @@ func (a *App) renderCmd() tea.Cmd {
 }
 
 func (a *App) onRendered(m renderedMsg) tea.Cmd {
-	if m.ref != a.ref || m.width != a.readerW() || m.parts != a.parts {
+	if m.ref != a.ref || m.width != a.textW() || m.parts != a.parts {
 		return nil
 	}
 	fresh := a.reader.Empty()
@@ -476,9 +469,6 @@ func (a *App) onRendered(m renderedMsg) tea.Cmd {
 		a.reader.offset = a.restore
 		a.reader.clamp()
 		a.restoreRef = ""
-	}
-	if fresh {
-		return tea.Batch(a.fx.Start(FadeIn, a.now()), a.prefetch())
 	}
 	return a.prefetch()
 }
@@ -607,6 +597,13 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 		a.state.TreeHidden = !a.state.TreeHidden
 		a.focusTree = a.focusTree && a.treeVisible()
 		return a.relayout()
+	case "w":
+		a.state.Wide = !a.state.Wide
+		msg := "Centred column"
+		if a.state.Wide {
+			msg = "Full width"
+		}
+		return tea.Batch(a.relayout(), a.Toast(msg, false))
 	case "tab":
 		a.focusTree = !a.focusTree && a.treeVisible()
 		return nil

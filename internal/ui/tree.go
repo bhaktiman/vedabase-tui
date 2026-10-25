@@ -41,7 +41,6 @@ type Tree struct {
 	filter   string
 	shown    map[*library.Node]bool // filter mode: matches plus ancestors; nil otherwise
 	starred  func(string) bool
-	pulse    func(string) bool // the ★ is pulsing (star burst)
 	pal      render.Palette
 	seq      keySeq
 	focused  bool            // the tree pane has focus: the cursor row is bright, else dim
@@ -423,11 +422,7 @@ func (t Tree) View() string {
 		}
 		put(indent, normal)
 		put(marker, dim)
-		if star != "" && t.pulse != nil && t.pulse(r.node.Ref) {
-			put(star, gold.Foreground(t.pal.Bright).Bold(true))
-		} else {
-			put(star, gold)
-		}
+		put(star, gold)
 		if isHint(r.node) {
 			put(label, dim)
 		} else {

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"image/color"
 	"math"
-	"regexp"
 	"strings"
 	"time"
 
@@ -15,12 +14,9 @@ import (
 
 const (
 	frameDur     = 60 * time.Millisecond
-	sparkleDelay = 120 * time.Millisecond // cached items never flash the loader
-	burstDur     = 500 * time.Millisecond
-	fadeInDur    = 150 * time.Millisecond
-	toastSlide   = 3 // frames
+	spinnerDelay = 120 * time.Millisecond // cached items never flash the loader
+	toastSlide   = 3                      // frames
 	toastFadeDur = 300 * time.Millisecond
-	burstZoneW   = 8
 	mb           = 1_000_000
 )
 
@@ -28,9 +24,7 @@ const (
 type EffectKind int
 
 const (
-	Sparkle   EffectKind = iota // loader sparkles and shimmer; lives until Stop
-	Burst                       // star burst after adding to a collection
-	FadeIn                      // colour ramp on a new item
+	Spinner   EffectKind = iota // loader spinner and shimmer; lives until Stop
 	Toast                       // slide in, fade out
 	Countdown                   // rate-limit wait; lives until Stop
 	Loader                      // startup redraws; lives until the library arrives
@@ -40,8 +34,8 @@ const (
 // belongs to, so a tick left over from an earlier run is ignored.
 type frameMsg struct{ id int }
 
-// sparkleDelayMsg arrives sparkleDelay after an uncached load began.
-type sparkleDelayMsg struct{ ref string }
+// spinnerDelayMsg arrives spinnerDelay after an uncached load began.
+type spinnerDelayMsg struct{ ref string }
 
 // cdTickMsg is the once-a-second countdown tick used when motion is off.
 type cdTickMsg struct{ seq int }
@@ -78,10 +72,6 @@ func (e *Effects) Start(kind EffectKind, now time.Time) tea.Cmd {
 	}
 	f := 0
 	switch kind {
-	case Burst:
-		f = framesFor(burstDur)
-	case FadeIn:
-		f = framesFor(fadeInDur)
 	case Toast:
 		f = framesFor(toastTTL)
 	}
@@ -101,12 +91,10 @@ func (e *Effects) Stop(kind EffectKind) { delete(e.live, kind) }
 // Live reports whether an effect is running.
 func (e *Effects) Live(kind EffectKind) bool { return e.live[kind] != nil }
 
-// FinishAll jumps the short decorations to their final frame. Sparkle and
+// FinishAll jumps the short decorations to their final frame. Spinner and
 // Countdown track a state (loading, waiting) rather than a duration, so they
 // go on; a toast keeps its place in time but skips its slide.
 func (e *Effects) FinishAll() {
-	delete(e.live, Burst)
-	delete(e.live, FadeIn)
 	if t := e.live[Toast]; t != nil {
 		t.settle = true
 	}
@@ -139,15 +127,6 @@ func (e *Effects) age(kind EffectKind) int {
 	return 0
 }
 
-// progress is how far a timed effect has got, 0..1.
-func (e *Effects) progress(kind EffectKind) float64 {
-	f := e.live[kind]
-	if f == nil || f.frames == 0 {
-		return 1
-	}
-	return math.Min(float64(e.frame-f.start)/float64(f.frames), 1)
-}
-
 // mix blends a toward b by k (0..1).
 func mix(a, b color.Color, k float64) color.Color {
 	ar, ag, ab, _ := a.RGBA()
@@ -156,20 +135,16 @@ func mix(a, b color.Color, k float64) color.Color {
 	return lipgloss.Color(fmt.Sprintf("#%02x%02x%02x", l(ar, br), l(ag, bg), l(ab, bb)))
 }
 
-func (a *App) sparkleColors() []color.Color {
-	return []color.Color{a.pal.Gold, a.pal.Rose, a.pal.Teal, a.pal.Violet}
-}
+var spinnerFrames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 
-// sparkleGlyphs is the twinkling pair shown next to the loading heading.
-func (a *App) sparkleGlyphs() string {
-	cs, f := a.sparkleColors(), a.fx.frame
-	g := func(i int, r string) string {
-		return lipgloss.NewStyle().Foreground(cs[(f/2+i)%len(cs)]).Bold(true).Render(r)
+// spinnerGlyph is the braille dot spinner next to the loading heading, or a
+// static full cell with motion off.
+func (a *App) spinnerGlyph() string {
+	g := "⠿"
+	if a.fx.enabled {
+		g = spinnerFrames[a.fx.frame%len(spinnerFrames)]
 	}
-	if f%2 == 0 {
-		return g(0, "✦") + " " + g(2, "✧")
-	}
-	return g(0, "✧") + " " + g(2, "✦")
+	return lipgloss.NewStyle().Foreground(a.pal.Gold).Render(g)
 }
 
 // shimmerLines is three placeholder lines with a brighter band moving across.
@@ -187,64 +162,6 @@ func (a *App) shimmerLines(w int) []string {
 			dim.Render(strings.Repeat("░", lw-hi))
 	}
 	return out
-}
-
-var sgr = regexp.MustCompile("\x1b\\[[0-9;:]*m")
-
-// fade dims a rendered line: level 1 is flat Dim, level 2 is the real colours
-// faint, anything else is untouched. Only visible lines come through here.
-func (a *App) fade(line string, level int) string {
-	switch level {
-	case 1:
-		return lipgloss.NewStyle().Foreground(a.pal.Dim).Render(sgr.ReplaceAllString(line, ""))
-	case 2:
-		const faint = "\x1b[2m"
-		return faint + sgr.ReplaceAllStringFunc(line, func(s string) string {
-			if s == "\x1b[m" || s == "\x1b[0m" {
-				return s + faint
-			}
-			return s
-		}) + "\x1b[m"
-	}
-	return line
-}
-
-// fadeLevel is the reader's dimming for this frame.
-func (a *App) fadeLevel() int {
-	if !a.fx.Live(FadeIn) {
-		return 0
-	}
-	if a.fx.age(FadeIn) < 1 {
-		return 1
-	}
-	return 2
-}
-
-// burstRow is the sparkle strip drawn left of the toast during a burst.
-func (a *App) burstZone() string {
-	if !a.fx.Live(Burst) {
-		return ""
-	}
-	p := a.fx.progress(Burst)
-	cells := make([]string, burstZoneW)
-	for i := range cells {
-		cells[i] = " "
-	}
-	cs := a.sparkleColors()
-	for i, speed := range []float64{0.45, 0.65, 0.85, 1} {
-		col := burstZoneW - 1 - int(p*speed*float64(burstZoneW-1))
-		glyph := "✦"
-		if (a.fx.frame+i)%2 == 1 {
-			glyph = "✧"
-		}
-		cells[max(col, 0)] = lipgloss.NewStyle().Foreground(cs[i%len(cs)]).Render(glyph)
-	}
-	return strings.Join(cells, "")
-}
-
-// starPulse reports whether the tree's ★ for ref is pulsing bright this frame.
-func (a *App) starPulse(ref string) bool {
-	return a.fx.Live(Burst) && a.burstRef == ref && a.fx.age(Burst)%2 == 0
 }
 
 // startupBar is the first-launch gradient progress bar.

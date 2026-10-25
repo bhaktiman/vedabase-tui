@@ -45,6 +45,18 @@ func (a *App) readerOuterW() int {
 // readerW is the width of the reader's text.
 func (a *App) readerW() int { return max(a.readerOuterW()-2*a.bw(), 1) }
 
+// textW is the width the item is rendered at: reading_width unless the user
+// asked for the whole pane or the pane is narrower anyway.
+func (a *App) textW() int {
+	if a.state.Wide || a.settings.ReadingWidth <= 0 {
+		return a.readerW()
+	}
+	return min(a.readerW(), a.settings.ReadingWidth)
+}
+
+// colIndent is the left margin that centres the text column in the pane.
+func (a *App) colIndent() int { return (a.readerW() - a.textW()) / 2 }
+
 // treeInnerW is the width of the tree's rows.
 func (a *App) treeInnerW() int { return max(a.treeW()-2*a.bw(), 1) }
 
@@ -57,7 +69,7 @@ func (a *App) layout() {
 		th = max(th-1, 1)
 	}
 	a.tree.SetSize(a.treeInnerW(), th)
-	a.reader.SetSize(a.readerW(), a.innerH())
+	a.reader.SetSize(a.textW(), a.innerH())
 	a.search.SetSize(a.w, a.h)
 	a.picker.SetSize(a.w, a.h)
 	a.colview.SetSize(a.w, a.h)
@@ -66,7 +78,7 @@ func (a *App) layout() {
 // relayout re-renders at once when the reader's width changed.
 func (a *App) relayout() tea.Cmd {
 	a.layout()
-	if a.hasItem && a.renderedW != a.readerW() {
+	if a.hasItem && a.renderedW != a.textW() {
 		return a.renderCmd()
 	}
 	return nil
@@ -77,7 +89,7 @@ func (a *App) resize(w, h int) tea.Cmd {
 	a.w, a.h = w, h
 	a.focusTree = a.focusTree && a.treeVisible()
 	a.layout()
-	if a.hasItem && a.renderedW != a.readerW() {
+	if a.hasItem && a.renderedW != a.textW() {
 		a.resizeSeq++
 		return a.tick(resizeQuiet, resizeTickMsg{a.resizeSeq})
 	}
@@ -123,16 +135,17 @@ func (a *App) content() string {
 	case a.themes.visible:
 		return a.overlayView(a.themeView())
 	}
-	var body []string
-	if level := a.fadeLevel(); level > 0 {
-		body = a.reader.LinesFaded(func(l string) string { return a.fade(l, level) })
-	} else {
-		body = a.reader.Lines()
+	body := a.reader.Lines()
+	pad := strings.Repeat(" ", a.colIndent())
+	for i, l := range body {
+		if l != "" {
+			body[i] = pad + l
+		}
 	}
 	if a.status != "" && !a.hasItem {
 		for i, l := range a.statusLines() {
 			if i < len(body) {
-				body[i] = l
+				body[i] = pad + l
 			}
 		}
 	}
@@ -236,11 +249,13 @@ func (a *App) startupView() string {
 // statusLines is what replaces the document while there is none: the loader,
 // the rate-limit wait, or a plain message.
 func (a *App) statusLines() []string {
-	w := a.readerW()
+	w := a.textW()
 	dim := lipgloss.NewStyle().Foreground(a.pal.Dim)
 	switch {
-	case a.status == loadingStatus && a.fx.Live(Sparkle):
-		return append([]string{a.sparkleGlyphs() + " " + dim.Render(loadingStatus), ""}, a.shimmerLines(w)...)
+	case a.status == loadingStatus && a.fx.Live(Spinner):
+		return append([]string{a.spinnerGlyph() + " " + dim.Render(loadingStatus), ""}, a.shimmerLines(w)...)
+	case a.status == loadingStatus && !a.fx.enabled:
+		return []string{a.spinnerGlyph() + " " + dim.Render(loadingStatus)}
 	case a.status == loadingStatus:
 		return []string{dim.Render(loadingStatus)}
 	}

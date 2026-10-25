@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"strings"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
@@ -62,7 +61,7 @@ func (a *App) toastExpired(m toastExpiredMsg) tea.Cmd {
 }
 
 // toastView renders the visible toast within max cells, or "" when none. In
-// its last 300 ms it fades into the background, and a live burst pulses the ★.
+// its last 300 ms it fades into the background.
 func (a *App) toastView(max int) string {
 	t := a.toasts.cur
 	if t == nil || max < 4 {
@@ -82,13 +81,6 @@ func (a *App) toastView(max int) string {
 	}
 	st := lipgloss.NewStyle().Background(bg).Foreground(fg).Bold(true)
 	text := truncate(t.text, max-2)
-	if rest, ok := strings.CutPrefix(text, "★"); ok && a.fx.Live(Burst) {
-		star := st
-		if a.fx.age(Burst)%2 == 0 {
-			star = st.Foreground(a.pal.Bright)
-		}
-		return st.Render(" ") + star.Render("★") + st.Render(rest+" ")
-	}
 	return st.Render(" " + text + " ")
 }
 
@@ -100,27 +92,19 @@ func max0(d time.Duration) time.Duration {
 }
 
 // placeToast puts the toast at the right end of base (a line w cells wide),
-// sliding it in from the edge and trailing burst sparkles.
+// sliding it in from the edge.
 func (a *App) placeToast(base string, w int) string {
 	t := a.toastView(w)
 	if t == "" {
 		return base
 	}
-	zone := ""
-	if w >= 40 {
-		zone = a.burstZone()
-	}
 	tw := lipgloss.Width(t)
-	zw := 0
-	if zone != "" {
-		zw = burstZoneW
-	}
 	shift := 0
 	if f := a.slideFrames(); f < toastSlide {
-		shift = (toastSlide - f) * (tw + zw) / toastSlide
+		shift = (toastSlide - f) * tw / toastSlide
 	}
-	keep := max(w-tw-zw-1, 0) + shift
-	line := padTo(lipgloss.NewStyle().MaxWidth(max(keep, 1)).Render(base), keep) + " " + zone + t
+	keep := max(w-tw-1, 0) + shift
+	line := padTo(lipgloss.NewStyle().MaxWidth(max(keep, 1)).Render(base), keep) + " " + t
 	return lipgloss.NewStyle().MaxWidth(max(w, 1)).Render(line)
 }
 

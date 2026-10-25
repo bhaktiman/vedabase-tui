@@ -43,39 +43,44 @@ func TestNoTicksWhenIdle(t *testing.T) {
 	// A live effect ticks; once it ends the ticker stops by itself.
 	n := 0
 	e.tick = func(time.Duration, tea.Msg) tea.Cmd { n++; return nil }
-	e.Start(FadeIn, time.Now())
+	e.Start(Spinner, time.Now())
 	for i := 0; i < 5; i++ {
 		e.Update(frameMsg{e.id})
 	}
-	if n != 3 { // the start tick plus two before the 3-frame fade ended
+	if n != 6 { // the start tick plus one per frame while it lives
 		t.Fatalf("ticks=%d", n)
 	}
-	if e.running || e.Live(FadeIn) {
+	e.Stop(Spinner)
+	e.Update(frameMsg{e.id})
+	if n != 6 || e.running {
 		t.Fatal("ticker still running")
 	}
 }
 
 func TestKeyFinishesEffects(t *testing.T) {
 	a, _ := bootFx(t, newFake(t), true)
-	for i := 0; i < 5; i++ { // let the boot fade run out
-		drive(a, frameMsg{a.fx.id})
+	drive(a, ToastMsg{Text: "Hello there"})
+	if strings.Contains(plain(a), "Hello there") { // frame 0: still off the edge
+		t.Fatal("toast should start off-screen")
 	}
-	final := a.View().Content
-	a.fx.Start(FadeIn, time.Now())
-	if a.fadeLevel() == 0 || a.View().Content == final {
-		t.Fatal("fade not visible")
-	}
-	drive(a, key("x")) // any key; x scrolls nothing, so the view can be compared
-	if a.fx.Live(FadeIn) || a.View().Content != final {
-		t.Fatalf("effect survived a key press")
+	drive(a, key("x")) // any key; x scrolls nothing
+	if !strings.Contains(plain(a), "Hello there") {
+		t.Fatal("key press did not finish the slide")
 	}
 }
 
-func TestFadeOnNewItemOnly(t *testing.T) {
+func TestItemShowsAtFullColourImmediately(t *testing.T) {
 	a, _ := bootFx(t, newFake(t), true)
 	drive(a, key("l"))
-	if !a.fx.Live(FadeIn) {
-		t.Fatal("new item did not fade in")
+	first := a.View().Content
+	if strings.Contains(plain(a), "Loading") || a.reader.Empty() {
+		t.Fatal("item not shown")
+	}
+	for i := 0; i < 5; i++ {
+		drive(a, frameMsg{a.fx.id})
+	}
+	if a.View().Content != first {
+		t.Fatal("the item changed after the first frame")
 	}
 }
 
@@ -84,81 +89,110 @@ func TestAnimationsOff(t *testing.T) {
 	be.block["bg/1/19"] = make(chan struct{})
 	a, ticks := bootFx(t, be, false)
 	_ = a.Open("bg/1/19")
-	drive(a, sparkleDelayMsg{"bg/1/19"})
-	if countFrames(*ticks) != 0 || a.fx.Live(Sparkle) || strings.Contains(plain(a), "✦") {
+	drive(a, spinnerDelayMsg{"bg/1/19"})
+	if countFrames(*ticks) != 0 || a.fx.Live(Spinner) || strings.Contains(plain(a), "⠋") {
 		t.Fatalf("motion with animations off: %v", *ticks)
 	}
 	for _, m := range *ticks {
-		if _, ok := m.(sparkleDelayMsg); ok {
+		if _, ok := m.(spinnerDelayMsg); ok {
 			t.Fatal("sparkle delay scheduled")
 		}
 	}
-	// Star add: toast shown, no burst.
-	drive(a, ToastMsg{Text: "★ Added to x", Star: "bg/2/13"})
-	if a.toasts.cur == nil || a.fx.Live(Burst) || a.fx.Live(Toast) || countFrames(*ticks) != 0 {
-		t.Fatal("burst or toast motion with animations off")
+	drive(a, ToastMsg{Text: "★ Added to x"})
+	if a.toasts.cur == nil || a.fx.Live(Toast) || countFrames(*ticks) != 0 {
+		t.Fatal("toast motion with animations off")
 	}
 	if !strings.Contains(plain(a), "★ Added to x") {
 		t.Fatal("toast not shown")
 	}
 }
 
-func TestBurstAndToastMotion(t *testing.T) {
-	a, _ := bootFx(t, newFake(t), true)
-	drive(a, ToastMsg{Text: "★ Added to x", Star: "bg/2/13"})
-	if !a.fx.Live(Burst) || !a.fx.Live(Toast) {
-		t.Fatal("effects not started")
-	}
-	if strings.Contains(plain(a), "Added to x") { // frame 0: still off the edge
-		t.Fatal("toast should start off-screen")
-	}
-	for i := 0; i < 3; i++ {
+func TestAddShowsToastWithoutBurst(t *testing.T) {
+	a, _, _ := colApp(t, newFake(t), store.State{LastRef: "bg/2/13"})
+	a.fx.enabled = true
+	drive(a, key("s"), key("enter"))
+	typeKeys(a, "On the soul")
+	drive(a, key("enter"))
+	for i := 0; i < 5; i++ {
+		if strings.ContainsAny(plain(a), "✦✧") {
+			t.Fatal("sparkle in view")
+		}
 		drive(a, frameMsg{a.fx.id})
 	}
-	v := plain(a)
-	if !strings.Contains(v, "★ Added to x") || !strings.ContainsAny(v, "✦✧") {
-		t.Fatalf("settled toast with sparkles missing:\n%s", v)
+	if a.toasts.cur == nil || !strings.Contains(a.toasts.cur.text, "Added to") {
+		t.Fatalf("no add toast: %+v", a.toasts.cur)
 	}
-	for i := 0; i < 20; i++ {
-		drive(a, frameMsg{a.fx.id})
-	}
-	if a.fx.Live(Burst) {
-		t.Fatal("burst should end after ~500ms")
+	if !strings.Contains(plain(a), "★ Added to") {
+		t.Fatalf("toast not visible:\n%s", plain(a))
 	}
 }
 
-func TestSparkleOnlyAfterDelay(t *testing.T) {
+func TestSpinnerReplacesSparkles(t *testing.T) {
+	be := newFake(t)
+	be.block["bg/1/19"] = make(chan struct{})
+	a, _ := bootFx(t, be, true)
+	_ = a.Open("bg/1/19")
+	drive(a, spinnerDelayMsg{"bg/1/19"})
+	has := func() string {
+		v := plain(a)
+		if strings.ContainsAny(v, "✦✧") {
+			t.Fatal("sparkle glyph in loader")
+		}
+		for _, f := range spinnerFrames {
+			if strings.Contains(v, f+" Loading") {
+				return f
+			}
+		}
+		t.Fatalf("no spinner frame:\n%s", v)
+		return ""
+	}
+	f1 := has()
+	drive(a, frameMsg{a.fx.id})
+	if f2 := has(); f2 == f1 {
+		t.Fatalf("spinner did not advance from %s", f1)
+	}
+
+	be2 := newFake(t)
+	be2.block["bg/1/19"] = make(chan struct{})
+	b, _ := bootFx(t, be2, false)
+	_ = b.Open("bg/1/19")
+	if !strings.Contains(plain(b), "⠿ Loading") {
+		t.Fatalf("static spinner missing:\n%s", plain(b))
+	}
+}
+
+func TestSpinnerOnlyAfterDelay(t *testing.T) {
 	be := newFake(t)
 	be.cached["bg/2/1"] = true
 	a, ticks := bootFx(t, be, true)
 	_ = a.Open("bg/2/1") // cached: no delay timer, nothing to show
-	drive(a, sparkleDelayMsg{"bg/2/1"})
-	if strings.Contains(a.View().Content, "✦") {
+	drive(a, spinnerDelayMsg{"bg/2/1"})
+	if strings.ContainsAny(plain(a), "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏") {
 		t.Fatal("cached item flashed the loader")
 	}
 
 	be.block["bg/1/19"] = make(chan struct{})
 	*ticks = nil
 	_ = a.Open("bg/1/19")
-	if strings.Contains(a.View().Content, "✦") || strings.Contains(a.View().Content, "✧") {
+	if strings.ContainsAny(plain(a), "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏") || strings.Contains(a.View().Content, "✧") {
 		t.Fatal("loader shown before the delay")
 	}
 	found := false
 	for _, m := range *ticks {
-		_, ok := m.(sparkleDelayMsg)
+		_, ok := m.(spinnerDelayMsg)
 		found = found || ok
 	}
 	if !found {
 		t.Fatal("no delay timer scheduled")
 	}
-	drive(a, sparkleDelayMsg{"bg/1/19"})
-	v := a.View().Content
-	if !strings.ContainsAny(v, "✦✧") || !strings.Contains(plain(a), "░░░") {
+	drive(a, spinnerDelayMsg{"bg/1/19"})
+	v := plain(a)
+	if !strings.ContainsAny(v, "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏") || !strings.Contains(plain(a), "░░░") {
 		t.Fatalf("loader missing:\n%s", plain(a))
 	}
 	// Arrival ends it.
 	drive(a, itemLoadedMsg{ref: "bg/1/19", item: be.item("bg/1/19")})
-	if a.fx.Live(Sparkle) {
+	if a.fx.Live(Spinner) {
 		t.Fatal("sparkle outlived the load")
 	}
 }
