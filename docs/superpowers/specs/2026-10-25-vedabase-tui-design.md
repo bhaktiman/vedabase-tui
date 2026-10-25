@@ -137,7 +137,12 @@ every page of every book, plus `/en/library/letters/<slug>/` (6,582) and
 - **Letters by year:** the library page `/en/library/letters/?year=YYYY` lists
   that year's letters with recipient, date and place, 20 per page (the year
   facet shows counts, e.g. 1969: 760). Scrape it when a year node opens, then
-  cache. This is also HTML scraping and may break.
+  cache. This is also HTML scraping and may break. Year grouping needs this
+  scrape (the sitemap has no dates). **Fetch lazily (call):** page 1 when the
+  year opens, further pages as the list scrolls near its end, never all 38 up
+  front.
+- **Scraping is in v1 but not on the critical path (call):** the tree works
+  first with "Chapter N" and raw labels, and title scraping is added later.
 - **Letters by recipient:** taken from the slug with no fetching:
   `letter-to-<name>[-N]` → `<name>`, giving about 1,886 groups. Slug names have no
   diacritics ("abhirama"); once the proper title ("Letter to: Abhirāma") is known
@@ -176,6 +181,21 @@ every page of every book, plus `/en/library/letters/<slug>/` (6,582) and
 - Prose books and documents (e.g. `lcfl/1`, a letter, a lecture) render as one
   long scrolling page with the same keys.
 - On launch it reopens the last item read, at its scroll position (call).
+- The tree is a **custom component**; Bubbles has no tree widget. It needs lazy
+  children (for year lists), expand/collapse, ★ markers and the `f` filter.
+
+### Reading order (call)
+
+- `h`/`l` visit **every leaf of the current book in natural order**: front
+  matter, every verse or range, `summary`, `notes`, `concluding_words`,
+  crossing chapter, canto and līlā boundaries.
+- They **stop at the ends of a book** (toast "End of Bhagavad-gītā") rather than
+  running into the next book.
+- In Letters and Lectures, `h`/`l` follow the order of the tree group the item
+  was opened from: by date in a year group, by date within a recipient group
+  once dates are known, and by slug until then.
+- The top bar's "13 / 72" is the item's position among its **sitemap siblings**
+  (the leaves under the same parent node), not an API value.
 
 ### Show / hide parts (user)
 
@@ -228,6 +248,8 @@ toast. The builder decides the exact parser.
 - Enter opens a result in the reader. From there `h`/`l` keep reading the book
   normally, and `n`/`N` move to the next/previous result. Esc returns to the
   results list with its scroll position kept (call).
+- `n` past the last loaded result fetches the next page if `has_more` (call).
+  In the tree pane, `n`/`N` do the same as in the reader.
 
 ### Collections (user: several named collections; details are the call)
 
@@ -240,6 +262,8 @@ toast. The builder decides the exact parser.
   No manual reordering in v1.
 - An item stores its ref, plus the book code and a display label captured when
   added, so the list renders offline.
+- Items are identified by **exact ref** (call). `bg/1/16-18` and `bg/1/17` are
+  different items, and ★ shows only on the exact ref.
 
 ### Export (user: Markdown, single verses and whole collections)
 
@@ -249,6 +273,11 @@ toast. The builder decides the exact parser.
   collection, `<export_dir>/collection-<name-slug>.md` (call).
 - **Contents:** only the parts currently showing (call). A file that already
   exists is overwritten, and a toast says so (call).
+- **A collection export with uncached items** runs as a background job (call).
+  It fetches the missing items within the rate limit and shows the progress bar
+  (effect 1) in the status area while you keep reading. The file is written only
+  when every item is in. If an item fails, it still writes the file, with
+  "(unavailable: <ref>)" in that item's place, and says so in the toast.
 - Default `export_dir` is `~/vedabase-exports/`, settable in the config (call;
   the user didn't say where, and an Obsidian vault folder works).
 
@@ -371,7 +400,7 @@ setup). That's acceptable, and toggle `1` hides them.
 
 ## 13. Left to the builder
 
-Package layout, exact palette values, Glamour style JSON, the go-to-ref grammar
+Settings are read at startup only (no live reload). Package layout, exact palette values, Glamour style JSON, the go-to-ref grammar
 beyond the examples, the help overlay contents, how scraped HTML is parsed,
 settings-file layout, the module path, and the order of work, except that the
 §11 spike and the sitemap → tree parser come first.
