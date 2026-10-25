@@ -15,15 +15,19 @@ import (
 )
 
 // DisplayMarkdown lays an item out as Markdown, skipping hidden or empty parts.
-// Documents (letters, transcripts) show their title, date and body instead.
+// Documents and prose chapters (no verse parts) show title, date and body
+// instead; the part toggles do not apply to them.
 func DisplayMarkdown(it api.Item, p api.Parts) string {
 	var sections []string
-	if it.Document != nil {
+	prose := strings.TrimSpace(it.Devanagari+it.VerseText+it.Synonyms) == ""
+	if it.Document != nil || prose {
 		sections = append(sections, "## "+it.Translation)
 		var meta []string
-		for _, s := range []string{it.Document.Date, it.Document.Location} {
-			if s != "" {
-				meta = append(meta, s)
+		if it.Document != nil {
+			for _, s := range []string{it.Document.Date, it.Document.Location} {
+				if s != "" {
+					meta = append(meta, s)
+				}
 			}
 		}
 		if len(meta) > 0 {

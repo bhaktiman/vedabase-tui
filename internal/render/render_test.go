@@ -99,3 +99,13 @@ func TestMarks(t *testing.T) {
 		t.Fatalf("bold: %q", got)
 	}
 }
+
+func TestDisplayMarkdownProse(t *testing.T) {
+	md := DisplayMarkdown(loadItem(t, "verse-lcfl-1.json"), api.AllParts())
+	if !strings.HasPrefix(md, "## The First Morning Walk: April 18, 1973") || strings.Contains(md, "#### ") {
+		t.Fatalf("bad prose markdown:\n%.300s", md)
+	}
+	if md2 := DisplayMarkdown(loadItem(t, "verse-lcfl-1.json"), api.Parts{}); md2 != md {
+		t.Fatal("toggles should not affect prose")
+	}
+}
