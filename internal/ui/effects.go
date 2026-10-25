@@ -33,6 +33,7 @@ const (
 	FadeIn                      // colour ramp on a new item
 	Toast                       // slide in, fade out
 	Countdown                   // rate-limit wait; lives until Stop
+	Loader                      // startup redraws; lives until the library arrives
 )
 
 // frameMsg is one tick of the shared 60 ms ticker. id names the ticker run it
@@ -248,6 +249,11 @@ func (a *App) starPulse(ref string) bool {
 
 // startupBar is the first-launch gradient progress bar.
 func (a *App) startupBar(done, total int64) string {
+	title := lipgloss.NewStyle().Foreground(a.pal.Gold).Bold(true).Render("ॐ vedabase")
+	if total <= 0 {
+		dim := lipgloss.NewStyle().Foreground(a.pal.Dim)
+		return strings.Join([]string{title, "", a.sweepBar(), dim.Render(fmt.Sprintf("%.1f MB", float64(done)/mb))}, "\n")
+	}
 	w := max(min(a.w-4, 40), 8)
 	bar := progress.New(
 		progress.WithColors(a.pal.Rose, a.pal.Gold, a.pal.Teal, a.pal.Violet),
@@ -255,7 +261,6 @@ func (a *App) startupBar(done, total int64) string {
 		progress.WithFillCharacters('█', '░'),
 	)
 	bar.EmptyColor = a.pal.Dim
-	title := lipgloss.NewStyle().Foreground(a.pal.Gold).Bold(true).Render("ॐ vedabase")
 	label := lipgloss.NewStyle().Foreground(a.pal.Dim).
 		Render(fmt.Sprintf("%.1f / %.1f MB", float64(done)/mb, float64(total)/mb))
 	return strings.Join([]string{title, "", bar.ViewAs(float64(done) / float64(total)), label}, "\n")
@@ -342,4 +347,26 @@ func (a *App) onFrame(m frameMsg) tea.Cmd {
 		return tea.Batch(cmd, a.cdAdvance(frameDur))
 	}
 	return cmd
+}
+
+// sweepBar is the indeterminate bar: a gradient band sweeping across, or a
+// static dim bar with motion off.
+func (a *App) sweepBar() string {
+	w := max(min(a.w-4, 40), 8)
+	dim := lipgloss.NewStyle().Foreground(a.pal.Dim)
+	if !a.fx.enabled {
+		return dim.Render(strings.Repeat("░", w))
+	}
+	cs := []color.Color{a.pal.Rose, a.pal.Gold, a.pal.Teal, a.pal.Violet}
+	const band = 10
+	pos := a.fx.frame % (w + band)
+	var b strings.Builder
+	for i := 0; i < w; i++ {
+		if d := pos - i; d >= 0 && d < band {
+			b.WriteString(lipgloss.NewStyle().Foreground(cs[d*len(cs)/band]).Render("█"))
+		} else {
+			b.WriteString(dim.Render("░"))
+		}
+	}
+	return b.String()
 }

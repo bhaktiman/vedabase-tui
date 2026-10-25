@@ -1,6 +1,8 @@
 package api
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"errors"
@@ -79,21 +81,36 @@ func (c *Client) Search(ctx context.Context, q, book string, page int) (SearchPa
 // Fetch downloads an absolute URL (site page or sitemap). progress may be nil;
 // total is -1 when the server sends no Content-Length.
 func (c *Client) Fetch(ctx context.Context, u string, progress func(done, total int64)) ([]byte, error) {
-	resp, err := c.do(ctx, c.verse, u)
+	resp, err := c.do(ctx, c.verse, u, true)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
+	// Asking for gzip ourselves turns off Go's transparent decompression, so
+	// ContentLength stays the wire size and progress can be measured against it.
 	total := resp.ContentLength
+	var read int64
 	var buf []byte
 	chunk := make([]byte, 32*1024)
 	for {
 		n, rerr := resp.Body.Read(chunk)
 		buf = append(buf, chunk[:n]...)
+		read += int64(n)
 		if n > 0 && progress != nil {
-			progress(int64(len(buf)), total)
+			progress(read, total)
 		}
 		if rerr == io.EOF {
+			if resp.Header.Get("Content-Encoding") == "gzip" {
+				zr, err := gzip.NewReader(bytes.NewReader(buf))
+				if err != nil {
+					return nil, c.transportErr(ctx, err)
+				}
+				out, err := io.ReadAll(zr)
+				if err != nil {
+					return nil, c.transportErr(ctx, err)
+				}
+				return out, nil
+			}
 			return buf, nil
 		}
 		if rerr != nil {
@@ -115,7 +132,7 @@ func (c *Client) getJSON(ctx context.Context, lim *rate.Limiter, u string, out a
 }
 
 // do issues the GET, retries a 5xx once, and returns only 2xx responses.
-func (c *Client) do(ctx context.Context, lim *rate.Limiter, u string) (*http.Response, error) {
+func (c *Client) do(ctx context.Context, lim *rate.Limiter, u string, gz ...bool) (*http.Response, error) {
 	for attempt := 0; ; attempt++ {
 		if err := wait(ctx, lim); err != nil {
 			return nil, err
@@ -125,6 +142,9 @@ func (c *Client) do(ctx context.Context, lim *rate.Limiter, u string) (*http.Res
 			return nil, err
 		}
 		req.Header.Set("User-Agent", c.ua)
+		if len(gz) > 0 && gz[0] {
+			req.Header.Set("Accept-Encoding", "gzip")
+		}
 		resp, err := c.hc.Do(req)
 		if err != nil {
 			return nil, c.transportErr(ctx, err)

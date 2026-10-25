@@ -1,8 +1,12 @@
 package api
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"errors"
+	"fmt"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -233,5 +237,32 @@ func TestLimiterBlocks(t *testing.T) {
 	}
 	if time.Since(start) > time.Second {
 		t.Errorf("blocked too long: %v", time.Since(start))
+	}
+}
+
+func TestFetchGzipProgress(t *testing.T) {
+	orig := make([]byte, 200*1024)
+	rand.New(rand.NewSource(1)).Read(orig[:100*1024]) // half incompressible
+	var zb bytes.Buffer
+	zw := gzip.NewWriter(&zb)
+	zw.Write(orig)
+	zw.Close()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Accept-Encoding") != "gzip" {
+			t.Errorf("Accept-Encoding=%q", r.Header.Get("Accept-Encoding"))
+		}
+		w.Header().Set("Content-Encoding", "gzip")
+		w.Header().Set("Content-Length", fmt.Sprint(zb.Len()))
+		w.Write(zb.Bytes())
+	}))
+	defer srv.Close()
+	c := NewClient(srv.URL, "ua", srv.Client())
+	var lastDone, lastTotal int64
+	got, err := c.Fetch(context.Background(), srv.URL+"/s.xml", func(d, tot int64) { lastDone, lastTotal = d, tot })
+	if err != nil || !bytes.Equal(got, orig) {
+		t.Fatalf("len %d err %v", len(got), err)
+	}
+	if n := int64(zb.Len()); lastDone != n || lastTotal != n {
+		t.Errorf("last (%d,%d), want (%d,%d)", lastDone, lastTotal, n, n)
 	}
 }

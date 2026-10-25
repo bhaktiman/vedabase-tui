@@ -39,6 +39,9 @@ type Options struct {
 	Toasts      []ToastMsg // shown first, e.g. startup warnings
 }
 
+// loadRefresh redraws the startup screen with motion off.
+const loadRefresh = 250 * time.Millisecond
+
 const loadingStatus = "Loading…"
 
 const (
@@ -142,7 +145,7 @@ func (a *App) State() store.State {
 }
 
 func (a *App) Init() tea.Cmd {
-	cmds := []tea.Cmd{a.loadLibrary(), a.tick(100*time.Millisecond, loadTickMsg{})}
+	cmds := []tea.Cmd{a.loadLibrary(), a.tick(loadRefresh, loadTickMsg{}), a.fx.Start(Loader, a.now())}
 	for _, t := range a.startup {
 		cmds = append(cmds, a.Toast(t.Text, t.Error))
 	}
@@ -177,7 +180,7 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return a, a.onLibrary(m)
 	case loadTickMsg:
 		if a.lib == nil && a.libErr == nil {
-			return a, a.tick(100*time.Millisecond, loadTickMsg{})
+			return a, a.tick(loadRefresh, loadTickMsg{})
 		}
 	case itemLoadedMsg:
 		return a, a.onItem(m)
@@ -246,9 +249,11 @@ func (a *App) onLibrary(m libraryMsg) tea.Cmd {
 				m.err = errors.New("no library")
 			}
 			a.libErr = m.err
+			a.fx.Stop(Loader)
 		}
 		return nil // a failed background refresh keeps the library we have
 	}
+	a.fx.Stop(Loader)
 	var cmds []tea.Cmd
 	if m.stale {
 		cmds = append(cmds, a.refreshLibrary())
@@ -486,7 +491,7 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 	}
 	if a.lib == nil {
 		if k == "r" && a.libErr != nil {
-			return tea.Batch(a.loadLibrary(), a.tick(100*time.Millisecond, loadTickMsg{}))
+			return tea.Batch(a.loadLibrary(), a.tick(loadRefresh, loadTickMsg{}), a.fx.Start(Loader, a.now()))
 		}
 		return nil
 	}

@@ -136,7 +136,6 @@ func (a *App) overlayView(box string) string {
 }
 
 func (a *App) startupView() string {
-	dim := lipgloss.NewStyle().Foreground(a.pal.Dim)
 	var line string
 	switch {
 	case a.libErr != nil:
@@ -144,7 +143,7 @@ func (a *App) startupView() string {
 	case a.progTotal.Load() > 0:
 		line = a.startupBar(a.progDone.Load(), a.progTotal.Load())
 	default:
-		line = dim.Render("Loading contents…")
+		line = a.startupBar(a.progDone.Load(), 0)
 	}
 	return lipgloss.PlaceHorizontal(a.w, lipgloss.Center, line)
 }

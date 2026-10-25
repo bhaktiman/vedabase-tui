@@ -232,9 +232,42 @@ func TestSearchCountdownRetries(t *testing.T) {
 
 func TestStartupProgressBar(t *testing.T) {
 	a := New(Options{Backend: newFake(t)})
-	drive(a, tea.WindowSizeMsg{Width: 80, Height: 24}, progressMsg{done: 2_100_000, total: 3_700_000})
+	drive(a, tea.WindowSizeMsg{Width: 80, Height: 24})
+	if v := plain(a); !strings.Contains(v, "ॐ vedabase") || !strings.Contains(v, "░") {
+		t.Fatalf("unknown-total view:\n%s", v)
+	}
+	drive(a, progressMsg{done: 2_100_000, total: 3_700_000})
 	v := plain(a)
 	if !strings.Contains(v, "2.1 / 3.7 MB") || !strings.Contains(v, "ॐ vedabase") || !strings.Contains(v, "█") {
 		t.Fatalf("view:\n%s", v)
+	}
+	drive(a, progressMsg{done: 2_100_000})
+	if v := plain(a); !strings.Contains(v, "2.1 MB") || strings.Contains(v, " / ") {
+		t.Fatalf("indeterminate view:\n%s", v)
+	}
+}
+
+func TestStartupSchedulesFrames(t *testing.T) {
+	for _, anim := range []bool{true, false} {
+		var ticks []tea.Msg
+		a := New(Options{Backend: newFake(t), Settings: store.Settings{Animations: anim}})
+		a.tick = func(_ time.Duration, m tea.Msg) tea.Cmd { ticks = append(ticks, m); return nil }
+		a.Init()
+		frames, loads := countFrames(ticks), 0
+		for _, m := range ticks {
+			if _, ok := m.(loadTickMsg); ok {
+				loads++
+			}
+		}
+		if loads == 0 || (frames > 0) != anim {
+			t.Fatalf("anim=%v frames=%d loadTicks=%d", anim, frames, loads)
+		}
+		if anim && !a.fx.Live(Loader) {
+			t.Fatal("loader not live")
+		}
+		drive(a, libraryMsg{lib: a.be.(*fakeBackend).lib})
+		if a.fx.Live(Loader) {
+			t.Fatal("loader survived the library")
+		}
 	}
 }
