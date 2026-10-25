@@ -145,7 +145,8 @@ cc madhya 9.74
 A collection is a named list of verses, chapters, letters or lectures.
 
 - `s` adds the current item. Choose an existing collection, or choose "+ New
-  collection…" and type a name. Adding the same item twice is ignored.
+  collection…" and type a name. Adding the same item twice is ignored. The
+  collection you last added to comes first; `Tab` switches the list to A–Z.
 - `'` opens the collections list. `Enter` on a collection shows its items;
   `Enter` on an item opens it. `Esc` goes back.
 - Inside the list: `d` removes the selected item, `R` renames a collection,

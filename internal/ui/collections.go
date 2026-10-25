@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -101,6 +102,7 @@ type Picker struct {
 	w, h  int
 
 	visible  bool
+	alpha    bool // A–Z instead of most recently used first; kept while the app runs
 	item     collections.Item
 	names    []string
 	cursor   int
@@ -118,10 +120,7 @@ func (p *Picker) SetSize(w, h int) { p.w, p.h = w, h }
 // Show opens the picker for it (Added is filled in when chosen).
 func (p *Picker) Show(st *collections.Store, it collections.Item) tea.Cmd {
 	p.visible, p.store, p.item = true, st, it
-	p.names = p.names[:0]
-	for _, c := range st.List() {
-		p.names = append(p.names, c.Name)
-	}
+	p.sortNames()
 	p.cursor = 0
 	p.typing = false
 	p.input.SetValue("")
@@ -130,6 +129,36 @@ func (p *Picker) Show(st *collections.Store, it collections.Item) tea.Cmd {
 }
 
 func (p *Picker) close() { p.visible = false; p.typing = false; p.input.Blur() }
+
+// sortNames lists the collections A–Z or, by default, the one an item was
+// last added to first (an empty one counts from its creation).
+func (p *Picker) sortNames() {
+	cols := p.store.List()
+	used := func(c collections.Collection) time.Time {
+		if len(c.Items) == 0 {
+			return c.Created
+		}
+		var t time.Time
+		for _, it := range c.Items {
+			if it.Added.After(t) {
+				t = it.Added
+			}
+		}
+		return t
+	}
+	slices.SortStableFunc(cols, func(a, b collections.Collection) int {
+		if !p.alpha {
+			if c := used(b).Compare(used(a)); c != 0 {
+				return c
+			}
+		}
+		return strings.Compare(strings.ToLower(a.Name), strings.ToLower(b.Name))
+	})
+	p.names = p.names[:0]
+	for _, c := range cols {
+		p.names = append(p.names, c.Name)
+	}
+}
 
 func (p *Picker) add(name string) tea.Cmd {
 	it := p.item
@@ -170,6 +199,16 @@ func (p *Picker) Update(kp tea.KeyPressMsg) tea.Cmd {
 		p.cursor = min(p.cursor+1, len(p.names))
 	case "k", "up":
 		p.cursor = max(p.cursor-1, 0)
+	case "tab": // the cursor stays on the same collection
+		cur := ""
+		if p.cursor < len(p.names) {
+			cur = p.names[p.cursor]
+		}
+		p.alpha = !p.alpha
+		p.sortNames()
+		if i := slices.Index(p.names, cur); i >= 0 {
+			p.cursor = i
+		}
 	case "enter":
 		if p.cursor < len(p.names) {
 			return p.add(p.names[p.cursor])
@@ -208,7 +247,11 @@ func (p *Picker) Wheel(d int) {
 
 func (p Picker) View() string {
 	rows := append(append([]string(nil), p.names...), newCollectionRow)
-	extra, hint := "", "enter choose · j/k move · esc close"
+	sort := "tab A–Z"
+	if p.alpha {
+		sort = "tab recent"
+	}
+	extra, hint := "", "enter choose · j/k move · "+sort+" · esc close"
 	if p.typing {
 		p.input.SetWidth(max(min(p.w-4, 80)-8, 1))
 		rows = p.names

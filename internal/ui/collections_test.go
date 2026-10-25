@@ -3,6 +3,8 @@ package ui
 import (
 	"os"
 	"path/filepath"
+	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -195,5 +197,41 @@ func TestSecondExportWhileRunning(t *testing.T) {
 	drive(a, cmd())
 	if a.exporting {
 		t.Fatal("still exporting")
+	}
+}
+
+// The picker lists the most recently used collection first; Tab switches to A–Z.
+func TestPickerOrder(t *testing.T) {
+	a, cs, _ := colApp(t, newFake(t), store.State{LastRef: "bg/2/13"})
+	day := func(d int) time.Time { return time.Date(2026, 10, d, 0, 0, 0, 0, time.UTC) }
+	for _, c := range []struct {
+		name string
+		d    int
+	}{{"Alpha", 1}, {"Beta", 5}, {"Gamma", 3}, {"Alpha", 4}} { // Alpha used again on day 4
+		if _, err := cs.Add(c.name, collections.Item{Ref: "bg/1/" + strconv.Itoa(c.d), Added: day(c.d)}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	drive(a, key("s"))
+	if want := []string{"Beta", "Alpha", "Gamma"}; !slices.Equal(a.picker.names, want) {
+		t.Fatalf("recent order %v, want %v", a.picker.names, want)
+	}
+	if !strings.Contains(plain(a), "tab A–Z") {
+		t.Fatal("no sort hint")
+	}
+	drive(a, key("j"), key("tab")) // on Alpha
+	if want := []string{"Alpha", "Beta", "Gamma"}; !slices.Equal(a.picker.names, want) || a.picker.cursor != 0 {
+		t.Fatalf("A–Z order %v cursor %d", a.picker.names, a.picker.cursor)
+	}
+	if !strings.Contains(plain(a), "tab recent") {
+		t.Fatal("no hint back to recent")
+	}
+	drive(a, key("esc"), key("s")) // the choice holds while the app runs
+	if a.picker.names[0] != "Alpha" {
+		t.Fatalf("reopened %v", a.picker.names)
+	}
+	drive(a, key("tab"), key("esc"), key("s"), key("enter")) // recent again; Enter adds to the most recent
+	if c, _ := cs.Get("Beta"); len(c.Items) != 2 {
+		t.Fatalf("Beta has %d items", len(c.Items))
 	}
 }
