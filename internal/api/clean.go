@@ -9,9 +9,10 @@ var (
 	anchorLine   = regexp.MustCompile(`(?m)^[ \t]*\[#[A-Za-z0-9]+\][ \t]*\n?`)
 	manyNewlines = regexp.MustCompile(`\n{3,}`)
 	dateStamp    = regexp.MustCompile(`\d\d-\d\d-\d\d`)
-	salutation   = regexp.MustCompile(`^(?:My )?Dear `)
-	placeBefore  = regexp.MustCompile(`^([A-Z][A-Za-z .,'-]{0,40}?)((?:My )?Dear )`)
-	greetComma   = regexp.MustCompile(`(Dear [^,\n]{1,80},)(\S)`)
+	salutation   = regexp.MustCompile(`^(?i:(?:my )?dear) `)
+	placeBefore  = regexp.MustCompile(`^([A-Z][A-Za-z .,'-]{0,40}?)((?i:(?:my )?dear) )`)
+	greetComma   = regexp.MustCompile(`((?i:dear) [^,\n]{1,80},)(\S)`)
+	lostBreak    = regexp.MustCompile(`,([A-Z])`)
 	sentenceGlue = regexp.MustCompile(`([.!?]["'\x{201D}\x{2019})\]]?)([A-Z])`)
 )
 
@@ -64,5 +65,6 @@ func cleanLetter(s string) string {
 		}
 	}
 	body = greetComma.ReplaceAllString(body, "$1\n\n$2")
+	body = lostBreak.ReplaceAllString(body, ",\n$1")
 	return sentenceGlue.ReplaceAllString(body, "$1\n\n$2")
 }

@@ -70,3 +70,17 @@ func TestCleanLeavesOthersUnchanged(t *testing.T) {
 		t.Error("letter with newlines changed")
 	}
 }
+
+func TestCleanLetterLowercaseDear(t *testing.T) {
+	it := Item{Book: "letters", Purport: "Letter to: AbhinandaLetter to: AbhinandaDated: November 12th 1975Location: BombayLetter to: Abhinanda75-11-12SeattleMy dear Abhinanda das,Please accept my blessings. I am well.Your ever well wisher,A. C. Bhaktivedanta Swami"}
+	got := Clean(it).Purport
+	if !strings.HasPrefix(got, "Seattle\n\nMy dear Abhinanda das,\n\nPlease accept") {
+		t.Errorf("start %q", got)
+	}
+	if !strings.Contains(got, "well wisher,\nA. C.") {
+		t.Errorf("sign-off %q", got)
+	}
+	if strings.Contains(Clean(Item{Book: "letters", Purport: "x 75-11-12Hello, World"}).Purport, ",\n") {
+		t.Error(`", X" with space must be left alone`)
+	}
+}
