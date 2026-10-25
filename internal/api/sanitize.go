@@ -1,6 +1,7 @@
 package api
 
 import (
+	"html"
 	"regexp"
 	"strconv"
 	"strings"
@@ -44,10 +45,16 @@ func refIsControl(sub []string) bool {
 		return true // &#0; is a NUL
 	}
 	if len(digits) > 8 {
-		return false // far beyond Unicode; decoders substitute U+FFFD
+		// Beyond Unicode, so never real text; html.UnescapeString (which
+		// glamour uses) wraps such values and can land on a control.
+		return true
 	}
 	n, err := strconv.ParseInt(digits, base, 64)
-	return err == nil && isControl(rune(n))
+	if err == nil && isControl(rune(n)) {
+		return true
+	}
+	// Judge by what the renderer's decoder actually yields, too.
+	return strings.ContainsFunc(html.UnescapeString(sub[0]), isControl)
 }
 
 func stripControls(s string) string {

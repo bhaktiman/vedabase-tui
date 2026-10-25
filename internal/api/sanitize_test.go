@@ -39,6 +39,13 @@ func TestSanitizeNumericControlRefs(t *testing.T) {
 		"a&#&#27;27;b":                "ab",
 		"a&#2\x007;b":                 "ab",
 		"x &#27;]52;c;Y2xpcA==&#7; y": "x ]52;c;Y2xpcA== y",
+		// html.UnescapeString (what glamour calls) wraps past 2^32.
+		"a&#4294967323;b":                             "ab",
+		"a&#x10000001b;b":                             "ab",
+		"a&#X10000001B;b":                             "ab",
+		"a&#18446744073709551643;b":                   "ab",
+		"a&#x10000009d;b":                             "ab",
+		"a&#4294967303;b":                             "ab",
 		"keep &amp; &#8212; &#10; &#9; &#x41; &#160;": "keep &amp; &#8212; &#10; &#9; &#x41; &#160;",
 	} {
 		if got := SanitizeText(in); got != want {
