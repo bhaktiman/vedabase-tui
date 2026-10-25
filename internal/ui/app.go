@@ -104,6 +104,7 @@ type App struct {
 	prefetched map[string]bool
 	scr        scraped
 	toasts     toaster
+	opener     func(string) error // starts the browser; nil means openURL
 
 	fx    Effects
 	cd    *countdown
@@ -240,6 +241,8 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return a, a.onExportProgress(m)
 	case exportDoneMsg:
 		return a, a.onExportDone(m)
+	case openedMsg:
+		return a, a.onOpened(m)
 	case ToastMsg:
 		return a, a.Toast(m.Text, m.Error)
 	case frameMsg:
@@ -647,6 +650,8 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 			return a.exportItem(r)
 		}
 		return nil
+	case "o":
+		return a.openItemWeb()
 	case "n":
 		return a.search.Next(1)
 	case "N":

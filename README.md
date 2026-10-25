@@ -44,11 +44,12 @@ Press `?` in the app for the same list.
 | `:` | Go to a reference |
 | `s` | Add the current item to a collection |
 | `'` | Open collections |
+| `o` | Open the current item on vedabase.cc |
 | `e` | Export the current item |
 | `T` | Choose a colour theme |
 | `?` | Help |
 | `q` / `Esc` | Close overlay; quit |
-| Mouse | Click a pane to focus it, a tree row to select or open it, a part label to toggle it; the wheel scrolls |
+| Mouse | Click a pane to focus it, a tree row to select or open it, a part label to toggle it, `↗ vedabase.cc` (reader) or the `vedabase.cc` tag (sidebar) to open the website; the wheel scrolls |
 
 While mouse mode is on, selecting text in most terminals (Windows Terminal,
 iTerm2, GNOME Terminal) needs Shift+drag, or set `mouse = false`.

@@ -162,9 +162,13 @@ func (a *App) content() string {
 	}
 	if a.framed() {
 		a.tree.focused = a.focusTree
-		rows := a.box(body, a.readerOuterW(), a.bodyH(), a.readerTitle(), !a.focusTree)
+		btn := ""
+		if a.webButtonOn() {
+			btn = webBtnLabel
+		}
+		rows := a.box(body, a.readerOuterW(), a.bodyH(), a.readerTitle(), !a.focusTree, btn, "")
 		if a.treeVisible() {
-			left := a.box(tl, a.treeW(), a.bodyH(), "Contents", a.focusTree)
+			left := a.box(tl, a.treeW(), a.bodyH(), "Contents", a.focusTree, "", siteTag)
 			for i := range rows {
 				rows[i] = left[i] + rows[i]
 			}
@@ -197,7 +201,9 @@ func (a *App) readerTitle() string {
 
 // box frames lines (each at most ow-2 wide, padded here) in a rounded border
 // ow x oh outer, the title set into the top edge. The focused frame is gold.
-func (a *App) box(lines []string, ow, oh int, title string, focused bool) []string {
+// btn, if set, sits right-aligned in the top edge; tag is centred in the
+// bottom edge.
+func (a *App) box(lines []string, ow, oh int, title string, focused bool, btn, tag string) []string {
 	col, tst := a.pal.Dim, lipgloss.NewStyle().Foreground(a.pal.Dim)
 	if focused {
 		col = a.pal.Gold
@@ -205,9 +211,22 @@ func (a *App) box(lines []string, ow, oh int, title string, focused bool) []stri
 	}
 	edge := lipgloss.NewStyle().Foreground(col)
 	iw := max(ow-2, 0)
-	title = truncate(title, max(iw-3, 0))
+	room := max(iw-3, 0)
+	if btn != "" {
+		room, _ = titleRoom(ow, lipgloss.Width(title))
+	}
+	title = truncate(title, room)
 	fill := max(iw-lipgloss.Width(title)-3, 0)
 	top := edge.Render("╭─ ") + tst.Render(title) + edge.Render(" "+strings.Repeat("─", fill)+"╮")
+	if btn != "" {
+		bst := lipgloss.NewStyle().Foreground(a.pal.Dim)
+		if focused {
+			bst = lipgloss.NewStyle().Foreground(a.pal.Teal)
+		}
+		fill = max(ow-3-lipgloss.Width(title)-1-btnSpan, 0)
+		top = edge.Render("╭─ ") + tst.Render(title) + edge.Render(" "+strings.Repeat("─", fill)+" ") +
+			bst.Render(btn) + edge.Render(" ─╮")
+	}
 	if title == "" {
 		top = edge.Render("╭" + strings.Repeat("─", iw) + "╮")
 	}
@@ -219,6 +238,11 @@ func (a *App) box(lines []string, ow, oh int, title string, focused bool) []stri
 			l = lines[i]
 		}
 		out = append(out, side+padTo(l, iw)+side)
+	}
+	if tag != "" && iw >= lipgloss.Width(tag)+4 {
+		l := (iw - lipgloss.Width(tag) - 2) / 2
+		r := iw - lipgloss.Width(tag) - 2 - l
+		return append(out, edge.Render("╰"+strings.Repeat("─", l)+" "+tag+" "+strings.Repeat("─", r)+"╯"))
 	}
 	return append(out, edge.Render("╰"+strings.Repeat("─", iw)+"╯"))
 }

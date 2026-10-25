@@ -80,6 +80,9 @@ func (a *App) onMouse(m tea.Mouse, click bool) tea.Cmd {
 			return nil
 		}
 		a.focusTree = true
+		if tag, ok := a.siteTagRect(); ok && tag.has(m.X, m.Y) {
+			return a.openWeb(webHome)
+		}
 		return a.treeClick(m)
 	case reader.has(m.X, m.Y):
 		if !click {
@@ -88,6 +91,9 @@ func (a *App) onMouse(m tea.Mouse, click bool) tea.Cmd {
 			return nil
 		}
 		a.focusTree = false
+		if a.webButtonOn() && a.webButtonRect().has(m.X, m.Y) {
+			return a.openItemWeb()
+		}
 	case click && m.Y == a.h-1:
 		return a.barClick(m.X)
 	}

@@ -18,7 +18,7 @@ var helpGroups = []struct {
 	{"Reader", []helpRow{
 		{"j / k", "Scroll line"}, {"h / l", "Previous / next item"},
 		{"Ctrl-d / Ctrl-u", "Half page"}, {"gg / G", "Top / bottom"},
-		{"1 – 5", "Toggle parts"},
+		{"1 – 5", "Toggle parts"}, {"o", "Open on vedabase.cc"},
 	}},
 	{"Tree", []helpRow{
 		{"j / k", "Move down / up"}, {"h / l", "Collapse / expand"},
