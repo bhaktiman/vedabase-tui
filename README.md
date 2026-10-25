@@ -97,6 +97,7 @@ current group.
 | Key | What it does |
 |---|---|
 | `t` | Hide or show the contents sidebar. |
+| `<` / `>` | Make the sidebar narrower or wider (or drag the line beside it). |
 | `w` | Switch between a centred reading column and the full width of the pane. The column width is the `reading_width` setting (default 80). |
 | `H` | Hide or show the key hints in the bar at the bottom. |
 | `F` | Distraction-free mode: only the text, no frame, tree or bars. `F` or `Esc` leaves it. |
@@ -104,7 +105,8 @@ current group.
 
 With the mouse you can click a pane to focus it, click a tree row to select or
 open it, and use the wheel to scroll. Drag the line between the sidebar and the
-reader to make the sidebar wider or narrower; the width is remembered.
+reader to make the sidebar wider or narrower, or press `<` and `>`; the width
+is remembered. Double-click the line to go back to the automatic width.
 
 ## Contents tree
 
@@ -198,6 +200,7 @@ Press `?` in the app for the same list.
 |---|---|
 | `Tab` | Switch focus between tree and reader |
 | `t` | Hide / show the sidebar |
+| `<` / `>` | Narrower / wider sidebar |
 | `w` | Centred / full-width text |
 | `H` | Hide / show the key hints |
 | `F` | Distraction-free reading (only the text; `F` or `Esc` leaves) |

@@ -1,7 +1,9 @@
 package ui
 
 import (
+	"strings"
 	"testing"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 
@@ -74,5 +76,60 @@ func TestNoDragAwayFromEdge(t *testing.T) {
 	drive(a, click(w0-1, 10), motion(60, 10))
 	if a.dragging {
 		t.Fatal("dragging a hidden sidebar")
+	}
+}
+
+// A press on either side of the line that does not move leaves the width alone.
+func TestPressOnEdgeKeepsWidth(t *testing.T) {
+	a, _ := boot(t, newFake(t), store.State{LastRef: "bg/2/13"})
+	clock := time.Date(2026, 10, 25, 12, 0, 0, 0, time.UTC)
+	a.nowFn = func() time.Time { clock = clock.Add(time.Second); return clock } // never a double-click
+	w0 := a.treeW()
+	drive(a, click(w0, 10), motion(w0, 10), release(w0, 10)) // the reader's side
+	if got := a.treeW(); got != w0 {
+		t.Fatalf("width %d, was %d", got, w0)
+	}
+	drive(a, click(w0, 10), motion(w0+5, 10), release(w0+5, 10))
+	if got := a.treeW(); got != w0+5 {
+		t.Fatalf("width %d after a 5-column drag", got)
+	}
+}
+
+// A double-click on the line goes back to the automatic width.
+func TestDoubleClickEdgeResets(t *testing.T) {
+	a, sv := boot(t, newFake(t), store.State{LastRef: "bg/2/13", TreeWidth: 50})
+	drive(a, click(49, 10), release(49, 10), click(49, 10), release(49, 10))
+	if a.state.TreeWidth != 0 || a.treeW() != 36 || a.dragging {
+		t.Fatalf("TreeWidth %d, width %d, dragging %v", a.state.TreeWidth, a.treeW(), a.dragging)
+	}
+	if last := sv.calls[len(sv.calls)-1]; last.TreeWidth != 0 {
+		t.Fatalf("saved %d", last.TreeWidth)
+	}
+}
+
+// < and > narrow and widen the sidebar from the keyboard.
+func TestResizeKeys(t *testing.T) {
+	a, sv := boot(t, newFake(t), store.State{LastRef: "bg/2/13"})
+	w0 := a.treeW()
+	drive(a, key(">"))
+	if got := a.treeW(); got != w0+treeStep || sv.calls[len(sv.calls)-1].TreeWidth != got {
+		t.Fatalf("> gave %d", got)
+	}
+	if !strings.Contains(toastText(a), "Sidebar") {
+		t.Fatalf("toast %q", toastText(a))
+	}
+	drive(a, key("<"), key("<"))
+	if got := a.treeW(); got != w0-treeStep {
+		t.Fatalf("< gave %d", got)
+	}
+	for range 20 {
+		drive(a, key("<"))
+	}
+	if got := a.treeW(); got != treeMinW {
+		t.Fatalf("narrowest %d", got)
+	}
+	drive(a, key("t"), key(">")) // hidden: nothing to resize
+	if got := a.state.TreeWidth; got != treeMinW {
+		t.Fatalf("hidden sidebar resized to %d", got)
 	}
 }

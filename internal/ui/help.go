@@ -13,7 +13,8 @@ var helpGroups = []struct {
 	rows []helpRow
 }{
 	{"View", []helpRow{
-		{"tab", "Switch focus"}, {"t", "Hide / show sidebar"}, {"w", "Centred / full width"},
+		{"tab", "Switch focus"}, {"t", "Hide / show sidebar"}, {"< / >", "Narrower / wider sidebar"},
+		{"w", "Centred / full width"},
 		{"H", "Hide / show key hints"}, {"F", "Distraction-free reading"},
 	}},
 	{"Reader", []helpRow{
@@ -30,24 +31,40 @@ var helpGroups = []struct {
 		{"/", "Search (ctrl-n/p to results)"}, {"n / N", "Next / previous result"},
 		{":", "Go to reference"}, {"s", "Add to collection"},
 		{"'", "Open collections"}, {"e", "Export item"},
-		{"T", "Choose theme"}, {"U", "Check for updates; update when one is out"},
+		{"T", "Choose theme"}, {"U", "Check for / install updates"},
 		{"?", "This help"}, {"q / Esc", "Close overlay; quit"},
 	}},
 }
 
+// helpView lists the keys, in two columns when the screen is wide enough
+// (one column is taller than most terminals).
 func (a *App) helpView() string {
 	gold := lipgloss.NewStyle().Foreground(a.pal.Gold).Bold(true)
 	key := lipgloss.NewStyle().Foreground(a.pal.Teal)
 	dim := lipgloss.NewStyle().Foreground(a.pal.Dim)
-	var lines []string
-	lines = append(lines, gradientBold("Keys", stops(a.pal)...))
-	for _, g := range helpGroups {
+	group := func(lines []string, i int) []string {
+		g := helpGroups[i]
 		lines = append(lines, "", gold.Render(g.name))
 		for _, r := range g.rows {
 			lines = append(lines, "  "+key.Render(r.key)+strings.Repeat(" ", max(17-lipgloss.Width(r.key), 1))+r.what)
 		}
+		return lines
 	}
-	lines = append(lines, "", dim.Render("any key closes"))
+	var one, left, right []string
+	for i := range helpGroups {
+		one = group(one, i)
+		if i < len(helpGroups)/2 {
+			left = group(left, i)
+		} else {
+			right = group(right, i)
+		}
+	}
+	body := strings.Join(one, "\n")
+	two := lipgloss.JoinHorizontal(lipgloss.Top, strings.Join(left, "\n"), "    ", strings.Join(right, "\n"))
+	if lipgloss.Width(two)+6 <= a.w { // border and padding
+		body = two
+	}
+	lines := []string{gradientBold("Keys", stops(a.pal)...), body, "", dim.Render("any key closes")}
 	return lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(a.pal.Dim).
 		Padding(0, 2).Render(strings.Join(lines, "\n"))
 }

@@ -90,10 +90,12 @@ type App struct {
 	report     bool    // say how the running check ended, even when nothing is newer
 	updatedTo  string  // tag installed by a finished update
 	installDir string
-	dragging   bool   // the sidebar's edge is held with the mouse
-	updating   bool   // Apply is running
-	restart    bool   // the app quit to be started again
-	updCmd     string // shown in the bottom bar until the next key
+	dragging   bool      // the sidebar's edge is held with the mouse
+	dragOff    int       // sidebar width minus the pointer's column when it was grabbed
+	edgeClick  time.Time // the last press on the edge that did not move it, for double-clicks
+	updating   bool      // Apply is running
+	restart    bool      // the app quit to be started again
+	updCmd     string    // shown in the bottom bar until the next key
 	updDone    atomic.Int64
 	updTotal   atomic.Int64
 
@@ -661,6 +663,8 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 		return a.Toast("Hints shown", false)
 	case "F":
 		return a.toggleZen()
+	case "<", ">":
+		return a.resizeTree(k)
 	case "t":
 		if a.state.Zen {
 			return nil // the sidebar is hidden

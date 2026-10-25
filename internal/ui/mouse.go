@@ -1,13 +1,20 @@
 package ui
 
 import (
+	"fmt"
+	"time"
+
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
 	"vedabase-tui/internal/library"
 )
 
-const wheelStep = 3
+const (
+	wheelStep   = 3
+	treeStep    = 4                      // columns per < or >
+	doubleClick = 400 * time.Millisecond // two presses on the sidebar edge this close reset its width
+)
 
 type rect struct{ x, y, w, h int }
 
@@ -89,7 +96,15 @@ func (a *App) onMouse(m tea.Mouse, click bool) tea.Cmd {
 		return nil
 	}
 	if click && a.onTreeEdge(m) {
-		a.dragging = true
+		now := a.now()
+		if !a.edgeClick.IsZero() && now.Sub(a.edgeClick) < doubleClick {
+			a.edgeClick = time.Time{}
+			a.state.TreeWidth = 0 // a double-click goes back to the automatic width
+			a.persist()
+			return a.relayout()
+		}
+		a.edgeClick = now
+		a.dragging, a.dragOff = true, a.treeW()-m.X
 		return nil
 	}
 	tree, reader := a.paneRects()
@@ -136,8 +151,9 @@ func (a *App) drag(m tea.Mouse, released bool) tea.Cmd {
 	if !a.dragging {
 		return nil
 	}
-	if tw := clampTreeW(m.X+1, a.w); tw != a.treeW() {
+	if tw := clampTreeW(m.X+a.dragOff, a.w); tw != a.treeW() {
 		a.state.TreeWidth = tw
+		a.edgeClick = time.Time{} // a drag, not the first half of a double-click
 		a.layout()
 	}
 	if released {
@@ -150,6 +166,20 @@ func (a *App) drag(m tea.Mouse, released bool) tea.Cmd {
 		return a.tick(resizeQuiet, resizeTickMsg{a.resizeSeq})
 	}
 	return nil
+}
+
+// resizeTree is < and >: the sidebar narrower or wider by treeStep columns.
+func (a *App) resizeTree(k string) tea.Cmd {
+	if !a.treeVisible() {
+		return nil
+	}
+	d := treeStep
+	if k == "<" {
+		d = -treeStep
+	}
+	a.state.TreeWidth = clampTreeW(a.treeW()+d, a.w)
+	a.persist()
+	return tea.Batch(a.relayout(), a.Toast(fmt.Sprintf("Sidebar %d columns", a.state.TreeWidth), false))
 }
 
 func (a *App) treeClick(m tea.Mouse) tea.Cmd {
