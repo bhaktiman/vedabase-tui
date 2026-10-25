@@ -41,11 +41,10 @@ type Store struct {
 	path string
 	cols []Collection
 
-	// Fingerprint of the file as last loaded or written. present is false
-	// when the file did not exist at that point.
-	present bool
-	mtime   time.Time
-	size    int64
+	// Fingerprint of the file as last loaded or written; nil when it did not
+	// exist then. It changes only together with cols (or when the file is
+	// known to be gone), so a stale cols never looks current.
+	fi os.FileInfo
 }
 
 // Open loads path. A missing file gives an empty store and writes nothing. A
@@ -179,12 +178,19 @@ func (s *Store) mutate(fn func(cols []Collection) ([]Collection, error)) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	changed, err := s.fileChanged()
+	if err != nil {
+		return err
+	}
 	base := s.cols
-	if s.fileChanged() {
+	if changed {
 		cols, err := s.load()
 		var pe *parseError
 		switch {
 		case err == nil:
+			// Memory catches up to what is on disk together with the
+			// fingerprint, even if fn or the write below then fails.
+			s.cols = cols
 			base = cols
 		case errors.As(err, &pe):
 			// Never overwrite what we cannot read. Memory stays as it was, so
@@ -193,7 +199,12 @@ func (s *Store) mutate(fn func(cols []Collection) ([]Collection, error)) error {
 			if mvErr != nil {
 				return fmt.Errorf("collections: file changed on disk and is unreadable (%v); could not move it aside: %w", pe.err, mvErr)
 			}
-			s.noteFile()
+			// Put our copy back at once so quitting now does not leave only
+			// the garbage file. The mutation itself is still refused.
+			if wErr := s.write(base); wErr != nil {
+				s.noteFile()
+				return fmt.Errorf("collections: file changed on disk and is unreadable (%v); kept as %s; could not restore: %w", pe.err, bad, wErr)
+			}
 			return fmt.Errorf("collections: file changed on disk and is unreadable (%v); kept as %s", pe.err, bad)
 		default:
 			return err
@@ -209,38 +220,51 @@ func (s *Store) mutate(fn func(cols []Collection) ([]Collection, error)) error {
 		s.cols = base
 		return nil
 	}
-	data, err := json.MarshalIndent(fileFormat{Version: fileVersion, Collections: next}, "", "  ")
+	if err := s.write(next); err != nil {
+		return err
+	}
+	s.cols = next
+	return nil
+}
+
+// write persists cols atomically and records the new fingerprint. It does not
+// touch s.cols.
+func (s *Store) write(cols []Collection) error {
+	data, err := json.MarshalIndent(fileFormat{Version: fileVersion, Collections: cols}, "", "  ")
 	if err != nil {
 		return err
 	}
 	if err := store.WriteFileAtomic(s.path, data); err != nil {
 		return err
 	}
-	s.cols = next
 	s.noteFile()
 	return nil
 }
 
 // fileChanged compares the file on disk with the fingerprint from the last
-// load or write. A file that vanished is not a change: the in-memory copy is
-// then the only copy, so it is kept and written back by the next mutation
-// rather than silently dropping the user's data. (A same-size rewrite within
-// one mtime tick goes unnoticed; that is the accepted limit of the check.)
-func (s *Store) fileChanged() bool {
+// load or write. Only a missing file counts as vanished, and that is not a
+// change: the in-memory copy is then the only copy, so it is kept and written
+// back by the next mutation rather than silently dropped. Any other Stat
+// error is returned. Every write is a rename, so a new inode also counts; a
+// same-size rewrite in place within one mtime tick goes unnoticed.
+func (s *Store) fileChanged() (bool, error) {
 	fi, err := os.Stat(s.path)
-	if err != nil {
-		return false
+	if errors.Is(err, os.ErrNotExist) {
+		return false, nil
 	}
-	return !s.present || fi.Size() != s.size || !fi.ModTime().Equal(s.mtime)
+	if err != nil {
+		return false, err
+	}
+	return s.fi == nil || !os.SameFile(fi, s.fi) || fi.Size() != s.fi.Size() || !fi.ModTime().Equal(s.fi.ModTime()), nil
 }
 
 func (s *Store) noteFile() {
 	fi, err := os.Stat(s.path)
 	if err != nil {
-		s.present, s.mtime, s.size = false, time.Time{}, 0
+		s.fi = nil
 		return
 	}
-	s.present, s.mtime, s.size = true, fi.ModTime(), fi.Size()
+	s.fi = fi
 }
 
 type parseError struct{ err error }
@@ -272,20 +296,26 @@ func (s *Store) load() ([]Collection, error) {
 	}
 	// Fingerprint from the stat taken before the read: if the file changed in
 	// between, the next mutation sees a difference and reloads.
-	s.present, s.mtime, s.size = true, fi.ModTime(), fi.Size()
+	s.fi = fi
 	return f.Collections, nil
 }
 
+// moveAside renames path to a fresh "<path>.bad-<timestamp>" name. It links
+// then removes instead of renaming so an existing .bad- file is never replaced.
 func moveAside(path string) (string, error) {
 	base := path + ".bad-" + time.Now().Format("20060102-150405")
 	bad := base
-	for i := 1; ; i++ {
-		if _, err := os.Lstat(bad); errors.Is(err, os.ErrNotExist) {
-			break
+	for i := 1; i < 1000; i++ {
+		err := os.Link(path, bad)
+		if err == nil {
+			return bad, os.Remove(path)
+		}
+		if !errors.Is(err, os.ErrExist) {
+			return "", err
 		}
 		bad = fmt.Sprintf("%s-%d", base, i)
 	}
-	return bad, os.Rename(path, bad)
+	return "", errors.New("no free .bad- name")
 }
 
 func find(cols []Collection, name string) int {

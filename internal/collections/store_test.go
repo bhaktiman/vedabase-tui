@@ -212,11 +212,10 @@ func TestMutationReloadOfCorruptFileKeepsItAside(t *testing.T) {
 	if c, _ := s.Get("X"); len(c.Items) != 1 {
 		t.Fatalf("memory changed: %+v", c)
 	}
-	// Garbage was not overwritten by a write.
-	if _, err := os.Stat(p); !os.IsNotExist(err) {
-		t.Fatalf("original path should be vacated: %v", err)
+	// Memory was written back at once, so the path holds a valid file.
+	if c, _ := mustOpen(t, p).Get("X"); len(c.Items) != 1 {
+		t.Fatalf("restored file: %+v", c)
 	}
-	// Memory is the only copy; the next mutation writes it back.
 	if added, err := s.Add("X", item("a/2")); err != nil || !added {
 		t.Fatalf("retry = %v, %v", added, err)
 	}
@@ -318,5 +317,65 @@ func TestConcurrentUse(t *testing.T) {
 	}
 	if c, _ := s.Get("X"); len(c.Items) != 80 {
 		t.Fatalf("items = %d", len(c.Items))
+	}
+}
+
+func TestLostUpdateAfterFailedMutation(t *testing.T) {
+	p := tmpPath(t)
+	a := mustOpen(t, p)
+	a.Add("X", item("bg/2/13"))
+	a.Add("Other", item("bg/3/1"))
+	b := mustOpen(t, p)
+	b.Add("X", item("bg/2/14"))
+	if err := a.Rename("X", "Other"); err == nil {
+		t.Fatal("expected error")
+	}
+	if _, err := a.Add("X", item("bg/2/15")); err != nil {
+		t.Fatal(err)
+	}
+	c, _ := mustOpen(t, p).Get("X")
+	if len(c.Items) != 3 {
+		t.Fatalf("X = %+v", c.Items)
+	}
+}
+
+func TestLostUpdateAfterFailedWrite(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root ignores directory permissions")
+	}
+	dir := t.TempDir()
+	p := filepath.Join(dir, "collections.json")
+	a := mustOpen(t, p)
+	a.Add("X", item("bg/2/13"))
+	b := mustOpen(t, p)
+	b.Add("X", item("bg/2/14"))
+	os.Chmod(dir, 0o555)
+	_, err := a.Add("X", item("bg/2/15"))
+	os.Chmod(dir, 0o755)
+	if err == nil {
+		t.Fatal("expected write error")
+	}
+	if _, err := a.Add("X", item("bg/2/16")); err != nil {
+		t.Fatal(err)
+	}
+	c, _ := mustOpen(t, p).Get("X")
+	if len(c.Items) != 3 {
+		t.Fatalf("X = %+v", c.Items)
+	}
+}
+
+func TestMoveAsideNeverReplacesBadFile(t *testing.T) {
+	p := tmpPath(t)
+	os.WriteFile(p, []byte("first{"), 0o644)
+	Open(p)
+	bads, _ := filepath.Glob(p + ".bad-*")
+	os.WriteFile(p, []byte("second{"), 0o644)
+	Open(p)
+	all, _ := filepath.Glob(p + ".bad-*")
+	if len(bads) != 1 || len(all) != 2 {
+		t.Fatalf("bad files: %v then %v", bads, all)
+	}
+	if b, _ := os.ReadFile(bads[0]); string(b) != "first{" {
+		t.Fatalf("first bad file replaced: %q", b)
 	}
 }
