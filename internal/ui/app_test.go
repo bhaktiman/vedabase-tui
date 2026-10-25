@@ -300,10 +300,8 @@ func TestTogglePartsPersist(t *testing.T) {
 		t.Fatal("word-for-word still shown")
 	}
 	drive(a, key("q"))
-	if len(sv.calls) != 1 {
-		t.Fatalf("SaveState calls = %d", len(sv.calls))
-	}
-	got := sv.calls[0]
+	// State is also saved on open and on each toggle; q writes the last one.
+	got := sv.calls[len(sv.calls)-1]
 	if got.Parts.Synonyms || !got.Parts.Translation || got.LastRef != "bg/2/13" {
 		t.Fatalf("saved %+v", got)
 	}
@@ -324,10 +322,10 @@ func TestStaleResponseDropped(t *testing.T) {
 
 func TestStaleRenderDropped(t *testing.T) {
 	a, _ := boot(t, newFake(t), store.State{LastRef: "bg/2/13"})
-	drive(a, renderedMsg{ref: a.ref, width: a.readerW() + 7, parts: a.parts, out: "STALEWIDTH"})
+	drive(a, renderedMsg{ref: a.ref, width: a.readerW() + 7, parts: a.parts, pal: a.pal.Name, out: "STALEWIDTH"})
 	p := a.parts
 	p.Purport = !p.Purport
-	drive(a, renderedMsg{ref: a.ref, width: a.readerW(), parts: p, out: "STALEPARTS"})
+	drive(a, renderedMsg{ref: a.ref, width: a.readerW(), parts: p, pal: a.pal.Name, out: "STALEPARTS"})
 	if v := plain(a); strings.Contains(v, "STALE") {
 		t.Fatalf("stale render shown:\n%s", v)
 	}

@@ -81,6 +81,9 @@ type State struct {
 	TreeHidden bool      `json:"tree_hidden"`
 	Theme      string    `json:"theme"`
 	Wide       bool      `json:"wide"` // text uses the whole pane instead of a centred column
+	// PartsSet marks Parts as chosen by the user, so that "all off" is not mistaken
+	// for an old file with no parts saved.
+	PartsSet bool `json:"parts_set"`
 }
 
 // LoadState returns the saved state; a missing or corrupt file gives defaults.
