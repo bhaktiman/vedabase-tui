@@ -87,6 +87,9 @@ func (a *App) resize(w, h int) tea.Cmd {
 func (a *App) View() tea.View {
 	v := tea.NewView(a.content())
 	v.AltScreen = true
+	if a.pal.Paint {
+		v.BackgroundColor, v.ForegroundColor = a.pal.Bg, a.pal.Fg
+	}
 	if a.settings.Mouse {
 		v.MouseMode = tea.MouseModeCellMotion
 	}
@@ -117,6 +120,8 @@ func (a *App) content() string {
 		return a.overlayView(a.picker.View())
 	case a.colview.visible:
 		return a.overlayView(a.colview.View())
+	case a.themes.visible:
+		return a.overlayView(a.themeView())
 	}
 	var body []string
 	if level := a.fadeLevel(); level > 0 {

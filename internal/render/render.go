@@ -103,6 +103,15 @@ func NewRenderer(p Palette) *Renderer {
 	return &Renderer{p: p, lru: list.New(), entries: map[cacheKey]*list.Element{}}
 }
 
+// SetPalette switches the style and forgets everything rendered with the old one.
+func (r *Renderer) SetPalette(p Palette) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.p = p
+	r.lru.Init()
+	r.entries = map[cacheKey]*list.Element{}
+}
+
 // Render returns md styled for the given width, cached by {ref, width, parts}.
 func (r *Renderer) Render(ref, md string, width int, p api.Parts) (string, error) {
 	key := cacheKey{ref, width, p}
@@ -113,9 +122,10 @@ func (r *Renderer) Render(ref, md string, width int, p api.Parts) (string, error
 		r.mu.Unlock()
 		return out, nil
 	}
+	pal := r.p
 	r.mu.Unlock()
 
-	tr, err := glamour.NewTermRenderer(glamour.WithStyles(GlamourStyle(r.p)), glamour.WithWordWrap(width), glamour.WithPreservedNewLines())
+	tr, err := glamour.NewTermRenderer(glamour.WithStyles(GlamourStyle(pal)), glamour.WithWordWrap(width), glamour.WithPreservedNewLines())
 	if err != nil {
 		return "", err
 	}
@@ -126,6 +136,9 @@ func (r *Renderer) Render(ref, md string, width int, p api.Parts) (string, error
 
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	if r.p.Name != pal.Name { // the palette changed while rendering: drop this result
+		return out, nil
+	}
 	r.renders++
 	if e, ok := r.entries[key]; ok { // a concurrent render won; keep one entry
 		e.Value.(*cacheEntry).out = out

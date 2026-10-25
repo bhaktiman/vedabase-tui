@@ -41,7 +41,7 @@ func (a *App) overlayRect(box string) rect {
 }
 
 func (a *App) overlayOpen() bool {
-	return a.help || a.search.visible || a.picker.visible || a.colview.visible
+	return a.help || a.search.visible || a.picker.visible || a.colview.visible || a.themes.visible
 }
 
 func (a *App) onMouse(m tea.Mouse, click bool) tea.Cmd {
@@ -138,6 +138,8 @@ func (a *App) overlayMouse(m tea.Mouse, click bool, wheel int) tea.Cmd {
 		box = a.search.View()
 	case a.picker.visible:
 		box = a.picker.View()
+	case a.themes.visible:
+		box = a.themeView()
 	default:
 		box = a.colview.View()
 	}
@@ -149,6 +151,8 @@ func (a *App) overlayMouse(m tea.Mouse, click bool, wheel int) tea.Cmd {
 				a.search.Close()
 			case a.picker.visible:
 				a.picker.close()
+			case a.themes.visible:
+				return a.themeCancel()
 			default:
 				a.colview.close()
 			}
@@ -167,6 +171,11 @@ func (a *App) overlayMouse(m tea.Mouse, click bool, wheel int) tea.Cmd {
 			return a.picker.Click(x, y)
 		}
 		a.picker.Wheel(wheel)
+	case a.themes.visible:
+		if click {
+			return a.themeClick(x, y)
+		}
+		return a.themeMove(a.themes.cursor + wheel)
 	default:
 		if click {
 			return a.colview.Click(x, y)

@@ -26,7 +26,7 @@ var helpGroups = []struct {
 		{"/", "Full-text search"}, {"n / N", "Next / previous result"},
 		{":", "Go to reference"}, {"s", "Add to collection"},
 		{"'", "Open collections"}, {"e", "Export item"},
-		{"?", "This help"}, {"q / Esc", "Close overlay; quit"},
+		{"T", "Choose theme"}, {"?", "This help"}, {"q / Esc", "Close overlay; quit"},
 	}},
 }
 
