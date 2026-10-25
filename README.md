@@ -5,6 +5,8 @@
 [![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20macOS%20%7C%20Windows-555)](https://github.com/bhaktiman/vedabase-tui/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
+![vedabase-tui showing Śrīmad-Bhāgavatam 1.1.6 with the contents tree on the left](https://github.com/user-attachments/assets/53adf385-9a20-4e78-a7fe-fc713652455e)
+
 A terminal reader for Śrīla Prabhupāda's books, letters and lectures, built on
 the public [vedabase.cc API](https://vedabase.cc/en/api/). Written in Go with
 Bubble Tea v2; it ships as a single static binary.
