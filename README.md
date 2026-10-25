@@ -32,9 +32,10 @@ Linux, macOS and Windows (WSL):
 curl -fsSL https://github.com/bhaktiman/vedabase-tui/releases/latest/download/install.sh | sh
 ```
 
-It installs to `~/.local/bin`; then run `vedabase`. Run the same command again to update.
+It installs to `~/.local/bin`; then run `vedabase`. When a new version is out,
+the app tells you: press `U` to update.
 
-Windows: download `vedabase_windows_amd64.zip` from the
+Windows without WSL: download `vedabase_windows_amd64.zip` from the
 [latest release](https://github.com/bhaktiman/vedabase-tui/releases/latest),
 unzip it and run `vedabase.exe` in Windows Terminal.
 
@@ -212,6 +213,7 @@ Press `?` in the app for the same list.
 | `'` | Open collections |
 | `e` | Export the current item (or the selected collection) |
 | `T` | Choose a colour theme |
+| `U` | Update to the new version (shown when one is out) |
 | `?` | Help |
 | `q` / `Esc` | Close overlay; quit |
 | Mouse | Click a pane to focus it, a tree row to select or open it, a part label to toggle it, `↗ vedabase.cc` (reader) or the `vedabase.cc` tag (sidebar) to open the website; the wheel scrolls |
