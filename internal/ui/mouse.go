@@ -72,6 +72,13 @@ func (a *App) onMouse(m tea.Mouse, click bool) tea.Cmd {
 	if a.overlayOpen() {
 		return a.overlayMouse(m, click, d)
 	}
+	if a.state.Zen { // only the text: the wheel scrolls it, clicks do nothing
+		if !click {
+			a.reader.offset += d
+			a.reader.clamp()
+		}
+		return nil
+	}
 	tree, reader := a.paneRects()
 	switch {
 	case tree.has(m.X, m.Y):

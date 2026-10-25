@@ -81,6 +81,8 @@ type State struct {
 	TreeHidden bool      `json:"tree_hidden"`
 	Theme      string    `json:"theme"`
 	Wide       bool      `json:"wide"` // text uses the whole pane instead of a centred column
+	HideHints  bool      `json:"hide_hints"`
+	Zen        bool      `json:"zen"` // distraction-free reading: only the text column
 }
 
 // LoadState returns the saved state; a missing or corrupt file gives defaults.

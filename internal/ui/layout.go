@@ -13,7 +13,7 @@ import (
 )
 
 func (a *App) treeVisible() bool {
-	return a.lib != nil && !a.state.TreeHidden && a.w >= minTreeCols
+	return a.lib != nil && !a.state.TreeHidden && !a.state.Zen && a.w >= minTreeCols
 }
 
 func (a *App) treeW() int { return min(max(a.w*30/100, 24), 40) }
@@ -21,7 +21,8 @@ func (a *App) treeW() int { return min(max(a.w*30/100, 24), 40) }
 func (a *App) bodyH() int { return max(a.h-2, 1) }
 
 // framed reports whether the panes get borders; tiny terminals go without.
-func (a *App) framed() bool { return a.w >= minFrameCols && a.h >= minFrameRows }
+// Distraction-free reading has no borders either.
+func (a *App) framed() bool { return !a.state.Zen && a.w >= minFrameCols && a.h >= minFrameRows }
 
 // bw is the border width of a pane: 1 cell each side, or 0 when unframed.
 func (a *App) bw() int {
@@ -150,6 +151,9 @@ func (a *App) content() string {
 			}
 		}
 	}
+	if a.state.Zen {
+		return a.zenView(body)
+	}
 	if len(body) > 0 { // bottom-right of the reader
 		last := len(body) - 1
 		body[last] = a.placeToast(body[last], a.readerW())
@@ -191,6 +195,18 @@ func (a *App) content() string {
 		}
 	}
 	return strings.Join(append(append([]string{a.topBar()}, body...), a.bottomBar()), "\n")
+}
+
+// zenView is the whole screen in distraction-free mode: the text column with
+// a blank row above and below. The toast sits on the last row.
+func (a *App) zenView(body []string) string {
+	rows := append(append([]string{""}, body...), "")
+	if len(rows) > a.h {
+		rows = rows[:max(a.h, 1)]
+	}
+	last := len(rows) - 1
+	rows[last] = a.placeToast(rows[last], a.w)
+	return strings.Join(rows, "\n")
 }
 
 // readerTitle labels the reader's frame: the open item, or the document title.
@@ -431,7 +447,10 @@ func (a *App) bottomLayout() (string, []partHit) {
 	}
 	ind := a.focusLabel()
 	iw := lipgloss.Width(ind)
-	hints := a.hintLine(a.w - plain - 2 - iw - 2)
+	hints := ""
+	if !a.state.HideHints {
+		hints = a.hintLine(a.w - plain - 2 - iw - 2)
+	}
 	room := a.w - plain - 2 - iw - 2
 	if room < 10 {
 		line := ind + " " + right

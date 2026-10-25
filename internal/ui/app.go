@@ -98,13 +98,14 @@ type App struct {
 	exportTotal int
 	exportCh    chan tea.Msg
 
-	focusTree  bool
-	seq        keySeq
-	resizeSeq  int
-	prefetched map[string]bool
-	scr        scraped
-	toasts     toaster
-	opener     func(string) error // starts the browser; nil means openURL
+	focusTree    bool
+	zenFocusTree bool // focus to restore when distraction-free reading ends
+	seq          keySeq
+	resizeSeq    int
+	prefetched   map[string]bool
+	scr          scraped
+	toasts       toaster
+	opener       func(string) error // starts the browser; nil means openURL
 
 	fx    Effects
 	cd    *countdown
@@ -147,7 +148,7 @@ func New(o Options) *App {
 
 // State is what gets persisted on quit.
 func (a *App) State() store.State {
-	s := store.State{LastRef: a.ref, Scroll: a.reader.offset, Parts: a.parts, TreeHidden: a.state.TreeHidden, Wide: a.state.Wide, Theme: a.state.Theme}
+	s := store.State{LastRef: a.ref, Scroll: a.reader.offset, Parts: a.parts, TreeHidden: a.state.TreeHidden, Wide: a.state.Wide, HideHints: a.state.HideHints, Zen: a.state.Zen, Theme: a.state.Theme}
 	if a.restoreRef == a.ref {
 		s.Scroll = a.restore // the first render has not happened yet
 	}
@@ -596,7 +597,18 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 		return nil
 	}
 	switch k {
+	case "H":
+		a.state.HideHints = !a.state.HideHints
+		if a.state.HideHints {
+			return a.Toast("Hints hidden", false)
+		}
+		return a.Toast("Hints shown", false)
+	case "F":
+		return a.toggleZen()
 	case "t":
+		if a.state.Zen {
+			return nil // the sidebar is hidden
+		}
 		a.state.TreeHidden = !a.state.TreeHidden
 		a.focusTree = a.focusTree && a.treeVisible()
 		return a.relayout()
@@ -607,7 +619,7 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 			msg = "Full width"
 		}
 		return tea.Batch(a.relayout(), a.Toast(msg, false))
-	case "tab":
+	case "tab": // treeVisible is false in zen, so this stays on the reader
 		a.focusTree = !a.focusTree && a.treeVisible()
 		return nil
 	case "1", "2", "3", "4", "5":
@@ -636,6 +648,9 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 		a.colview.Show(a.cols)
 		return nil
 	case "z":
+		if a.state.Zen {
+			return nil
+		}
 		a.filtering = false
 		a.filterIn.Blur()
 		a.tree.CollapseAll()
@@ -657,6 +672,9 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 	case "N":
 		return a.search.Next(-1)
 	case "esc":
+		if a.state.Zen {
+			return a.toggleZen()
+		}
 		if a.search.Live() {
 			return a.openSearch(false)
 		}
@@ -725,4 +743,21 @@ func (a *App) openPicker() tea.Cmd {
 	}
 	book := strings.SplitN(r, "/", 2)[0]
 	return a.picker.Show(a.cols, collections.Item{Ref: r, Book: book, Label: itemLabel(r, it, ok)})
+}
+
+// toggleZen enters or leaves distraction-free reading. Entering moves focus to
+// the reader; leaving puts it back where it was. Either way the text is
+// re-rendered at the new width, keeping the reading position.
+func (a *App) toggleZen() tea.Cmd {
+	if a.state.Zen {
+		a.state.Zen = false
+		a.focusTree = a.zenFocusTree && a.treeVisible()
+	} else {
+		a.zenFocusTree = a.focusTree
+		a.state.Zen = true
+		a.focusTree = false
+		a.filtering = false
+		a.filterIn.Blur()
+	}
+	return a.relayout()
 }

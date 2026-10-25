@@ -31,6 +31,8 @@ Press `?` in the app for the same list.
 | `Tab` | Switch focus between tree and reader |
 | `t` | Hide / show the sidebar |
 | `w` | Centred / full-width text |
+| `H` | Hide / show the key hints |
+| `F` | Distraction-free reading (only the text; `F` or `Esc` leaves) |
 | `j` / `k` | Scroll a line (reader); move down / up (tree) |
 | `h` / `l` | Previous / next item (reader); collapse / expand (tree) |
 | `Ctrl-d` / `Ctrl-u` | Half page down / up |

@@ -14,6 +14,7 @@ var helpGroups = []struct {
 }{
 	{"View", []helpRow{
 		{"tab", "Switch focus"}, {"t", "Hide / show sidebar"}, {"w", "Centred / full width"},
+		{"H", "Hide / show key hints"}, {"F", "Distraction-free reading"},
 	}},
 	{"Reader", []helpRow{
 		{"j / k", "Scroll line"}, {"h / l", "Previous / next item"},
