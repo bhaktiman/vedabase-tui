@@ -187,9 +187,9 @@ func (p *Picker) Click(x, y int) tea.Cmd {
 		return nil
 	}
 	n := len(p.names) + 1
-	_, top := listView(p.h, n, p.cursor)
+	vis, top := listView(p.h, n, p.cursor)
 	i := top + y - 2
-	if y < 2 || i >= n {
+	if y < 2 || y-2 >= vis || i >= n {
 		return nil
 	}
 	if i == p.cursor {
@@ -383,9 +383,9 @@ func (c *CollectionsView) Click(x, y int) tea.Cmd {
 	if c.rename || c.confirm != "" {
 		return nil
 	}
-	_, top := listView(c.h, max(c.count(), 1), c.cursor)
+	vis, top := listView(c.h, max(c.count(), 1), c.cursor)
 	i := top + y - 2
-	if y < 2 || i >= c.count() {
+	if y < 2 || y-2 >= vis || i >= c.count() {
 		return nil
 	}
 	if i == c.cursor {

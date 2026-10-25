@@ -94,9 +94,9 @@ func (a *App) themeKey(kp tea.KeyPressMsg) tea.Cmd {
 // themeClick handles a left click at x, y inside the box: a row is applied,
 // and the applied row again keeps it.
 func (a *App) themeClick(x, y int) tea.Cmd {
-	_, top := listView(a.h, len(render.Themes), a.themes.cursor)
+	vis, top := listView(a.h, len(render.Themes), a.themes.cursor)
 	i := top + y - 2
-	if y < 2 || i >= len(render.Themes) {
+	if y < 2 || y-2 >= vis || i >= len(render.Themes) {
 		return nil
 	}
 	if i == a.themes.cursor {
