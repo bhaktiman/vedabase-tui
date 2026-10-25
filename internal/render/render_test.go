@@ -136,3 +136,10 @@ func TestVerseLinesStaySeparate(t *testing.T) {
 		t.Errorf("devanagari lines share row %d", a)
 	}
 }
+
+func TestMarksStripsDecodedControls(t *testing.T) {
+	got := Marks("a&#27;[2Jb <mark>x&#x9b;y</mark>", lipgloss.NewStyle())
+	if strings.ContainsAny(got, "\x1b\u009b") {
+		t.Fatalf("control character survived: %q", got)
+	}
+}

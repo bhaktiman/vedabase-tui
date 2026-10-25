@@ -151,10 +151,12 @@ var (
 func Marks(snippet string, hl lipgloss.Style) string {
 	var b strings.Builder
 	last := 0
-	emit := func(s string) { b.WriteString(html.UnescapeString(tagRe.ReplaceAllString(s, ""))) }
+	// Sanitise after unescaping: entities like &#27; decode into live controls.
+	clean := func(s string) string { return api.SanitizeText(html.UnescapeString(tagRe.ReplaceAllString(s, ""))) }
+	emit := func(s string) { b.WriteString(clean(s)) }
 	for _, m := range markRe.FindAllStringSubmatchIndex(snippet, -1) {
 		emit(snippet[last:m[0]])
-		b.WriteString(hl.Render(html.UnescapeString(tagRe.ReplaceAllString(snippet[m[2]:m[3]], ""))))
+		b.WriteString(hl.Render(clean(snippet[m[2]:m[3]])))
 		last = m[1]
 	}
 	emit(snippet[last:])

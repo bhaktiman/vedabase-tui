@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"regexp"
 	"strings"
 	"time"
 
@@ -29,6 +30,9 @@ type searchResultsMsg struct {
 
 // searchOpenMsg asks the App to open a result in the reader.
 type searchOpenMsg struct{ ref string }
+
+// validRef is what a result's ref must look like before it is shown or opened.
+var validRef = regexp.MustCompile(`^[a-z0-9]+(/[a-z0-9_-]+){0,4}$`)
 
 const (
 	rowLines      = 3
@@ -164,6 +168,9 @@ func (s *Search) onResults(m searchResultsMsg) tea.Cmd {
 	s.errLine = ""
 	old := len(s.results)
 	for _, r := range m.page.Results {
+		if !validRef.MatchString(r.Ref) {
+			continue
+		}
 		r.Translation = api.SanitizeText(r.Translation)
 		r.SnippetPurport = api.SanitizeText(r.SnippetPurport)
 		r.SnippetTranslation = api.SanitizeText(r.SnippetTranslation)

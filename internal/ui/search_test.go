@@ -8,6 +8,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"vedabase-tui/internal/api"
+	"vedabase-tui/internal/render"
 	"vedabase-tui/internal/store"
 )
 
@@ -191,5 +192,15 @@ func TestSearchScopeLetters(t *testing.T) {
 	drive(a, key("tab"), key("tab"), key("enter"))
 	if got := be.searches(); len(got) != 1 || got[0].book != "letters" {
 		t.Fatalf("calls = %+v", got)
+	}
+}
+
+func TestSearchDropsBadRefs(t *testing.T) {
+	s := NewSearch(render.Default)
+	s.onResults(searchResultsMsg{req: 1, page: api.SearchPage{Results: []api.SearchResult{
+		{Ref: "bg/2/13\x1b[2J"}, {Ref: "bg/2/14"}, {Ref: "../x"}, {Ref: "BG/2"},
+	}}})
+	if len(s.results) != 1 || s.results[0].Ref != "bg/2/14" {
+		t.Fatalf("results = %+v", s.results)
 	}
 }
