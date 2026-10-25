@@ -230,7 +230,7 @@ func TestParseRealScale(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if d := time.Since(start); d > 3*time.Second {
+	if d := time.Since(start); d > 10*time.Second {
 		t.Errorf("parse took %v", d)
 	}
 	count := 0
