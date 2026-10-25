@@ -66,8 +66,9 @@ func TestCleanLeavesOthersUnchanged(t *testing.T) {
 		t.Error("book changed")
 	}
 	letter := Item{Book: "letters", Purport: "Letter\n70-07-14DetroitMy Dear X,Hi.There"}
-	if got := Clean(letter); got != letter {
-		t.Error("letter with newlines changed")
+	// The header goes, but the glued-text rules do not run on text with newlines.
+	if got := Clean(letter).Purport; got != "DetroitMy Dear X,Hi.There" {
+		t.Errorf("letter with newlines: %q", got)
 	}
 }
 
