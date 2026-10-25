@@ -190,7 +190,7 @@ func statusError(resp *http.Response) error {
 		} `json:"error"`
 	}
 	if json.Unmarshal(body, &env) == nil {
-		ae.Code, ae.Message = env.Error.Code, env.Error.Message
+		ae.Code, ae.Message = SanitizeText(env.Error.Code), SanitizeText(env.Error.Message)
 	}
 	if ae.Message == "" {
 		ae.Message = fmt.Sprintf("HTTP %d", resp.StatusCode)

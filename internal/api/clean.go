@@ -20,6 +20,15 @@ const headerWindow = 400
 // Clean repairs known quirks in API text. The cache keeps the raw item, so
 // callers apply Clean on every read and the rules can change later.
 func Clean(it Item) Item {
+	for _, f := range []*string{&it.Ref, &it.Lang, &it.Book, &it.URL, &it.Devanagari, &it.VerseText,
+		&it.Synonyms, &it.Translation, &it.Purport, &it.Format} {
+		*f = SanitizeText(*f)
+	}
+	if it.Document != nil {
+		d := *it.Document // do not mutate the caller's copy
+		d.Type, d.Date, d.Location = SanitizeText(d.Type), SanitizeText(d.Date), SanitizeText(d.Location)
+		it.Document = &d
+	}
 	switch it.Book {
 	case "transcripts":
 		it.Purport = cleanTranscript(it.Purport)

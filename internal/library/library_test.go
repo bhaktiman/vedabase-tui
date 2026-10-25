@@ -248,3 +248,9 @@ func TestParseRealScale(t *testing.T) {
 		t.Errorf("only %d nodes", count)
 	}
 }
+
+func TestLabelSanitized(t *testing.T) {
+	if got := (&Node{Title: "x\x1by", Book: "bg"}).Label(); got != "xy" {
+		t.Errorf("Label = %q", got)
+	}
+}

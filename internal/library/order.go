@@ -4,10 +4,14 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
+
+	"vedabase-tui/internal/api"
 )
 
 // Label is what the tree shows for n: its Title if known, else a default.
-func (n *Node) Label() string {
+func (n *Node) Label() string { return api.SanitizeText(n.label()) }
+
+func (n *Node) label() string {
 	if n.Title != "" {
 		return n.Title
 	}
