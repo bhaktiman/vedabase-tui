@@ -1,28 +1,32 @@
 # Progress
 
-## Resume here — 2026-10-25 13:43
+## Resume here — 2026-10-25 15:30
 
-**Branch:** `feat/vedabase-tui` (local, not pushed; `main` has only the docs). HEAD `6f9b9bd` plus this handoff commit. Working tree clean. Race suite green and `./vedabase` built.
+**Published:** public at https://github.com/bhaktiman/vedabase-tui. `main` and `feat/vedabase-tui` point at the same commit and both are pushed. Latest release is **v0.1.1**, which has the curl installer, binaries for Linux, macOS and Windows, and `checksums.txt`. Race suite green; working tree clean.
 
-**Status:** plan Tasks 1–17 are done, including the manual smoke run (12/12 pass) and the whole-branch Opus review. The review found 1 blocking issue (numeric entities that decode to ESC). It's fixed, including the int32-wrap case, and re-checked by a fresh Opus agent: closed. The user's mid-build requests are done as Tasks 18–28: mouse and focus, collections in the sidebar plus `z`, themes with a live `T` picker, per-theme accent and gradient, centred column `w`, spinner, no fade, `o` and the vedabase.cc button and tag, gradients (the scroll marker is plain), full book name and link in exports, bottom-bar hints, `H` hints and `F` zen, and search box → results with ctrl-n/p.
+**This session:**
+- **History:** rewritten so all commits are by bhaktiman.
+- **Repo setup:** MIT license, an in-depth README with a screenshot and badges, and a one-line curl install (works in WSL too).
+- **Release tooling:** `make release VERSION=vX.Y.Z`, then `gh release create` (steps in `PROGRESS.local.md`).
+- **In-app updates:** the sidebar tag shows the version, the app checks GitHub on launch, and `U` swaps the binary and restarts. The update code passed an Opus review after one fix round, and I tested it live from v0.1.0 to v0.1.1.
 
-**Next action:** ask the user the three open questions below, then build whatever they say yes to (one subagent at a time; these all touch internal/ui).
+**Identity, release steps, backup:** in git-ignored `PROGRESS.local.md` (read it too).
 
-**Waiting on the user:**
-1. **Letter footer junk.** API letters end with the site's prev/next links glued on, e.g. `…ACBS/hsLetter to: G. L. KapoorLetter to: Sri Paramanand Patel` (seen in `letters/letter-to-lokanatha-2`). The export link itself works (checked: 200, right page). Proposed: strip the trailing `Letter to: …` nav and the `ACBS/xx` initials in `api.Clean`. I asked whether "the URL doesn't work" meant this line or the link itself, and in which app. No answer yet.
-2. **Collapse button.** `⊟ collapse (z)` in the sidebar's top border (clickable, shrinks to `⊟ (z)`), plus `z collapse` in the bottom-bar hints. The user rejected shift-tab for this; I recommended against it. Awaiting yes.
-3. **Five smoke-run fixes.** Proposed, awaiting yes:
-   - O5: overlays drawn over the dimmed app, so the theme preview is visible behind the picker
-   - O3: Letters › By year jumps the tree to By recipient (same ref in two groups; match the group the way SetLibrary does for collections)
-   - O7: search snippet shown twice
+**Next action:** ask the user the three still-open questions below, then build what they approve.
+
+**Waiting on the user** (carried over, not raised this session):
+1. **Letter footer junk.** API letters end with the site's prev/next links glued on, e.g. `…ACBS/hsLetter to: G. L. Kapoor…` (`letters/letter-to-lokanatha-2`). Proposed: strip the trailing `Letter to: …` and the `ACBS/xx` initials in `api.Clean`.
+2. **Collapse button.** Proposed `⊟ collapse (z)` in the sidebar's top border, plus a `z collapse` hint. Awaiting yes.
+3. **Five smoke-run fixes:**
+   - O5: overlays over the dimmed app
+   - O3: Letters › By year jumps to By recipient
+   - O7: duplicate search snippet
    - O4: Tab in search doesn't re-run the query
-   - O1: offline uncached load waits 8–30 s (fail fast on connection refused)
+   - O1: offline uncached load waits 8–30 s
 
-**Then:** superpowers:finishing-a-development-branch (merge to main or PR, the user's choice), and tell the user every `Ruling:` line in the ledger.
+**Deferred minors:**
+- **Update review:** 9 (the 3-minute timeout covers the whole download), 11 (`hash *file` checksum lines), 12 (the toast queue is cleared, the progress pair isn't atomic).
+- **Earlier:** listed in the ledger `.superpowers/sdd/2026-10-25-vedabase-tui/progress.md`, which is git-ignored and also holds the briefs and reports.
+- **Stale hashes:** the commit hashes in that ledger predate the history rewrite.
 
-**Where things are:**
-- Ledger, the source of truth for done items, rulings and minors (git-ignored): `.superpowers/sdd/2026-10-25-vedabase-tui/progress.md`. Briefs and reports are in the same folder (`task-N-brief.md` / `task-N-report.md`, `branch-review.md`, `review-fix-*.md`, `task-17-smoke-report.md`, `implementer-contract.md`).
-- Spec: `docs/superpowers/specs/2026-10-25-vedabase-tui-design.md`. Plan: `docs/superpowers/plans/2026-10-25-vedabase-tui.md`.
-- Implementer briefs must say: tests first with RED shown, no `git stash`, stub the App opener in UI tests (a review test once opened real browser tabs), and the commit trailer is Claude Opus 5.5.
-
-**Known minors still open (deferred):** listed in the ledger. Among them: Bg-on-Accent cursor contrast low on Solarized Light, Monokai and Solarized Dark; persist fsyncs inside Update; scroll within an item isn't saved on SIGHUP; review minors 7, 9, 11 and 12.
+**Docs:** spec `docs/superpowers/specs/2026-10-25-vedabase-tui-design.md`, plan `docs/superpowers/plans/2026-10-25-vedabase-tui.md`. Implementer briefs must say: tests first, no `git stash`, stub the App opener in UI tests, and the commit trailer is Claude Opus 5.5.
