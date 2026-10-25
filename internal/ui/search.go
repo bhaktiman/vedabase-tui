@@ -306,12 +306,15 @@ func (s *Search) onKey(kp tea.KeyPressMsg) tea.Cmd {
 			return s.run()
 		}
 		return s.open()
-	case "down", "pgdown", "ctrl+n":
+	case "down", "pgdown", "ctrl+n", "up", "pgup", "ctrl+p":
+		if len(s.results) == 0 {
+			break // nothing to move to: stay in the box
+		}
 		s.toResults()
+		if k == "up" || k == "pgup" || k == "ctrl+p" {
+			return s.move(s.cursor - s.step(k))
+		}
 		return s.move(s.cursor + s.step(k))
-	case "up", "pgup", "ctrl+p":
-		s.toResults()
-		return s.move(s.cursor - s.step(k))
 	}
 	if s.focusInput {
 		var cmd tea.Cmd

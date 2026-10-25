@@ -332,3 +332,11 @@ func TestSearchHints(t *testing.T) {
 		t.Fatalf("results hint:\n%s", v)
 	}
 }
+
+func TestSearchArrowsInEmptyBoxStayInBox(t *testing.T) {
+	a, _ := boot(t, newFake(t), store.State{LastRef: "bg/2/13"})
+	drive(a, key("/"), key("down"), key("ctrl+n"), key("j"))
+	if !a.search.focusInput || a.search.input.Value() != "j" {
+		t.Fatalf("focus %v query %q", a.search.focusInput, a.search.input.Value())
+	}
+}
