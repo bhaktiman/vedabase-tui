@@ -12,9 +12,10 @@ the public [vedabase.cc API](https://vedabase.cc/en/api/).
 
 ## What it does
 
-- **Read straight through.** `h` and `l` step to the previous and next item and
-  carry on across chapter and canto boundaries, so you can read a whole book
-  without going back to the contents.
+- **Read straight through.** `h` and `l` (or `←` and `→`) step to the previous
+  and next item and carry on across chapter and canto boundaries, so you can
+  read a whole book without going back to the contents. Navigate with vim keys
+  (`h` `j` `k` `l`, `gg`, `G`) or the arrow keys, whichever you prefer.
 - **Contents tree** beside the text, with a live filter.
 - **Full-text search** across everything, one book, the letters or the lectures.
 - **Go to a reference** by typing it: `bg 2.13`, `sb 1.2.6`.
@@ -85,8 +86,9 @@ parts, each with a number key that shows or hides it:
 
 The choice is remembered between sessions. Clicking a part label does the same.
 
-`j` / `k` scroll a line, `Ctrl-d` / `Ctrl-u` a half page, `gg` / `G` jump to the
-top or bottom. `h` / `l` go to the previous or next item. In a book this crosses
+`j` / `k` (or `↓` / `↑`) scroll a line, `Ctrl-d` / `Ctrl-u` (or `PgDn` / `PgUp`)
+a half page, `gg` / `G` jump to the top or bottom. `h` / `l` (or `←` / `→`) go
+to the previous or next item. In a book this crosses
 chapters and cantos; in letters, lectures and collections it stays inside the
 current group.
 
@@ -197,9 +199,9 @@ Press `?` in the app for the same list.
 | `w` | Centred / full-width text |
 | `H` | Hide / show the key hints |
 | `F` | Distraction-free reading (only the text; `F` or `Esc` leaves) |
-| `j` / `k` | Scroll a line (reader); move down / up (tree) |
-| `h` / `l` | Previous / next item (reader); collapse / expand (tree) |
-| `Ctrl-d` / `Ctrl-u` | Half page down / up |
+| `j` / `k` or `↓` / `↑` | Scroll a line (reader); move down / up (tree) |
+| `h` / `l` or `←` / `→` | Previous / next item (reader); collapse / expand (tree) |
+| `Ctrl-d` / `Ctrl-u` or `PgDn` / `PgUp` | Half page down / up |
 | `gg` / `G` | Top / bottom (first / last in the tree) |
 | `1` – `5` | Toggle Devanagari, verse, synonyms, translation, purport |
 | `o` | Open the current item on vedabase.cc |
