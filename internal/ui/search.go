@@ -66,6 +66,10 @@ type Search struct {
 	cursor    int
 	top       int
 	errLine   string
+
+	retryAfter time.Duration // set by a 429; the App takes it to run the countdown
+	retryPage  int
+	cdView     string // the App's countdown block, shown beside errLine
 }
 
 func NewSearch(pal render.Palette) Search {
@@ -153,6 +157,7 @@ func (s *Search) onResults(m searchResultsMsg) tea.Cmd {
 		var rl *api.RateLimitedError
 		if errors.As(m.err, &rl) {
 			s.errLine = fmt.Sprintf("Wait %ds before searching again", max(int(math.Ceil(rl.RetryAfter.Seconds())), 1))
+			s.retryAfter, s.retryPage = rl.RetryAfter, m.req
 			if m.req == 1 {
 				s.focusInput = true
 				return s.input.Focus()
@@ -385,6 +390,9 @@ func (s Search) View() string {
 	switch {
 	case s.errLine != "":
 		msg = lipgloss.NewStyle().Foreground(s.pal.Rose).Render(s.errLine)
+		if s.cdView != "" {
+			msg += "  " + s.cdView
+		}
 	case s.live && s.loading && len(s.results) == 0:
 		msg = dim.Render("Searching…")
 	case s.live && len(s.results) == 0:
@@ -412,4 +420,20 @@ func (s Search) View() string {
 
 	return lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(s.pal.Dim).
 		Padding(0, 1).Width(bw).Render(strings.Join(lines, "\n"))
+}
+
+// takeRateLimit hands the App a pending 429 wait, once.
+func (s *Search) takeRateLimit() (time.Duration, int) {
+	d := s.retryAfter
+	s.retryAfter = 0
+	return d, s.gen
+}
+
+// Retry re-runs the request that was rate limited, if the query is unchanged.
+func (s *Search) Retry(gen int) tea.Cmd {
+	if gen != s.gen || s.retryPage == 0 || s.loading {
+		return nil
+	}
+	s.errLine, s.cdView = "", ""
+	return s.fetch(s.retryPage)
 }

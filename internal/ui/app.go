@@ -39,6 +39,8 @@ type Options struct {
 	Toasts      []ToastMsg // shown first, e.g. startup warnings
 }
 
+const loadingStatus = "Loading…"
+
 const (
 	resizeQuiet = 100 * time.Millisecond
 	minTreeCols = 70 // below this width the tree is hidden
@@ -93,6 +95,11 @@ type App struct {
 	prefetched map[string]bool
 	toasts     toaster
 
+	fx       Effects
+	burstRef string // the ref whose ★ is pulsing
+	cd       *countdown
+	cdSeq    int
+
 	tick func(d time.Duration, msg tea.Msg) tea.Cmd // replaced in tests
 }
 
@@ -106,6 +113,7 @@ func New(o Options) *App {
 			return tea.Tick(d, func(time.Time) tea.Msg { return msg })
 		},
 	}
+	a.fx = Effects{enabled: o.Settings.Animations, tick: func(d time.Duration, m tea.Msg) tea.Cmd { return a.tick(d, m) }}
 	if a.parts == (api.Parts{}) { // a state file with no parts saved: show everything
 		a.parts = api.AllParts()
 	}
@@ -116,6 +124,7 @@ func New(o Options) *App {
 	a.colview = NewCollectionsView(a.pal)
 	a.gotoBar = NewGoto()
 	a.filterIn = lineInput("filter")
+	a.tree.pulse = a.starPulse
 	a.layout()
 	return a
 }
@@ -183,7 +192,11 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			delete(a.prefetched, m.ref) // let a later display try again
 		}
 	case searchResultsMsg:
-		return a, a.search.Update(m)
+		cmd := a.search.Update(m)
+		if d, gen := a.search.takeRateLimit(); d > 0 {
+			cmd = tea.Batch(cmd, a.startCountdown(countdown{kind: cdSearch, gen: gen, total: d}))
+		}
+		return a, cmd
 	case searchOpenMsg:
 		a.focusTree = false
 		return a, a.Open(m.ref)
@@ -197,7 +210,29 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case exportDoneMsg:
 		return a, a.onExportDone(m)
 	case ToastMsg:
-		return a, a.Toast(m.Text, m.Error)
+		cmds := []tea.Cmd{a.Toast(m.Text, m.Error)}
+		if m.Star != "" {
+			a.burstRef = m.Star
+			cmds = append(cmds, a.fx.Start(Burst, a.now()))
+		}
+		return a, tea.Batch(cmds...)
+	case frameMsg:
+		return a, a.onFrame(m)
+	case sparkleDelayMsg:
+		if m.ref == a.ref && !a.hasItem && a.status == loadingStatus {
+			return a, a.fx.Start(Sparkle, a.now())
+		}
+	case cdTickMsg:
+		if c := a.cd; c != nil && m.seq == c.seq && !a.fx.enabled {
+			cmd := a.cdAdvance(time.Second)
+			if a.cd != nil {
+				cmd = tea.Batch(cmd, a.tick(time.Second, cdTickMsg{m.seq}))
+			}
+			return a, cmd
+		}
+	case progressMsg:
+		a.progDone.Store(m.done)
+		a.progTotal.Store(m.total)
 	case toastExpiredMsg:
 		return a, a.toastExpired(m)
 	}
@@ -261,22 +296,32 @@ func (a *App) Open(ref string) tea.Cmd {
 		a.tree.Reveal(a.node)
 		a.layout() // Reveal may have cleared the filter line
 	}
+	a.fx.Stop(Sparkle)
+	if a.cd != nil && a.cd.kind == cdReader {
+		a.cd = nil
+		a.fx.Stop(Countdown)
+	}
+	var delay tea.Cmd
 	if !a.be.Cached(ref) {
-		a.status = "Loading…"
+		a.status = loadingStatus
+		if a.fx.enabled {
+			delay = a.tick(sparkleDelay, sparkleDelayMsg{ref})
+		}
 	} else {
 		a.status = ""
 	}
 	be := a.be
-	return func() tea.Msg {
+	return tea.Batch(delay, func() tea.Msg {
 		it, _, err := be.Item(context.Background(), ref)
 		return itemLoadedMsg{ref: ref, item: it, err: err}
-	}
+	})
 }
 
 func (a *App) onItem(m itemLoadedMsg) tea.Cmd {
 	if m.ref != a.ref {
 		return nil
 	}
+	a.fx.Stop(Sparkle)
 	if m.err != nil {
 		return a.itemFailed(m.err)
 	}
@@ -292,7 +337,7 @@ func (a *App) itemFailed(err error) tea.Cmd {
 		return nil
 	case errors.As(err, &rl):
 		a.status = fmt.Sprintf("vedabase.cc asked us to wait %ds", int(math.Ceil(rl.RetryAfter.Seconds())))
-		return nil
+		return a.startCountdown(countdown{kind: cdReader, ref: a.ref, total: rl.RetryAfter})
 	}
 	a.status = err.Error()
 	return a.Toast(err.Error(), true)
@@ -320,12 +365,16 @@ func (a *App) onRendered(m renderedMsg) tea.Cmd {
 	if m.ref != a.ref || m.width != a.readerW() || m.parts != a.parts {
 		return nil
 	}
-	a.reader.SetContent(m.out, !a.reader.Empty())
+	fresh := a.reader.Empty()
+	a.reader.SetContent(m.out, !fresh)
 	a.renderedW = m.width
 	if a.restoreRef == a.ref {
 		a.reader.offset = a.restore
 		a.reader.clamp()
 		a.restoreRef = ""
+	}
+	if fresh {
+		return tea.Batch(a.fx.Start(FadeIn, a.now()), a.prefetch())
 	}
 	return a.prefetch()
 }
@@ -407,6 +456,7 @@ func (a *App) openSearch(withInput bool) tea.Cmd {
 }
 
 func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
+	a.fx.FinishAll()
 	if a.lib != nil && kp.String() != "ctrl+c" {
 		switch {
 		case a.help:
@@ -495,7 +545,7 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 	case "l", "right":
 		return a.step(1)
 	case "r":
-		if a.ref != "" && !a.hasItem && a.status != "Loading…" {
+		if a.ref != "" && !a.hasItem && a.status != loadingStatus {
 			return a.Open(a.ref)
 		}
 	default:

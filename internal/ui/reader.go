@@ -66,12 +66,19 @@ func (r *Reader) Key(k string) bool {
 }
 
 // Lines returns exactly h lines, each cut to w cells.
-func (r *Reader) Lines() []string {
+func (r *Reader) Lines() []string { return r.LinesFaded(nil) }
+
+// LinesFaded is Lines with fade applied to each visible line (nil: none), so
+// a fade costs work in proportion to the screen, not the document.
+func (r *Reader) LinesFaded(fade func(string) string) []string {
 	out := make([]string, r.h)
 	cut := lipgloss.NewStyle().MaxWidth(max(r.w, 1))
 	for i := range out {
 		if j := r.offset + i; j < len(r.lines) {
 			out[i] = cut.Render(r.lines[j])
+			if fade != nil {
+				out[i] = fade(out[i])
+			}
 		}
 	}
 	return out

@@ -80,29 +80,33 @@ func (a *App) content() string {
 	case a.help:
 		return a.overlayView(a.helpView())
 	case a.search.visible:
+		a.search.cdView = ""
+		if a.cd != nil && a.cd.kind == cdSearch {
+			a.search.cdView = strings.Join(a.countdownLines(a.w/2), " ")
+		}
 		return a.overlayView(a.search.View())
 	case a.picker.visible:
 		return a.overlayView(a.picker.View())
 	case a.colview.visible:
 		return a.overlayView(a.colview.View())
 	}
-	body := a.reader.Lines()
+	var body []string
+	if level := a.fadeLevel(); level > 0 {
+		body = a.reader.LinesFaded(func(l string) string { return a.fade(l, level) })
+	} else {
+		body = a.reader.Lines()
+	}
 	if a.status != "" && !a.hasItem {
-		st := lipgloss.NewStyle().Foreground(a.pal.Dim)
-		if a.status != "Loading…" {
-			st = lipgloss.NewStyle().Foreground(a.pal.Rose)
-		}
-		for i, l := range strings.Split(st.Width(a.readerW()).Render(a.status), "\n") {
+		for i, l := range a.statusLines() {
 			if i < len(body) {
 				body[i] = l
 			}
 		}
 	}
 	rw := a.readerW()
-	if t := a.toastView(rw); t != "" && len(body) > 0 { // bottom-right of the reader
+	if len(body) > 0 { // bottom-right of the reader
 		last := len(body) - 1
-		keep := max(rw-lipgloss.Width(t)-1, 0)
-		body[last] = padTo(lipgloss.NewStyle().MaxWidth(max(keep, 1)).Render(body[last]), keep) + " " + t
+		body[last] = a.placeToast(body[last], rw)
 	}
 	if a.treeVisible() {
 		tl := strings.Split(a.tree.View(), "\n")
@@ -124,9 +128,9 @@ func (a *App) content() string {
 // overlayView centres an overlay box on the screen, toasts still at the bottom.
 func (a *App) overlayView(box string) string {
 	lines := strings.Split(lipgloss.Place(a.w, a.h, lipgloss.Center, lipgloss.Center, box), "\n")
-	if t := a.toastView(a.w); t != "" && len(lines) > 0 {
+	if len(lines) > 0 {
 		last := len(lines) - 1
-		lines[last] = padTo("", max(a.w-lipgloss.Width(t)-1, 0)) + " " + t
+		lines[last] = a.placeToast(lines[last], a.w)
 	}
 	return strings.Join(lines, "\n")
 }
@@ -138,11 +142,27 @@ func (a *App) startupView() string {
 	case a.libErr != nil:
 		line = lipgloss.NewStyle().Foreground(a.pal.Rose).Render("Can't reach vedabase.cc — press r to retry, q to quit")
 	case a.progTotal.Load() > 0:
-		line = dim.Render(fmt.Sprintf("Loading contents… %d%%", a.progDone.Load()*100/a.progTotal.Load()))
+		line = a.startupBar(a.progDone.Load(), a.progTotal.Load())
 	default:
 		line = dim.Render("Loading contents…")
 	}
-	return line
+	return lipgloss.PlaceHorizontal(a.w, lipgloss.Center, line)
+}
+
+// statusLines is what replaces the document while there is none: the loader,
+// the rate-limit wait, or a plain message.
+func (a *App) statusLines() []string {
+	w := a.readerW()
+	dim := lipgloss.NewStyle().Foreground(a.pal.Dim)
+	switch {
+	case a.status == loadingStatus && a.fx.Live(Sparkle):
+		return append([]string{a.sparkleGlyphs() + " " + dim.Render(loadingStatus), ""}, a.shimmerLines(w)...)
+	case a.status == loadingStatus:
+		return []string{dim.Render(loadingStatus)}
+	}
+	rose := lipgloss.NewStyle().Foreground(a.pal.Rose)
+	lines := a.countdownLines(w)
+	return append(lines, strings.Split(rose.Width(w).Render(a.status), "\n")...)
 }
 
 func (a *App) topBar() string {
