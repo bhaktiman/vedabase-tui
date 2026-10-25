@@ -84,7 +84,7 @@ func listBox(pal render.Palette, w, h int, title string, rows []string, cursor i
 	for i := top; i < len(rows) && i < top+vis; i++ {
 		mark := "  "
 		if i == cursor {
-			mark = lipgloss.NewStyle().Foreground(pal.Gold).Render("▸ ")
+			mark = lipgloss.NewStyle().Foreground(pal.Accent).Render("▸ ")
 		}
 		lines = append(lines, clip.Render(mark+rows[i]))
 	}

@@ -437,7 +437,7 @@ func (s Search) row(i, inner int) []string {
 	dim := lipgloss.NewStyle().Foreground(s.pal.Dim)
 	mark := "  "
 	if i == s.cursor {
-		mark = lipgloss.NewStyle().Foreground(s.pal.Gold).Render("▸ ")
+		mark = lipgloss.NewStyle().Foreground(s.pal.Accent).Render("▸ ")
 	}
 	head := lipgloss.NewStyle().Foreground(s.pal.Bright).Bold(true).Render(ref.Display(r.Ref))
 	if r.BookTitle != "" {

@@ -15,7 +15,7 @@ import (
 const chapterBarW = 12
 
 // stops are the gradient's colours for a palette, so every theme gets its own.
-func stops(p render.Palette) []color.Color { return []color.Color{p.Gold, p.Rose, p.Violet} }
+func stops(p render.Palette) []color.Color { return p.Grad[:] }
 
 // ramp is n colours along the stops. Blend1D returns the stops themselves when
 // n is not larger than their number, which would lose the far end of a short

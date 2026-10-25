@@ -227,8 +227,8 @@ func (a *App) readerTitle() string {
 func (a *App) box(lines []string, ow, oh int, title string, focused bool, btn, tag string, th ...thumb) []string {
 	col, tst := a.pal.Dim, lipgloss.NewStyle().Foreground(a.pal.Dim)
 	if focused {
-		col = a.pal.Gold
-		tst = lipgloss.NewStyle().Foreground(a.pal.Gold).Bold(true)
+		col = a.pal.Accent
+		tst = lipgloss.NewStyle().Foreground(a.pal.Accent).Bold(true)
 	}
 	edge := lipgloss.NewStyle().Foreground(col)
 	iw := max(ow-2, 0)
@@ -369,7 +369,7 @@ func (a *App) focusLabel() string {
 	if a.focusTree && a.treeVisible() {
 		name = "Contents"
 	}
-	return lipgloss.NewStyle().Foreground(a.pal.Gold).Bold(true).Render("● " + name)
+	return lipgloss.NewStyle().Foreground(a.pal.Accent).Bold(true).Render("● " + name)
 }
 
 // hintLine is the key hints that fit in room cells. Whole hints are dropped,

@@ -179,15 +179,15 @@ func TestChapterBar(t *testing.T) {
 	if f, e := count(a); f != 12 || e != 0 {
 		t.Fatalf("2 / 2: filled %d empty %d", f, e)
 	}
-	// A short fill shows only the gold end of the full-width gradient.
+	// A short fill shows only the accent end of the full-width gradient.
 	var bar []cell
 	for _, c := range cells(a.chapterBar(1, 72)) {
 		if c.r == '━' {
 			bar = append(bar, c)
 		}
 	}
-	if len(bar) != 1 || !near(bar[0].fg, rgb(a.pal.Gold)) {
-		t.Fatalf("one-cell fill %+v, want gold %s", bar, rgb(a.pal.Gold))
+	if len(bar) != 1 || !near(bar[0].fg, rgb(a.pal.Accent)) {
+		t.Fatalf("one-cell fill %+v, want accent %s", bar, rgb(a.pal.Accent))
 	}
 	// The room rule: the crumb is cut to 20 cells before the bar goes. Pos
 	// "2 / 2" is 5 cells, so the bar needs 20+1+12+1+6 plus a gap cell.
@@ -243,7 +243,7 @@ func TestReaderScrollThumb(t *testing.T) {
 	for _, c := range cols {
 		if c.r == '┃' {
 			thumb[c.fg] = true
-		} else if !near(c.fg, rgb(a.pal.Gold)) && !near(c.fg, rgb(a.pal.Dim)) {
+		} else if !near(c.fg, rgb(a.pal.Accent)) && !near(c.fg, rgb(a.pal.Dim)) {
 			t.Fatalf("plain edge cell %+v", c)
 		}
 	}
@@ -268,8 +268,8 @@ func TestGradientFollowsTheme(t *testing.T) {
 	tr, _ := a.paneRects()
 	for _, c := range bottomRow(a, tr) {
 		if c.r == 'v' {
-			if !near(c.fg, "255;184;108") {
-				t.Fatalf("tag starts %s, want Dracula gold 255;184;108", c.fg)
+			if !near(c.fg, "255;121;198") {
+				t.Fatalf("tag starts %s, want Dracula grad start 255;121;198", c.fg)
 			}
 			return
 		}
@@ -283,7 +283,7 @@ func TestBordersStayPlain(t *testing.T) {
 	tr, rd := a.paneRects()
 	focus := func(focused bool) string {
 		if focused {
-			return rgb(a.pal.Gold)
+			return rgb(a.pal.Accent)
 		}
 		return rgb(a.pal.Dim)
 	}

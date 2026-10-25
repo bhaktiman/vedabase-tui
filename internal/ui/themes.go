@@ -23,7 +23,7 @@ func themeInput(in *textinput.Model, p render.Palette) {
 	st.Blurred.Text = lipgloss.NewStyle().Foreground(p.Dim)
 	st.Focused.Placeholder = lipgloss.NewStyle().Foreground(p.Dim)
 	st.Blurred.Placeholder = st.Focused.Placeholder
-	st.Cursor.Color = p.Gold
+	st.Cursor.Color = p.Accent
 	in.SetStyles(st)
 }
 

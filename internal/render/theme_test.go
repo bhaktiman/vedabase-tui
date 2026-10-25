@@ -60,3 +60,41 @@ func TestRendererSetPaletteDropsCache(t *testing.T) {
 		t.Fatalf("palette swap did not re-render: renders=%d", r.renders)
 	}
 }
+
+func TestThemesHaveAccentAndGrad(t *testing.T) {
+	for _, p := range Themes {
+		if p.Accent == nil {
+			t.Errorf("%s: no Accent", p.Name)
+		}
+		for i, c := range p.Grad {
+			if c == nil {
+				t.Errorf("%s: Grad[%d] is nil", p.Name, i)
+			}
+		}
+	}
+	want := map[string]struct {
+		accent string
+		grad   [3]string
+		gold   string
+	}{
+		"Dracula": {"#bd93f9", [3]string{"#ff79c6", "#bd93f9", "#8be9fd"}, "#ffb86c"},
+		"Monokai": {"#f92672", [3]string{"#f92672", "#fd971f", "#e6db74"}, "#fd971f"},
+	}
+	for _, p := range Themes {
+		w, ok := want[p.Name]
+		if !ok || p.Accent == nil {
+			continue
+		}
+		if got := *hex(p.Accent); got != w.accent {
+			t.Errorf("%s accent %s, want %s", p.Name, got, w.accent)
+		}
+		if got := *hex(p.Gold); got != w.gold {
+			t.Errorf("%s gold %s, want %s", p.Name, got, w.gold)
+		}
+		for i := range w.grad {
+			if p.Grad[i] != nil && *hex(p.Grad[i]) != w.grad[i] {
+				t.Errorf("%s grad[%d] %s, want %s", p.Name, i, *hex(p.Grad[i]), w.grad[i])
+			}
+		}
+	}
+}

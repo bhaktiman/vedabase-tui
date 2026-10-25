@@ -144,14 +144,14 @@ func (a *App) spinnerGlyph() string {
 	if a.fx.enabled {
 		g = spinnerFrames[a.fx.frame%len(spinnerFrames)]
 	}
-	return lipgloss.NewStyle().Foreground(a.pal.Gold).Render(g)
+	return lipgloss.NewStyle().Foreground(a.pal.Accent).Render(g)
 }
 
 // shimmerLines is three placeholder lines with a brighter band moving across.
 func (a *App) shimmerLines(w int) []string {
 	w = max(min(w-2, 56), 8)
 	dim := lipgloss.NewStyle().Foreground(a.pal.Dim)
-	bright := lipgloss.NewStyle().Foreground(a.pal.Gold)
+	bright := lipgloss.NewStyle().Foreground(a.pal.Accent)
 	band := (a.fx.frame * 2) % (w + 8)
 	out := make([]string, 3)
 	for i := range out {
@@ -248,7 +248,7 @@ func (a *App) countdownLines(w int) []string {
 	if !a.fx.enabled {
 		return []string{head, lipgloss.NewStyle().Foreground(a.pal.Dim).Render(fmt.Sprintf("Retrying in %ds", secs))}
 	}
-	bar := progress.New(progress.WithColors(a.pal.Gold, a.pal.Rose), progress.WithWidth(max(min(w-2, 30), 4)),
+	bar := progress.New(progress.WithColors(a.pal.Accent, a.pal.Rose), progress.WithWidth(max(min(w-2, 30), 4)),
 		progress.WithoutPercentage(), progress.WithFillCharacters('█', '░'))
 	bar.EmptyColor = a.pal.Dim
 	return []string{head, bar.ViewAs(float64(c.left)/float64(c.total)) + rose.Render(fmt.Sprintf(" %ds", secs))}

@@ -367,7 +367,7 @@ func (t Tree) View() string {
 	normal := lipgloss.NewStyle().Foreground(t.pal.Fg)
 	dim := lipgloss.NewStyle().Foreground(t.pal.Dim)
 	gold := lipgloss.NewStyle().Foreground(t.pal.Gold)
-	cur := lipgloss.NewStyle().Foreground(t.pal.Gold).Reverse(true)
+	cur := lipgloss.NewStyle().Foreground(t.pal.Accent).Reverse(true)
 
 	lines := make([]string, t.h)
 	for i := range lines {

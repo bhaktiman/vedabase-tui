@@ -11,37 +11,50 @@ import (
 	"charm.land/lipgloss/v2"
 )
 
-// Palette is a colour scheme shared by the whole UI. Gold is the main accent
-// (headings, focus, Sanskrit), Rose errors, Teal labels and "on" toggles,
+// Palette is a colour scheme shared by the whole UI. Gold colours text
+// (headings, Sanskrit, verses); Accent is the chrome highlight (cursor, focus,
+// selection) and Grad the gradient stops. Rose errors, Teal labels and "on" toggles,
 // Violet links, Bright the strongest text.
 type Palette struct {
 	Name                                          string
 	Bg, Fg, Dim, Gold, Rose, Teal, Violet, Bright color.Color
-	Light                                         bool // a light background: Glamour's light base
-	Paint                                         bool // the app sets the terminal's background to Bg
+	Accent                                        color.Color    // chrome highlight: cursor, focus, selection
+	Grad                                          [3]color.Color // gradient stops
+	Light                                         bool           // a light background: Glamour's light base
+	Paint                                         bool           // the app sets the terminal's background to Bg
 }
 
 // Themes are the built-in palettes, in picker order.
 var Themes = []Palette{
 	{Name: "Vedabase", Bg: lipgloss.Color("#1b1a17"), Fg: lipgloss.Color("#d8d2c4"), Dim: lipgloss.Color("#6d665a"),
+		Accent: lipgloss.Color("#e8a95b"), Grad: [3]color.Color{lipgloss.Color("#e8a95b"), lipgloss.Color("#e07a8f"), lipgloss.Color("#b48ee8")},
 		Gold: lipgloss.Color("#e8a95b"), Rose: lipgloss.Color("#e07a8f"), Teal: lipgloss.Color("#6cc4b4"), Violet: lipgloss.Color("#b48ee8"), Bright: lipgloss.Color("#f2ece0"), Paint: true},
 	{Name: "Terminal", Bg: lipgloss.Color("#1b1a17"), Fg: lipgloss.Color("#d8d2c4"), Dim: lipgloss.Color("#6d665a"),
+		Accent: lipgloss.Color("#e8a95b"), Grad: [3]color.Color{lipgloss.Color("#e8a95b"), lipgloss.Color("#e07a8f"), lipgloss.Color("#b48ee8")},
 		Gold: lipgloss.Color("#e8a95b"), Rose: lipgloss.Color("#e07a8f"), Teal: lipgloss.Color("#6cc4b4"), Violet: lipgloss.Color("#b48ee8"), Bright: lipgloss.Color("#f2ece0")},
 	{Name: "Dracula", Bg: lipgloss.Color("#282a36"), Fg: lipgloss.Color("#f8f8f2"), Dim: lipgloss.Color("#6272a4"),
+		Accent: lipgloss.Color("#bd93f9"), Grad: [3]color.Color{lipgloss.Color("#ff79c6"), lipgloss.Color("#bd93f9"), lipgloss.Color("#8be9fd")},
 		Gold: lipgloss.Color("#ffb86c"), Rose: lipgloss.Color("#ff79c6"), Teal: lipgloss.Color("#8be9fd"), Violet: lipgloss.Color("#bd93f9"), Bright: lipgloss.Color("#ffffff"), Paint: true},
 	{Name: "Monokai", Bg: lipgloss.Color("#272822"), Fg: lipgloss.Color("#f8f8f2"), Dim: lipgloss.Color("#75715e"),
-		Gold: lipgloss.Color("#e6db74"), Rose: lipgloss.Color("#f92672"), Teal: lipgloss.Color("#66d9ef"), Violet: lipgloss.Color("#ae81ff"), Bright: lipgloss.Color("#ffffff"), Paint: true},
+		Accent: lipgloss.Color("#f92672"), Grad: [3]color.Color{lipgloss.Color("#f92672"), lipgloss.Color("#fd971f"), lipgloss.Color("#e6db74")},
+		Gold: lipgloss.Color("#fd971f"), Rose: lipgloss.Color("#f92672"), Teal: lipgloss.Color("#66d9ef"), Violet: lipgloss.Color("#ae81ff"), Bright: lipgloss.Color("#ffffff"), Paint: true},
 	{Name: "Solarized Dark", Bg: lipgloss.Color("#002b36"), Fg: lipgloss.Color("#839496"), Dim: lipgloss.Color("#586e75"),
+		Accent: lipgloss.Color("#268bd2"), Grad: [3]color.Color{lipgloss.Color("#d33682"), lipgloss.Color("#6c71c4"), lipgloss.Color("#268bd2")},
 		Gold: lipgloss.Color("#b58900"), Rose: lipgloss.Color("#d33682"), Teal: lipgloss.Color("#2aa198"), Violet: lipgloss.Color("#6c71c4"), Bright: lipgloss.Color("#eee8d5"), Paint: true},
 	{Name: "Solarized Light", Bg: lipgloss.Color("#fdf6e3"), Fg: lipgloss.Color("#657b83"), Dim: lipgloss.Color("#93a1a1"),
+		Accent: lipgloss.Color("#268bd2"), Grad: [3]color.Color{lipgloss.Color("#d33682"), lipgloss.Color("#6c71c4"), lipgloss.Color("#268bd2")},
 		Gold: lipgloss.Color("#b58900"), Rose: lipgloss.Color("#d33682"), Teal: lipgloss.Color("#2aa198"), Violet: lipgloss.Color("#6c71c4"), Bright: lipgloss.Color("#073642"), Light: true, Paint: true},
 	{Name: "Gruvbox Dark", Bg: lipgloss.Color("#282828"), Fg: lipgloss.Color("#ebdbb2"), Dim: lipgloss.Color("#928374"),
+		Accent: lipgloss.Color("#fe8019"), Grad: [3]color.Color{lipgloss.Color("#fb4934"), lipgloss.Color("#fe8019"), lipgloss.Color("#fabd2f")},
 		Gold: lipgloss.Color("#fabd2f"), Rose: lipgloss.Color("#fb4934"), Teal: lipgloss.Color("#8ec07c"), Violet: lipgloss.Color("#d3869b"), Bright: lipgloss.Color("#fbf1c7"), Paint: true},
 	{Name: "Nord", Bg: lipgloss.Color("#2e3440"), Fg: lipgloss.Color("#d8dee9"), Dim: lipgloss.Color("#616e88"),
+		Accent: lipgloss.Color("#81a1c1"), Grad: [3]color.Color{lipgloss.Color("#88c0d0"), lipgloss.Color("#81a1c1"), lipgloss.Color("#b48ead")},
 		Gold: lipgloss.Color("#ebcb8b"), Rose: lipgloss.Color("#bf616a"), Teal: lipgloss.Color("#88c0d0"), Violet: lipgloss.Color("#b48ead"), Bright: lipgloss.Color("#eceff4"), Paint: true},
 	{Name: "Tokyo Night", Bg: lipgloss.Color("#1a1b26"), Fg: lipgloss.Color("#c0caf5"), Dim: lipgloss.Color("#565f89"),
+		Accent: lipgloss.Color("#7aa2f7"), Grad: [3]color.Color{lipgloss.Color("#7aa2f7"), lipgloss.Color("#bb9af7"), lipgloss.Color("#f7768e")},
 		Gold: lipgloss.Color("#e0af68"), Rose: lipgloss.Color("#f7768e"), Teal: lipgloss.Color("#7dcfff"), Violet: lipgloss.Color("#bb9af7"), Bright: lipgloss.Color("#ffffff"), Paint: true},
 	{Name: "Catppuccin Mocha", Bg: lipgloss.Color("#1e1e2e"), Fg: lipgloss.Color("#cdd6f4"), Dim: lipgloss.Color("#6c7086"),
+		Accent: lipgloss.Color("#cba6f7"), Grad: [3]color.Color{lipgloss.Color("#cba6f7"), lipgloss.Color("#f5c2e7"), lipgloss.Color("#89b4fa")},
 		Gold: lipgloss.Color("#f9e2af"), Rose: lipgloss.Color("#f38ba8"), Teal: lipgloss.Color("#94e2d5"), Violet: lipgloss.Color("#cba6f7"), Bright: lipgloss.Color("#ffffff"), Paint: true},
 }
 
