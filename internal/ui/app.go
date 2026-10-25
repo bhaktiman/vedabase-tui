@@ -10,6 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 
 	"vedabase-tui/internal/api"
@@ -75,6 +76,10 @@ type App struct {
 	search      Search
 	picker      Picker
 	colview     CollectionsView
+	gotoBar     Goto
+	filtering   bool // the tree filter line is being edited
+	filterIn    textinput.Model
+	help        bool
 	nowFn       func() time.Time
 	exporting   bool
 	exportName  string
@@ -109,6 +114,8 @@ func New(o Options) *App {
 	a.picker = NewPicker(a.pal)
 	a.picker.now = a.now
 	a.colview = NewCollectionsView(a.pal)
+	a.gotoBar = NewGoto()
+	a.filterIn = lineInput("filter")
 	a.layout()
 	return a
 }
@@ -252,6 +259,7 @@ func (a *App) Open(ref string) tea.Cmd {
 	if a.lib != nil {
 		a.node = a.lib.Find(ref)
 		a.tree.Reveal(a.node)
+		a.layout() // Reveal may have cleared the filter line
 	}
 	if !a.be.Cached(ref) {
 		a.status = "Loading…"
@@ -399,6 +407,17 @@ func (a *App) openSearch(withInput bool) tea.Cmd {
 }
 
 func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
+	if a.lib != nil && kp.String() != "ctrl+c" {
+		switch {
+		case a.help:
+			a.help = false
+			return nil
+		case a.gotoBar.visible:
+			return a.gotoKey(kp)
+		case a.filtering:
+			return a.filterKey(kp)
+		}
+	}
 	if a.lib != nil && a.search.visible && kp.String() != "ctrl+c" {
 		return a.search.Update(kp)
 	}
@@ -433,6 +452,16 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 		return a.togglePart(k)
 	case "/":
 		return a.openSearch(true)
+	case ":":
+		return a.gotoBar.Show()
+	case "?":
+		a.help = true
+		return nil
+	case "f":
+		if a.focusTree && a.treeVisible() {
+			return a.startFilter()
+		}
+		return nil
 	case "s":
 		return a.openPicker()
 	case "'":

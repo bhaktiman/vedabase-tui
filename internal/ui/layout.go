@@ -27,7 +27,11 @@ func (a *App) readerW() int {
 }
 
 func (a *App) layout() {
-	a.tree.SetSize(a.treeW(), a.bodyH())
+	th := a.bodyH()
+	if a.filterShown() {
+		th = max(th-1, 1)
+	}
+	a.tree.SetSize(a.treeW(), th)
 	a.reader.SetSize(a.readerW(), a.bodyH())
 	a.search.SetSize(a.w, a.h)
 	a.picker.SetSize(a.w, a.h)
@@ -73,6 +77,8 @@ func (a *App) content() string {
 		return a.startupView()
 	}
 	switch {
+	case a.help:
+		return a.overlayView(a.helpView())
 	case a.search.visible:
 		return a.overlayView(a.search.View())
 	case a.picker.visible:
@@ -100,6 +106,9 @@ func (a *App) content() string {
 	}
 	if a.treeVisible() {
 		tl := strings.Split(a.tree.View(), "\n")
+		if a.filterShown() {
+			tl = append(tl, a.filterLine())
+		}
 		div := lipgloss.NewStyle().Foreground(a.pal.Dim).Render("│")
 		for i := range body {
 			left := ""
@@ -155,6 +164,9 @@ func (a *App) topBar() string {
 }
 
 func (a *App) bottomBar() string {
+	if a.gotoBar.visible {
+		return padTo(a.gotoBar.View(a.w), a.w)
+	}
 	dim := lipgloss.NewStyle().Foreground(a.pal.Dim)
 	on := lipgloss.NewStyle().Foreground(a.pal.Teal)
 	off := dim.Strikethrough(true)
@@ -180,7 +192,7 @@ func (a *App) bottomBar() string {
 		right = lipgloss.NewStyle().Foreground(a.pal.Gold).Render(ex) + dim.Render(" · ") + right
 		plain += lipgloss.Width(ex) + 3
 	}
-	hints := "tab focus · h/l prev/next · / search · t tree · q quit"
+	hints := "tab focus · h/l prev/next · / search · : go to · ? help · q quit"
 	room := a.w - plain - 2
 	if room < 10 {
 		return padTo(lipgloss.NewStyle().MaxWidth(max(a.w, 1)).Render(right), a.w)
