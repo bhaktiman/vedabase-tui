@@ -2,6 +2,7 @@ package ui
 
 import (
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"errors"
 	"reflect"
 	"strings"
@@ -74,7 +75,7 @@ func TestWebButtonDrawnAndClickable(t *testing.T) {
 	a, _ := boot(t, newFake(t), store.State{LastRef: "bg/2/13"})
 	got := fakeOpener(a)
 	row := strings.Split(plain(a), "\n")[1]
-	if !strings.Contains(row, "↗ vedabase.cc") || !strings.HasSuffix(row, " ─╮") {
+	if !strings.Contains(row, "↗ vedabase.cc (o)") || !strings.HasSuffix(row, " ─╮") {
 		t.Fatalf("top border %q", row)
 	}
 	r := a.webButtonRect()
@@ -90,7 +91,7 @@ func TestWebButtonDrawnAndClickable(t *testing.T) {
 	}
 	// the button is where it is drawn
 	cells := []rune(row)
-	if string(cells[r.x:r.x+r.w]) != "↗ vedabase.cc" {
+	if string(cells[r.x:r.x+r.w]) != "↗ vedabase.cc (o)" || r.w != lipgloss.Width(webBtnLabel) {
 		t.Fatalf("drawn %q at rect", string(cells[r.x:r.x+r.w]))
 	}
 }
@@ -104,6 +105,9 @@ func TestWebButtonAbsentWithoutItem(t *testing.T) {
 }
 
 func TestWebButtonDroppedWhenNarrow(t *testing.T) {
+	if btnSpan != lipgloss.Width(webBtnLabel)+1+3 {
+		t.Fatalf("btnSpan %d does not follow the label", btnSpan)
+	}
 	if _, ok := titleRoom(30, 12); ok {
 		t.Fatal("30 columns should drop the button")
 	}

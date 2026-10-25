@@ -14,7 +14,7 @@ import (
 const (
 	webHome     = "https://vedabase.cc/"
 	noWebPage   = "No web page for this item"
-	webBtnLabel = "↗ vedabase.cc"
+	webBtnLabel = "↗ vedabase.cc (o)"
 	siteTag     = "vedabase.cc"
 )
 
@@ -114,14 +114,16 @@ func titleRoom(ow, titleW int) (int, bool) {
 
 const (
 	minTitle = 12
-	// btnSpan is the button with the space before it and " ─╮" after.
-	btnSpan = 13 + 1 + 3
 )
+
+// btnSpan is the button with the space before it and " ─╮" after.
+var btnSpan = lipgloss.Width(webBtnLabel) + 1 + 3
 
 // webButtonRect is where the button sits on the screen.
 func (a *App) webButtonRect() rect {
 	_, r := a.paneRects()
-	return rect{r.x + r.w - 3 - 13, r.y, 13, 1}
+	w := lipgloss.Width(webBtnLabel)
+	return rect{r.x + r.w - 3 - w, r.y, w, 1}
 }
 
 // siteTagRect is where the sidebar's bottom-edge tag sits on the screen.
