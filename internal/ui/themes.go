@@ -105,6 +105,9 @@ func (a *App) themeClick(x, y int) tea.Cmd {
 	return a.themeMove(i)
 }
 
+// themeBoxW is the theme picker's outer width: the sidebar's widest.
+const themeBoxW = 36
+
 func (a *App) themeView() string {
 	dim := lipgloss.NewStyle().Foreground(a.pal.Dim)
 	fg := lipgloss.NewStyle().Foreground(a.pal.Fg)
@@ -115,5 +118,6 @@ func (a *App) themeView() string {
 			rows[i] += dim.Render("  ·  current")
 		}
 	}
-	return listBox(a.pal, a.w, a.h, "Theme", rows, a.themes.cursor, "", "j/k move · enter keep · esc cancel")
+	// narrow, so it fits over the sidebar (see overlayRect)
+	return listBox(a.pal, themeBoxW+4, a.h, "Theme", rows, a.themes.cursor, "", "enter keep · esc cancel")
 }

@@ -120,22 +120,36 @@ func (a *App) content() string {
 	if a.lib == nil {
 		return a.startupView()
 	}
+	if box := a.overlayBox(); box != "" {
+		return a.overlayView(box)
+	}
+	return a.baseView(true)
+}
+
+// overlayBox is the box of the open overlay, or "" when none is open.
+func (a *App) overlayBox() string {
 	switch {
 	case a.help:
-		return a.overlayView(a.helpView())
+		return a.helpView()
 	case a.search.visible:
 		a.search.cdView = ""
 		if a.cd != nil && a.cd.kind == cdSearch {
 			a.search.cdView = strings.Join(a.countdownLines(a.w/2), " ")
 		}
-		return a.overlayView(a.search.View())
+		return a.search.View()
 	case a.picker.visible:
-		return a.overlayView(a.picker.View())
+		return a.picker.View()
 	case a.colview.visible:
-		return a.overlayView(a.colview.View())
+		return a.colview.View()
 	case a.themes.visible:
-		return a.overlayView(a.themeView())
+		return a.themeView()
 	}
+	return ""
+}
+
+// baseView is the app without overlays. toast is false under an overlay,
+// which shows the toast on the bottom row instead.
+func (a *App) baseView(toast bool) string {
 	body := a.reader.Lines()
 	pad := strings.Repeat(" ", a.colIndent())
 	for i, l := range body {
@@ -151,9 +165,9 @@ func (a *App) content() string {
 		}
 	}
 	if a.state.Zen {
-		return a.zenView(body)
+		return a.zenView(body, toast)
 	}
-	if len(body) > 0 { // bottom-right of the reader
+	if len(body) > 0 && toast { // bottom-right of the reader
 		last := len(body) - 1
 		body[last] = a.placeToast(body[last], a.readerW())
 	}
@@ -198,13 +212,15 @@ func (a *App) content() string {
 
 // zenView is the whole screen in distraction-free mode: the text column with
 // a blank row above and below. The toast sits on the last row.
-func (a *App) zenView(body []string) string {
+func (a *App) zenView(body []string, toast bool) string {
 	rows := append(append([]string{""}, body...), "")
 	if len(rows) > a.h {
 		rows = rows[:max(a.h, 1)]
 	}
 	last := len(rows) - 1
-	rows[last] = a.placeToast(rows[last], a.w)
+	if toast {
+		rows[last] = a.placeToast(rows[last], a.w)
+	}
 	if a.updCmd != "" {
 		rows[last] = a.bottomBar()
 	}
@@ -276,9 +292,12 @@ func (a *App) box(lines []string, ow, oh int, title string, focused bool, btn, t
 	return append(out, edge.Render("╰"+strings.Repeat("─", iw)+"╯"))
 }
 
-// overlayView centres an overlay box on the screen, toasts still at the bottom.
+// overlayView draws an overlay box over the app at overlayRect, the toast on
+// the bottom row.
 func (a *App) overlayView(box string) string {
-	lines := strings.Split(lipgloss.Place(a.w, a.h, lipgloss.Center, lipgloss.Center, box), "\n")
+	r := a.overlayRect(box)
+	base := lipgloss.NewLayer(a.baseView(false))
+	lines := strings.Split(lipgloss.NewCompositor(base, lipgloss.NewLayer(box).X(r.x).Y(r.y).Z(1)).Render(), "\n")
 	if len(lines) > 0 {
 		last := len(lines) - 1
 		lines[last] = a.placeToast(lines[last], a.w)

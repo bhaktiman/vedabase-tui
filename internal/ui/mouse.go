@@ -34,10 +34,19 @@ func (a *App) treeRows() rect {
 	return rect{t.x + b, t.y + b, a.treeInnerW(), a.tree.h}
 }
 
-// overlayRect is where overlayView puts a box on the screen.
+// overlayRect is where overlayView puts a box on the screen: centred, except
+// the theme picker, which keeps off the text so the preview shows on it. It
+// goes over the sidebar, or to the right edge when there is none.
 func (a *App) overlayRect(box string) rect {
 	w, h := lipgloss.Width(box), lipgloss.Height(box)
-	return rect{max(a.w-w, 0) / 2, max(a.h-h, 0) / 2, w, h}
+	r := rect{max(a.w-w, 0) / 2, max(a.h-h, 0) / 2, w, h}
+	if a.themes.visible && !a.help && !a.search.visible && !a.picker.visible && !a.colview.visible {
+		r.x = max(a.w-w-1, 0)
+		if a.treeVisible() {
+			r.x = max(a.treeW()-w, 0) / 2
+		}
+	}
+	return r
 }
 
 func (a *App) overlayOpen() bool {
@@ -144,19 +153,7 @@ func (a *App) overlayMouse(m tea.Mouse, click bool, wheel int) tea.Cmd {
 		}
 		return nil
 	}
-	var box string
-	switch {
-	case a.search.visible:
-		a.search.cdView = ""
-		box = a.search.View()
-	case a.picker.visible:
-		box = a.picker.View()
-	case a.themes.visible:
-		box = a.themeView()
-	default:
-		box = a.colview.View()
-	}
-	r := a.overlayRect(box)
+	r := a.overlayRect(a.overlayBox())
 	if !r.has(m.X, m.Y) {
 		if click {
 			switch {
