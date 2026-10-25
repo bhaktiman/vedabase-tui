@@ -38,7 +38,7 @@ func (a *App) helpView() string {
 	key := lipgloss.NewStyle().Foreground(a.pal.Teal)
 	dim := lipgloss.NewStyle().Foreground(a.pal.Dim)
 	var lines []string
-	lines = append(lines, gold.Render("Keys"))
+	lines = append(lines, gradientBold("Keys", stops(a.pal)...))
 	for _, g := range helpGroups {
 		lines = append(lines, "", gold.Render(g.name))
 		for _, r := range g.rows {

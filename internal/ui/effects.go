@@ -166,14 +166,14 @@ func (a *App) shimmerLines(w int) []string {
 
 // startupBar is the first-launch gradient progress bar.
 func (a *App) startupBar(done, total int64) string {
-	title := lipgloss.NewStyle().Foreground(a.pal.Gold).Bold(true).Render("ॐ vedabase")
+	title := gradientBold("ॐ vedabase", stops(a.pal)...)
 	if total <= 0 {
 		dim := lipgloss.NewStyle().Foreground(a.pal.Dim)
 		return strings.Join([]string{title, "", a.sweepBar(), dim.Render(fmt.Sprintf("%.1f MB", float64(done)/mb))}, "\n")
 	}
 	w := max(min(a.w-4, 40), 8)
 	bar := progress.New(
-		progress.WithColors(a.pal.Rose, a.pal.Gold, a.pal.Teal, a.pal.Violet),
+		progress.WithColors(stops(a.pal)...),
 		progress.WithWidth(w), progress.WithoutPercentage(),
 		progress.WithFillCharacters('█', '░'),
 	)
@@ -248,7 +248,7 @@ func (a *App) countdownLines(w int) []string {
 	if !a.fx.enabled {
 		return []string{head, lipgloss.NewStyle().Foreground(a.pal.Dim).Render(fmt.Sprintf("Retrying in %ds", secs))}
 	}
-	bar := progress.New(progress.WithColors(a.pal.Rose), progress.WithWidth(max(min(w-2, 30), 4)),
+	bar := progress.New(progress.WithColors(a.pal.Gold, a.pal.Rose), progress.WithWidth(max(min(w-2, 30), 4)),
 		progress.WithoutPercentage(), progress.WithFillCharacters('█', '░'))
 	bar.EmptyColor = a.pal.Dim
 	return []string{head, bar.ViewAs(float64(c.left)/float64(c.total)) + rose.Render(fmt.Sprintf(" %ds", secs))}

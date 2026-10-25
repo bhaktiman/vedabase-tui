@@ -76,3 +76,7 @@ func (r *Reader) Lines() []string {
 	}
 	return out
 }
+
+// Total is the number of lines in the document; Offset the first one shown.
+func (r *Reader) Total() int  { return len(r.lines) }
+func (r *Reader) Offset() int { return r.offset }

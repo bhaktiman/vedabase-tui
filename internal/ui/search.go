@@ -462,7 +462,7 @@ func (s Search) View() string {
 	inner := bw - 4
 	dim := lipgloss.NewStyle().Foreground(s.pal.Dim)
 	var lines []string
-	lines = append(lines, lipgloss.NewStyle().Foreground(s.pal.Gold).Bold(true).Render("Search"))
+	lines = append(lines, gradientBold("Search", stops(s.pal)...))
 	s.input.SetWidth(max(inner-2, 1))
 	lines = append(lines, dim.Render("/ ")+s.input.View(), s.scopeLine(inner))
 	msg := ""
@@ -485,7 +485,7 @@ func (s Search) View() string {
 		body = append(body, s.row(i, inner)...)
 	}
 	if s.loading && len(s.results) > 0 && len(body) < area {
-		body = append(body, "  "+dim.Render("Loading more…"))
+		body = append(body, "  "+gradientText("Loading more…", stops(s.pal)...))
 	}
 	for len(body) < area {
 		body = append(body, "")

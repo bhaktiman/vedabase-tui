@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"image/color"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -166,7 +167,11 @@ func (a *App) content() string {
 		if a.webButtonOn() {
 			btn = webBtnLabel
 		}
-		rows := a.box(body, a.readerOuterW(), a.bodyH(), a.readerTitle(), !a.focusTree, btn, "")
+		var th []thumb
+		if t, ok := a.readerThumb(); ok {
+			th = append(th, t)
+		}
+		rows := a.box(body, a.readerOuterW(), a.bodyH(), a.readerTitle(), !a.focusTree, btn, "", th...)
 		if a.treeVisible() {
 			left := a.box(tl, a.treeW(), a.bodyH(), "Contents", a.focusTree, "", siteTag)
 			for i := range rows {
@@ -202,8 +207,8 @@ func (a *App) readerTitle() string {
 // box frames lines (each at most ow-2 wide, padded here) in a rounded border
 // ow x oh outer, the title set into the top edge. The focused frame is gold.
 // btn, if set, sits right-aligned in the top edge; tag is centred in the
-// bottom edge.
-func (a *App) box(lines []string, ow, oh int, title string, focused bool, btn, tag string) []string {
+// bottom edge. th, if given, marks a run of the right edge as a scroll thumb.
+func (a *App) box(lines []string, ow, oh int, title string, focused bool, btn, tag string, th ...thumb) []string {
 	col, tst := a.pal.Dim, lipgloss.NewStyle().Foreground(a.pal.Dim)
 	if focused {
 		col = a.pal.Gold
@@ -219,30 +224,39 @@ func (a *App) box(lines []string, ow, oh int, title string, focused bool, btn, t
 	fill := max(iw-lipgloss.Width(title)-3, 0)
 	top := edge.Render("╭─ ") + tst.Render(title) + edge.Render(" "+strings.Repeat("─", fill)+"╮")
 	if btn != "" {
-		bst := lipgloss.NewStyle().Foreground(a.pal.Dim)
+		label := lipgloss.NewStyle().Foreground(a.pal.Dim).Render(btn)
 		if focused {
-			bst = lipgloss.NewStyle().Foreground(a.pal.Teal)
+			label = gradientText(btn, stops(a.pal)...)
 		}
 		fill = max(ow-3-lipgloss.Width(title)-1-btnSpan, 0)
 		top = edge.Render("╭─ ") + tst.Render(title) + edge.Render(" "+strings.Repeat("─", fill)+" ") +
-			bst.Render(btn) + edge.Render(" ─╮")
+			label + edge.Render(" ─╮")
 	}
 	if title == "" {
 		top = edge.Render("╭" + strings.Repeat("─", iw) + "╮")
 	}
 	side := edge.Render("│")
 	out := []string{top}
+	var marks []color.Color
+	if len(th) > 0 {
+		marks = ramp(oh-2, stops(a.pal)...)
+	}
 	for i := 0; i < oh-2; i++ {
 		l := ""
 		if i < len(lines) {
 			l = lines[i]
 		}
-		out = append(out, side+padTo(l, iw)+side)
+		right := side
+		if len(th) > 0 && i >= th[0].start && i < th[0].start+th[0].h {
+			right = lipgloss.NewStyle().Foreground(marks[i]).Render("┃")
+		}
+		out = append(out, side+padTo(l, iw)+right)
 	}
 	if tag != "" && iw >= lipgloss.Width(tag)+4 {
 		l := (iw - lipgloss.Width(tag) - 2) / 2
 		r := iw - lipgloss.Width(tag) - 2 - l
-		return append(out, edge.Render("╰"+strings.Repeat("─", l)+" "+tag+" "+strings.Repeat("─", r)+"╯"))
+		return append(out, edge.Render("╰"+strings.Repeat("─", l)+" ")+gradientText(tag, stops(a.pal)...)+
+			edge.Render(" "+strings.Repeat("─", r)+"╯"))
 	}
 	return append(out, edge.Render("╰"+strings.Repeat("─", iw)+"╯"))
 }
@@ -288,6 +302,10 @@ func (a *App) statusLines() []string {
 	return append(lines, strings.Split(rose.Width(w).Render(a.status), "\n")...)
 }
 
+// minCrumb is the least of the breadcrumb the top bar keeps to make room for
+// the chapter bar.
+const minCrumb = 20
+
 func (a *App) topBar() string {
 	if a.node == nil {
 		return padTo(lipgloss.NewStyle().Foreground(a.pal.Dim).Render(truncate(a.ref, a.w)), a.w)
@@ -300,10 +318,22 @@ func (a *App) topBar() string {
 	if i, t := library.Position(a.node); t > 0 {
 		pos = fmt.Sprintf("%d / %d", i, t)
 	}
-	left := truncate(strings.Join(crumbs, " › "), max(a.w-len(pos)-2, 1))
+	path := strings.Join(crumbs, " › ")
+	crumb := lipgloss.NewStyle().Foreground(a.pal.Bright).Bold(true)
+	posSt := lipgloss.NewStyle().Foreground(a.pal.Dim)
+	// The bar sits left of the counter. The breadcrumb gives way to it down
+	// to minCrumb cells; if even that leaves no room, the bar is dropped.
+	if i, t := library.Position(a.node); t > 0 {
+		room := a.w - lipgloss.Width(pos) - 1 - chapterBarW - 1 - 1
+		if room >= min(lipgloss.Width(path), minCrumb) {
+			left := truncate(path, room)
+			gap := max(a.w-lipgloss.Width(left)-chapterBarW-1-lipgloss.Width(pos), 1)
+			return crumb.Render(left) + strings.Repeat(" ", gap) + a.chapterBar(i, t) + " " + posSt.Render(pos)
+		}
+	}
+	left := truncate(path, max(a.w-len(pos)-2, 1))
 	gap := max(a.w-lipgloss.Width(left)-lipgloss.Width(pos), 1)
-	return lipgloss.NewStyle().Foreground(a.pal.Bright).Bold(true).Render(left) +
-		strings.Repeat(" ", gap) + lipgloss.NewStyle().Foreground(a.pal.Dim).Render(pos)
+	return crumb.Render(left) + strings.Repeat(" ", gap) + posSt.Render(pos)
 }
 
 // partHit is where a part label sits in the bottom bar.

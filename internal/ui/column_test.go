@@ -32,7 +32,7 @@ func readerRows(a *App) []string {
 	lines := strings.Split(plain(a), "\n")
 	var out []string
 	for _, l := range lines[1 : len(lines)-1] {
-		l = strings.TrimSuffix(strings.TrimPrefix(l, "│"), "│")
+		l = strings.TrimSuffix(strings.TrimSuffix(strings.TrimPrefix(l, "│"), "│"), "┃") // ┃ is the scroll thumb
 		out = append(out, l)
 	}
 	return out[1 : len(out)-1]

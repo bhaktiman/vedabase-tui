@@ -76,7 +76,7 @@ func listBox(pal render.Palette, w, h int, title string, rows []string, cursor i
 	inner := bw - 4
 	dim := lipgloss.NewStyle().Foreground(pal.Dim)
 	vis, top := listView(h, len(rows), cursor)
-	lines := []string{lipgloss.NewStyle().Foreground(pal.Gold).Bold(true).Render(title)}
+	lines := []string{gradientBold(title, stops(pal)...)}
 	if extra != "" {
 		lines = append(lines, extra)
 	}
