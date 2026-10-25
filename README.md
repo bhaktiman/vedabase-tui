@@ -26,7 +26,7 @@ the public [vedabase.cc API](https://vedabase.cc/en/api/).
 
 ## Install
 
-Linux and macOS:
+Linux, macOS and Windows (WSL):
 
 ```sh
 curl -fsSL https://github.com/bhaktiman/vedabase-tui/releases/latest/download/install.sh | sh
