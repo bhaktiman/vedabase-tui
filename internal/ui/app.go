@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -71,7 +72,15 @@ type App struct {
 	restoreRef string // first render of this ref scrolls to restore
 	restore    int
 
-	search Search
+	search      Search
+	picker      Picker
+	colview     CollectionsView
+	nowFn       func() time.Time
+	exporting   bool
+	exportName  string
+	exportDone  int
+	exportTotal int
+	exportCh    chan tea.Msg
 
 	focusTree  bool
 	seq        keySeq
@@ -87,7 +96,7 @@ func New(o Options) *App {
 		be: o.Backend, cols: o.Collections, settings: o.Settings, state: o.State, save: o.SaveState,
 		pal: render.Default, rend: render.NewRenderer(render.Default),
 		w: 80, h: 24, parts: o.State.Parts, startup: o.Toasts,
-		prefetched: map[string]bool{},
+		prefetched: map[string]bool{}, nowFn: o.Now,
 		tick: func(d time.Duration, msg tea.Msg) tea.Cmd {
 			return tea.Tick(d, func(time.Time) tea.Msg { return msg })
 		},
@@ -97,6 +106,9 @@ func New(o Options) *App {
 	}
 	a.search = NewSearch(a.pal)
 	a.search.be = o.Backend
+	a.picker = NewPicker(a.pal)
+	a.picker.now = a.now
+	a.colview = NewCollectionsView(a.pal)
 	a.layout()
 	return a
 }
@@ -171,6 +183,12 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case OpenMsg:
 		a.focusTree = false
 		return a, a.Open(m.Node.Ref)
+	case exportCollectionMsg:
+		return a, a.exportCollection(m.name)
+	case exportProgressMsg:
+		return a, a.onExportProgress(m)
+	case exportDoneMsg:
+		return a, a.onExportDone(m)
 	case ToastMsg:
 		return a, a.Toast(m.Text, m.Error)
 	case toastExpiredMsg:
@@ -384,6 +402,14 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 	if a.lib != nil && a.search.visible && kp.String() != "ctrl+c" {
 		return a.search.Update(kp)
 	}
+	if a.lib != nil && kp.String() != "ctrl+c" {
+		switch {
+		case a.picker.visible:
+			return a.picker.Update(kp)
+		case a.colview.visible:
+			return a.colview.Update(kp)
+		}
+	}
 	k := a.seq.Resolve(kp)
 	switch k {
 	case "ctrl+c", "q":
@@ -407,6 +433,19 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 		return a.togglePart(k)
 	case "/":
 		return a.openSearch(true)
+	case "s":
+		return a.openPicker()
+	case "'":
+		if a.cols == nil {
+			return a.Toast("Collections are unavailable", true)
+		}
+		a.colview.Show(a.cols)
+		return nil
+	case "e":
+		if r := a.target(); r != "" {
+			return a.exportItem(r)
+		}
+		return nil
 	case "n":
 		return a.search.Next(1)
 	case "N":
@@ -434,4 +473,38 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 		a.reader.Key(k)
 	}
 	return nil
+}
+
+// target is the item s and e act on: the selected tree leaf when the tree
+// has focus, else the open item.
+func (a *App) target() string {
+	if a.focusTree && a.treeVisible() {
+		if n := a.tree.Selected(); n != nil && n.Leaf {
+			return n.Ref
+		}
+		return ""
+	}
+	return a.ref
+}
+
+func (a *App) openPicker() tea.Cmd {
+	if a.cols == nil {
+		return a.Toast("Collections are unavailable", true)
+	}
+	r := a.target()
+	if r == "" {
+		return nil
+	}
+	var it api.Item
+	ok := false
+	switch {
+	case r == a.ref && a.hasItem:
+		it, ok = a.item, true
+	case a.be.Cached(r):
+		if got, _, err := a.be.Item(context.Background(), r); err == nil {
+			it, ok = got, true
+		}
+	}
+	book := strings.SplitN(r, "/", 2)[0]
+	return a.picker.Show(a.cols, collections.Item{Ref: r, Book: book, Label: itemLabel(r, it, ok)})
 }
