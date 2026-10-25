@@ -63,7 +63,11 @@ func (s *Service) Item(ctx context.Context, ref string) (api.Item, bool, error) 
 		return api.Item{}, false, err
 	}
 	// A failed cache write must not hide an item we already have.
-	_ = s.Items.Put(it)
+	// Store under the ref we asked for: the API may answer with a canonical
+	// form, and Get/Cached look the item up by the requested one.
+	stored := it
+	stored.Ref = ref
+	_ = s.Items.Put(stored)
 	return api.Clean(it), false, nil
 }
 
