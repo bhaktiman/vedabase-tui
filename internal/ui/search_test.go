@@ -204,3 +204,131 @@ func TestSearchDropsBadRefs(t *testing.T) {
 		t.Fatalf("results = %+v", s.results)
 	}
 }
+
+// reopened runs a search, opens result 1 and presses / again.
+func reopened(t *testing.T) (*App, *fakeBackend) {
+	t.Helper()
+	a, be := searchApp(t)
+	drive(a, key("enter"), key("enter"), key("/"))
+	if !a.search.visible || !a.search.focusInput || a.search.cursor != 0 {
+		t.Fatalf("reopen: visible %v focus %v cursor %d", a.search.visible, a.search.focusInput, a.search.cursor)
+	}
+	return a, be
+}
+
+func TestSearchReopenCtrlNIntoResults(t *testing.T) {
+	a, _ := reopened(t)
+	drive(a, key("ctrl+n"))
+	if a.search.cursor != 1 || a.search.focusInput {
+		t.Fatalf("ctrl+n: cursor %d focusInput %v", a.search.cursor, a.search.focusInput)
+	}
+	drive(a, key("j"))
+	if a.search.cursor != 2 || a.search.input.Value() != "soul" {
+		t.Fatalf("j: cursor %d query %q", a.search.cursor, a.search.input.Value())
+	}
+	drive(a, key("enter"))
+	if a.ref != a.search.results[2].Ref || a.search.visible {
+		t.Fatalf("ref %q visible %v", a.ref, a.search.visible)
+	}
+}
+
+func TestSearchReopenArrowThenJ(t *testing.T) {
+	a, _ := reopened(t)
+	drive(a, key("down"))
+	drive(a, key("j"))
+	if a.search.cursor != 2 || a.search.input.Value() != "soul" || a.search.focusInput {
+		t.Fatalf("cursor %d query %q focus %v", a.search.cursor, a.search.input.Value(), a.search.focusInput)
+	}
+	drive(a, key("/"), key("up"), key("up"), key("k"))
+	if a.search.cursor != 0 || a.search.focusInput || a.search.input.Value() != "soul" {
+		t.Fatalf("up: cursor %d focus %v query %q", a.search.cursor, a.search.focusInput, a.search.input.Value())
+	}
+}
+
+func TestSearchCtrlPFromBoxStaysOnFirst(t *testing.T) {
+	a, _ := reopened(t)
+	drive(a, key("ctrl+p"))
+	if a.search.cursor != 0 || a.search.focusInput {
+		t.Fatalf("cursor %d focus %v", a.search.cursor, a.search.focusInput)
+	}
+	drive(a, key("ctrl+n"), key("ctrl+p"))
+	if a.search.cursor != 0 {
+		t.Fatalf("results ctrl+n/p: cursor %d", a.search.cursor)
+	}
+}
+
+func TestSearchEnterSameQueryFocusesResults(t *testing.T) {
+	a, be := reopened(t)
+	before := len(be.searches())
+	drive(a, key("enter"))
+	if len(be.searches()) != before {
+		t.Fatalf("enter re-ran the search: %+v", be.searches())
+	}
+	if a.search.focusInput || !a.search.visible {
+		t.Fatalf("focus %v visible %v", a.search.focusInput, a.search.visible)
+	}
+	drive(a, key("j"))
+	if a.search.cursor != 1 || a.search.input.Value() != "soul" {
+		t.Fatalf("cursor %d query %q", a.search.cursor, a.search.input.Value())
+	}
+	// A changed query still searches.
+	before = len(be.searches())
+	drive(a, key("/"), key("s"), key("enter"))
+	if len(be.searches()) != before+1 {
+		t.Fatalf("changed query: %+v", be.searches())
+	}
+}
+
+func TestSearchClickSelectsThenOpens(t *testing.T) {
+	a, _ := reopened(t)
+	var opened []string
+	a.opener = func(u string) error { opened = append(opened, u); return nil }
+	r := a.overlayRect(a.search.View())
+	row := func(i int) tea.Msg { return click(r.x+4, r.y+searchResultsY+i*rowLines) }
+	drive(a, row(1))
+	if a.search.cursor != 1 || a.search.focusInput || !a.search.visible || a.ref != "bg/2/13" {
+		t.Fatalf("cursor %d focus %v visible %v ref %q", a.search.cursor, a.search.focusInput, a.search.visible, a.ref)
+	}
+	drive(a, key("j"))
+	if a.search.cursor != 2 || a.search.input.Value() != "soul" {
+		t.Fatalf("j: cursor %d query %q", a.search.cursor, a.search.input.Value())
+	}
+	drive(a, row(2))
+	if a.search.visible || a.ref != a.search.results[2].Ref {
+		t.Fatalf("second click: visible %v ref %q", a.search.visible, a.ref)
+	}
+	if len(opened) != 0 {
+		t.Fatalf("browser opened: %v", opened)
+	}
+}
+
+func TestSearchShiftTabCyclesBack(t *testing.T) {
+	a, _ := searchApp(t)
+	drive(a, key("shift+tab"))
+	if a.search.scope != 3 {
+		t.Fatalf("scope %d, want 3 (lectures)", a.search.scope)
+	}
+	drive(a, key("shift+tab"), key("shift+tab"))
+	if a.search.scope != 1 {
+		t.Fatalf("scope %d, want 1", a.search.scope)
+	}
+	drive(a, key("tab"))
+	if a.search.scope != 2 {
+		t.Fatalf("tab: scope %d", a.search.scope)
+	}
+}
+
+func TestSearchHints(t *testing.T) {
+	a, _ := searchApp(t)
+	if v := plain(a); !strings.Contains(v, "enter search · tab scope · esc close") {
+		t.Fatalf("no-results hint:\n%s", v)
+	}
+	drive(a, key("enter"), key("/"))
+	if v := plain(a); !strings.Contains(v, "enter search · ctrl-n/↓ results · tab scope · esc close") {
+		t.Fatalf("box hint:\n%s", v)
+	}
+	drive(a, key("down"))
+	if v := plain(a); !strings.Contains(v, "enter open · j/k move · / edit query · tab scope · esc close") {
+		t.Fatalf("results hint:\n%s", v)
+	}
+}

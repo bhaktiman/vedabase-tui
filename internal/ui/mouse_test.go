@@ -126,6 +126,10 @@ func TestClickSearchResult(t *testing.T) {
 	}
 	r := a.overlayRect(a.search.View())
 	drive(a, click(r.x+4, r.y+searchResultsY+rowLines))
+	if a.ref != "bg/2/13" || !a.search.visible || a.search.cursor != 1 || a.search.focusInput {
+		t.Fatalf("first click should only select: ref=%q visible=%v cursor=%d", a.ref, a.search.visible, a.search.cursor)
+	}
+	drive(a, click(r.x+4, r.y+searchResultsY+rowLines))
 	if a.ref != "bg/2/14" || a.search.visible {
 		t.Fatalf("ref=%q visible=%v", a.ref, a.search.visible)
 	}
@@ -324,7 +328,7 @@ func TestClickSearchResultAfterReopening(t *testing.T) {
 	first := a.ref
 	drive(a, key("/"))
 	r := a.overlayRect(a.search.View())
-	drive(a, click(r.x+4, r.y+searchResultsY+rowLines))
+	drive(a, click(r.x+4, r.y+searchResultsY+rowLines), click(r.x+4, r.y+searchResultsY+rowLines)) // select, then open
 	if a.ref != a.search.results[1].Ref || a.ref == first || a.search.visible {
 		t.Fatalf("ref=%q want %q visible=%v", a.ref, a.search.results[1].Ref, a.search.visible)
 	}
@@ -344,7 +348,7 @@ func TestClickSearchResultAfterReopeningAndWheel(t *testing.T) {
 		t.Fatal("wheel did not scroll")
 	}
 	i := a.search.top + 1
-	drive(a, click(r.x+4, r.y+searchResultsY+rowLines))
+	drive(a, click(r.x+4, r.y+searchResultsY+rowLines), click(r.x+4, r.y+searchResultsY+rowLines)) // select, then open
 	if a.ref != a.search.results[i].Ref || a.search.visible {
 		t.Fatalf("ref=%q want %q visible=%v", a.ref, a.search.results[i].Ref, a.search.visible)
 	}

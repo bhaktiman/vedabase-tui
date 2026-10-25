@@ -27,7 +27,7 @@ var helpGroups = []struct {
 		{"f", "Filter the tree"}, {"z", "Collapse all"},
 	}},
 	{"Overlays", []helpRow{
-		{"/", "Full-text search"}, {"n / N", "Next / previous result"},
+		{"/", "Search (ctrl-n/p to results)"}, {"n / N", "Next / previous result"},
 		{":", "Go to reference"}, {"s", "Add to collection"},
 		{"'", "Open collections"}, {"e", "Export item"},
 		{"T", "Choose theme"}, {"?", "This help"}, {"q / Esc", "Close overlay; quit"},

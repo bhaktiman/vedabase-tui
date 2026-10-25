@@ -66,6 +66,7 @@ type Search struct {
 	cursor    int
 	top       int
 	errLine   string
+	pendingG  bool // a first g is waiting for the second
 
 	retryAfter time.Duration // set by a 429; the App takes it to run the countdown
 	retryPage  int
@@ -272,8 +273,16 @@ func (s *Search) Update(msg tea.Msg) tea.Cmd {
 	return nil
 }
 
+// toResults leaves the query box so the keys move through the results.
+func (s *Search) toResults() {
+	s.focusInput = false
+	s.input.Blur()
+}
+
 func (s *Search) onKey(kp tea.KeyPressMsg) tea.Cmd {
 	k := kp.String()
+	wasG := s.pendingG
+	s.pendingG = false
 	switch k {
 	case "esc":
 		s.visible = false
@@ -282,14 +291,26 @@ func (s *Search) onKey(kp tea.KeyPressMsg) tea.Cmd {
 	case "tab":
 		s.cycleScope()
 		return nil
+	case "shift+tab":
+		s.scope = (s.scope + 3) % 4
+		if s.scope == 1 && s.bookCode == "" {
+			s.scope = 0
+		}
+		return nil
 	case "enter":
 		if s.focusInput {
+			if s.live && len(s.results) > 0 && strings.TrimSpace(s.input.Value()) == s.q && s.scopeBook() == s.book {
+				s.toResults()
+				return nil
+			}
 			return s.run()
 		}
 		return s.open()
-	case "down", "pgdown":
+	case "down", "pgdown", "ctrl+n":
+		s.toResults()
 		return s.move(s.cursor + s.step(k))
-	case "up", "pgup":
+	case "up", "pgup", "ctrl+p":
+		s.toResults()
 		return s.move(s.cursor - s.step(k))
 	}
 	if s.focusInput {
@@ -304,6 +325,12 @@ func (s *Search) onKey(kp tea.KeyPressMsg) tea.Cmd {
 		return s.move(s.cursor - 1)
 	case "G":
 		return s.move(len(s.results) - 1)
+	case "g":
+		if wasG {
+			return s.move(0)
+		}
+		s.pendingG = true
+		return nil
 	case "ctrl+d":
 		return s.move(s.cursor + s.step("pgdown"))
 	case "ctrl+u":
@@ -395,8 +422,11 @@ func (s *Search) Click(x, y int) tea.Cmd {
 	case y >= searchResultsY:
 		i := s.top + (y-searchResultsY)/rowLines
 		if i < len(s.results) {
-			s.cursor = i
-			return s.open()
+			if i == s.cursor {
+				return s.open()
+			}
+			s.toResults()
+			return s.move(i)
 		}
 	}
 	return nil
@@ -491,11 +521,14 @@ func (s Search) View() string {
 		body = append(body, "")
 	}
 	lines = append(lines, body[:area]...)
-	hint := "enter search · tab scope"
-	if !s.focusInput {
-		hint = "enter open · j/k move · tab scope · / edit query"
+	hint := "enter search · tab scope · esc close"
+	switch {
+	case !s.focusInput:
+		hint = "enter open · j/k move · / edit query · tab scope · esc close"
+	case len(s.results) > 0:
+		hint = "enter search · ctrl-n/↓ results · tab scope · esc close"
 	}
-	lines = append(lines, dim.Render(truncate(hint+" · esc close", inner)))
+	lines = append(lines, dim.Render(truncate(hint, inner)))
 
 	return lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(s.pal.Dim).
 		Padding(0, 1).Width(bw).Render(strings.Join(lines, "\n"))

@@ -41,7 +41,7 @@ Press `?` in the app for the same list.
 | `Enter` | Open item / expand (tree) |
 | `f` | Filter the tree |
 | `z` | Collapse all in the tree |
-| `/` | Full-text search |
+| `/` | Full-text search (`Ctrl-n` / `Ctrl-p` or arrows from the box into the results) |
 | `n` / `N` | Next / previous search result |
 | `:` | Go to a reference |
 | `s` | Add the current item to a collection |
