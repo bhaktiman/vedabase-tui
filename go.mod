@@ -5,6 +5,7 @@ go 1.26.6
 require (
 	charm.land/bubbles/v2 v2.2.1
 	charm.land/glamour/v2 v2.0.1
+	golang.org/x/text v0.43.0
 )
 
 require (
@@ -34,5 +35,4 @@ require (
 	golang.org/x/net v0.61.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
-	golang.org/x/text v0.43.0 // indirect
 )
