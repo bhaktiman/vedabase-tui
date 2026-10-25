@@ -40,25 +40,6 @@ unzip it and run `vedabase.exe` in Windows Terminal.
 To update, run the install command again. To uninstall, delete the binary
 (`rm ~/.local/bin/vedabase`).
 
-## Build from source
-
-Needs Go 1.26.
-
-```
-git clone https://github.com/bhaktiman/vedabase-tui.git && cd vedabase-tui
-make build        # CGO_ENABLED=0, writes ./vedabase
-./vedabase
-```
-
-Install into `$GOBIN` instead:
-
-```
-go install ./cmd/vedabase
-```
-
-`make release VERSION=v0.1.0` cross-builds every platform into `dist/` with
-`checksums.txt`, ready to upload to a GitHub release.
-
 ## Keys
 
 Press `?` in the app for the same list.
