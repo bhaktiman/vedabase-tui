@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"vedabase-tui/internal/collections"
+	"vedabase-tui/internal/library"
 	"vedabase-tui/internal/store"
 )
 
@@ -161,5 +162,37 @@ func TestCollapseAll(t *testing.T) {
 		if got := a.tree.Selected().Label(); got != "Bhagavad-gītā As It Is" {
 			t.Fatalf("cursor on %q", got)
 		}
+	}
+}
+
+func TestAddKeepsTreeCursorInBook(t *testing.T) {
+	a, cs, _ := colApp(t, newFake(t), store.State{LastRef: "bg/2/13"})
+	addTo(t, a, cs, "On the soul", "bg/2/1")
+	a.focusTree = true
+	a.tree.Reveal(a.lib.Find("bg/2/13"))
+	row := a.tree.cursor
+	drive(a, key("s"), key("j"), key("enter"))
+	typeKeys(a, "Other")
+	drive(a, key("enter"))
+	n := a.tree.Selected()
+	if n == nil || n.Ref != "bg/2/13" || n.Parent.Ref != "bg/2" {
+		t.Fatalf("cursor on %+v", n)
+	}
+	if d := a.tree.cursor - row; d < 0 || d > 3 {
+		t.Fatalf("cursor moved from %d to %d", row, a.tree.cursor)
+	}
+}
+
+func TestRebuildKeepsCursorOnSecondCollectionCopy(t *testing.T) {
+	a, cs, _ := colApp(t, newFake(t), store.State{LastRef: "bg/2/13"})
+	addTo(t, a, cs, "A", "bg/2/13")
+	addTo(t, a, cs, "B", "bg/2/13")
+	a.focusTree = true
+	a.tree.Reveal(a.lib.CollectionItem("B", "bg/2/13"))
+	a.tree.SetLibrary(a.lib)
+	addTo(t, a, cs, "C", "bg/2/1")
+	n := a.tree.Selected()
+	if name, _ := library.InCollection(n); n.Ref != "bg/2/13" || name != "B" {
+		t.Fatalf("cursor on %q in %q", n.Ref, name)
 	}
 }

@@ -73,19 +73,32 @@ func (t Tree) Selected() *library.Node {
 // SetLibrary swaps in a (possibly grown) library, keeping expansion and the
 // cursor by Ref.
 func (t *Tree) SetLibrary(lib *library.Library) {
-	ref := ""
-	if n := t.Selected(); n != nil {
-		ref = n.Ref
+	var sel *library.Node
+	if n := t.Selected(); n != nil && !isHint(n) {
+		sel = n
 	}
 	t.lib = lib
 	t.openNew()
 	t.rebuild()
-	if ref != "" {
+	if sel != nil {
+		// A collection item shares its ref with the book node, so match on
+		// the collection it sits in as well.
+		col, _ := library.InCollection(sel)
+		first := -1
 		for i, r := range t.rows {
-			if r.node.Ref == ref {
-				t.cursor = i
+			if r.node.Ref != sel.Ref {
+				continue
+			}
+			if first < 0 {
+				first = i
+			}
+			if c, _ := library.InCollection(r.node); c == col {
+				first = i
 				break
 			}
+		}
+		if first >= 0 {
+			t.cursor = first
 		}
 	}
 	t.scroll()
