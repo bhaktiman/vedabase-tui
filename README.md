@@ -35,6 +35,7 @@ Press `?` in the app for the same list.
 | `1` – `5` | Toggle Devanagari, verse, synonyms, translation, purport |
 | `Enter` | Open item / expand (tree) |
 | `f` | Filter the tree |
+| `z` | Collapse all in the tree |
 | `Tab` | Switch focus between tree and reader |
 | `t` | Hide / show the tree |
 | `/` | Full-text search |

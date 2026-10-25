@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"reflect"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -64,6 +65,7 @@ type App struct {
 	w, h     int
 
 	lib       *library.Library
+	colViews  []library.CollectionView // what the sidebar's collections root last got
 	tree      Tree
 	libErr    error
 	progDone  atomic.Int64
@@ -187,9 +189,13 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		return a, a.resize(m.Width, m.Height)
 	case tea.KeyPressMsg:
-		return a, a.onKey(m)
+		cmd := a.onKey(m)
+		a.syncCollections()
+		return a, cmd
 	case tea.MouseClickMsg:
-		return a, a.onMouse(tea.Mouse(m), true)
+		cmd := a.onMouse(tea.Mouse(m), true)
+		a.syncCollections()
+		return a, cmd
 	case tea.MouseWheelMsg:
 		return a, a.onMouse(tea.Mouse(m), false)
 	case libraryMsg:
@@ -229,7 +235,7 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return a, a.Open(m.ref)
 	case OpenMsg:
 		a.focusTree = false
-		return a, a.Open(m.Node.Ref)
+		return a, a.open(m.Node.Ref, m.Node)
 	case exportCollectionMsg:
 		return a, a.exportCollection(m.name)
 	case exportProgressMsg:
@@ -284,16 +290,76 @@ func (a *App) onLibrary(m libraryMsg) tea.Cmd {
 	}
 	first := a.lib == nil
 	a.lib = m.lib
+	a.colViews = nil
+	a.setCollections()
 	if first {
 		a.tree = NewTree(m.lib, a.starred, a.pal)
 		a.layout()
 		cmds = append(cmds, a.openStart())
 	} else {
 		a.tree.SetLibrary(m.lib)
-		a.node = m.lib.Find(a.ref) // nodes are new objects in the new library
-		a.applyScraped()           // the new tree has none of the scraped titles
+		a.refindNode()   // nodes are new objects in the new library
+		a.applyScraped() // the new tree has none of the scraped titles
 	}
 	return tea.Batch(cmds...)
+}
+
+// collectionViews is the collections store as the library wants it.
+func (a *App) collectionViews() []library.CollectionView {
+	if a.cols == nil {
+		return nil
+	}
+	var out []library.CollectionView
+	for _, c := range a.cols.List() {
+		v := library.CollectionView{Name: c.Name}
+		for _, it := range c.Items {
+			v.Items = append(v.Items, library.CollectionItem{Ref: it.Ref, Book: it.Book, Label: it.Label})
+		}
+		out = append(out, v)
+	}
+	return out
+}
+
+// setCollections puts the store's collections into the library's root, unless
+// that is what it already has. It reports whether it changed anything.
+func (a *App) setCollections() bool {
+	if a.lib == nil {
+		return false
+	}
+	v := a.collectionViews()
+	if v == nil {
+		v = []library.CollectionView{}
+	}
+	if a.colViews != nil && reflect.DeepEqual(v, a.colViews) {
+		return false
+	}
+	a.colViews = v
+	a.lib.SetCollections(v)
+	return true
+}
+
+// syncCollections refreshes the sidebar after the collections may have changed.
+func (a *App) syncCollections() {
+	if a.setCollections() {
+		a.tree.SetLibrary(a.lib)
+		a.refindNode()
+		a.layout()
+	}
+}
+
+// refindNode points a.node at the current library's node for a.ref: the item
+// under its collection when the reader was opened from one, else the book's.
+func (a *App) refindNode() {
+	if a.lib == nil || a.ref == "" {
+		return
+	}
+	if name, ok := library.InCollection(a.node); ok {
+		if n := a.lib.CollectionItem(name, a.ref); n != nil {
+			a.node = n
+			return
+		}
+	}
+	a.node = a.lib.Find(a.ref)
 }
 
 func (a *App) starred(ref string) bool { return a.cols != nil && a.cols.Contains(ref) }
@@ -315,7 +381,11 @@ func (a *App) openStart() tea.Cmd {
 }
 
 // Open makes ref the current item and loads it.
-func (a *App) Open(ref string) tea.Cmd {
+func (a *App) Open(ref string) tea.Cmd { return a.open(ref, nil) }
+
+// open is Open for an item reached through from, a collection item node: the
+// reader then belongs to that collection (breadcrumb, h/l order).
+func (a *App) open(ref string, from *library.Node) tea.Cmd {
 	a.ref, a.hasItem = ref, false
 	a.reader.Clear()
 	if a.restoreRef != ref {
@@ -323,6 +393,9 @@ func (a *App) Open(ref string) tea.Cmd {
 	}
 	if a.lib != nil {
 		a.node = a.lib.Find(ref)
+		if _, ok := library.InCollection(from); ok && from.Ref == ref {
+			a.node = from
+		}
 		a.tree.Reveal(a.node)
 		a.layout() // Reveal may have cleared the filter line
 	}
@@ -444,9 +517,12 @@ func (a *App) step(d int) tea.Cmd {
 		for root.Parent != nil {
 			root = root.Parent
 		}
+		if name, ok := library.InCollection(a.node); ok {
+			return a.Toast(edge+name, false)
+		}
 		return a.Toast(edge+root.Label(), false)
 	}
-	return a.Open(n.Ref)
+	return a.open(n.Ref, n)
 }
 
 func (a *App) togglePart(k string) tea.Cmd {
@@ -477,7 +553,10 @@ func (a *App) quit() tea.Cmd {
 func (a *App) openSearch(withInput bool) tea.Cmd {
 	code, title := "", ""
 	if a.node != nil {
-		root := a.node
+		root := a.lib.Find(a.ref) // a collection item sits under the collections root
+		if root == nil {
+			root = a.node
+		}
 		for root.Parent != nil {
 			root = root.Parent
 		}
@@ -556,7 +635,17 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 		}
 		a.colview.Show(a.cols)
 		return nil
+	case "z":
+		a.filtering = false
+		a.filterIn.Blur()
+		a.tree.CollapseAll()
+		a.layout()
+		return nil
 	case "e":
+		if n := a.tree.Selected(); a.focusTree && a.treeVisible() && n != nil && n.Parent != nil &&
+			n.Parent.Ref == library.CollectionsRef {
+			return a.exportCollection(n.Seg)
+		}
 		if r := a.target(); r != "" {
 			return a.exportItem(r)
 		}

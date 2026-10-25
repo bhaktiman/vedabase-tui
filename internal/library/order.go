@@ -103,8 +103,8 @@ func root(n *Node) *Node {
 }
 
 // Next returns the leaf after n in reading order, or nil at the end. Within a
-// book it crosses chapters; in letters and transcripts it stays inside the
-// node's group.
+// book it crosses chapters; in letters, transcripts and collections it stays
+// inside the node's group.
 func (l *Library) Next(n *Node) *Node { return l.step(n, 1) }
 
 // Prev is the mirror of Next.
@@ -114,7 +114,7 @@ func (l *Library) step(n *Node, d int) *Node {
 	if n == nil || !n.Leaf {
 		return nil
 	}
-	if n.Book == lettersCode || n.Book == transcriptsCode {
+	if _, inCol := InCollection(n); inCol || n.Book == lettersCode || n.Book == transcriptsCode {
 		sib := n.Parent.Children
 		for i := range sib {
 			if sib[i] == n {

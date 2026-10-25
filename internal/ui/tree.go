@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"strings"
 	"unicode"
 
@@ -18,6 +19,11 @@ type OpenMsg struct{ Node *library.Node }
 // ExpandLazyMsg asks the app to load the children of a Lazy node; it should
 // then hand the library back with SetLibrary.
 type ExpandLazyMsg struct{ Node *library.Node }
+
+// hintRef marks the row shown under an empty collections root.
+const hintRef = "collections#hint"
+
+const hintText = "Press s on a verse to start one"
 
 type row struct {
 	node  *library.Node
@@ -38,14 +44,16 @@ type Tree struct {
 	pulse    func(string) bool // the ★ is pulsing (star burst)
 	pal      render.Palette
 	seq      keySeq
-	focused  bool // the tree pane has focus: the cursor row is bright, else dim
+	focused  bool            // the tree pane has focus: the cursor row is bright, else dim
+	opened   map[string]bool // Refs that were opened by default once; a later collapse sticks
 }
 
 func NewTree(lib *library.Library, starred func(ref string) bool, pal render.Palette) Tree {
 	if starred == nil {
 		starred = func(string) bool { return false }
 	}
-	t := Tree{lib: lib, expanded: map[string]bool{}, starred: starred, pal: pal}
+	t := Tree{lib: lib, expanded: map[string]bool{}, opened: map[string]bool{}, starred: starred, pal: pal}
+	t.openNew()
 	t.rebuild()
 	return t
 }
@@ -70,6 +78,7 @@ func (t *Tree) SetLibrary(lib *library.Library) {
 		ref = n.Ref
 	}
 	t.lib = lib
+	t.openNew()
 	t.rebuild()
 	if ref != "" {
 		for i, r := range t.rows {
@@ -81,6 +90,44 @@ func (t *Tree) SetLibrary(lib *library.Library) {
 	}
 	t.scroll()
 }
+
+// openNew expands the collections root and any collection it has not shown
+// before, so they are visible at a glance; a collapse made later is kept.
+func (t *Tree) openNew() {
+	if t.lib == nil {
+		return
+	}
+	for _, r := range t.lib.Roots {
+		if r.Ref != library.CollectionsRef {
+			continue
+		}
+		for _, n := range append([]*library.Node{r}, r.Children...) {
+			if !t.opened[n.Ref] {
+				t.opened[n.Ref] = true
+				t.expanded[n.Ref] = true
+			}
+		}
+	}
+}
+
+// CollapseAll collapses every node and clears the filter; the cursor goes to
+// the top-level root that held the selected row.
+func (t *Tree) CollapseAll() {
+	t.SetFilter("")
+	n := t.Selected()
+	for n != nil && n.Parent != nil {
+		n = n.Parent
+	}
+	t.expanded = map[string]bool{}
+	t.rebuild()
+	t.cursor = 0
+	if i := t.indexOf(n); i >= 0 {
+		t.cursor = i
+	}
+	t.scroll()
+}
+
+func isHint(n *library.Node) bool { return n != nil && n.Ref == hintRef }
 
 // Reveal expands n's ancestors and puts the cursor on n.
 func (t *Tree) Reveal(n *library.Node) {
@@ -158,6 +205,9 @@ func (t *Tree) rebuild() {
 			for _, c := range n.Children {
 				walk(c, depth+1)
 			}
+			if t.shown == nil && n.Ref == library.CollectionsRef && len(n.Children) == 0 {
+				t.rows = append(t.rows, row{&library.Node{Ref: hintRef, Title: hintText, Parent: n}, 0})
+			}
 		}
 	}
 	if t.lib != nil {
@@ -219,6 +269,9 @@ func (t Tree) Update(msg tea.Msg) (Tree, tea.Cmd) {
 	case "halfup":
 		t.move(t.cursor - half)
 	case "l", "right", "enter":
+		if isHint(n) {
+			return t, nil
+		}
 		if n.Leaf {
 			if k == "right" {
 				return t, nil
@@ -242,6 +295,8 @@ func (t Tree) Click(idx int, onMarker bool) (Tree, tea.Cmd) {
 	was := t.cursor == idx
 	t.move(idx)
 	switch {
+	case isHint(n):
+		return t, nil
 	case n.Leaf:
 		return t, func() tea.Msg { return OpenMsg{n} }
 	case !was && !onMarker:
@@ -310,30 +365,36 @@ func (t Tree) View() string {
 		}
 		r := t.rows[idx]
 		marker := "  "
-		if !r.node.Leaf {
+		if isHint(r.node) {
+			marker = "" // the hint is long; it gets the whole width
+		} else if !r.node.Leaf {
 			marker = "▸ "
 			if t.shown != nil || t.expanded[r.node.Ref] {
 				marker = "▾ "
 			}
 		}
 		star := ""
-		if r.node.Leaf && t.starred(r.node.Ref) {
+		if r.node.Leaf && !inCollections(r.node) && t.starred(r.node.Ref) {
 			star = "★ "
 		}
 		indent := strings.Repeat("  ", r.depth)
 		label := r.node.Label()
+		count := ""
+		if p := r.node.Parent; p != nil && p.Ref == library.CollectionsRef {
+			count = fmt.Sprintf("  %d", len(r.node.Children))
+		}
 
 		if idx == t.cursor && !t.focused {
 			// A quiet cursor: dim text and a › in the left margin.
-			s := truncate("›"+indent+marker+star+label, t.w)
+			s := truncate("›"+indent+marker+star+label+count, t.w)
 			if r.depth > 0 {
-				s = truncate(indent[:len(indent)-1]+"›"+marker+star+label, t.w)
+				s = truncate(indent[:len(indent)-1]+"›"+marker+star+label+count, t.w)
 			}
 			lines[i] = dim.Render(s)
 			continue
 		}
 		if idx == t.cursor {
-			s := truncate(indent+marker+star+label, t.w)
+			s := truncate(indent+marker+star+label+count, t.w)
 			lines[i] = cur.Render(s + strings.Repeat(" ", t.w-lipgloss.Width(s)))
 			continue
 		}
@@ -354,10 +415,22 @@ func (t Tree) View() string {
 		} else {
 			put(star, gold)
 		}
-		put(label, normal)
+		if isHint(r.node) {
+			put(label, dim)
+		} else {
+			put(label, normal)
+		}
+		put(count, dim)
 		lines[i] = b.String()
 	}
 	return strings.Join(lines, "\n")
+}
+
+// inCollections reports whether n is an item or collection under the
+// collections root.
+func inCollections(n *library.Node) bool {
+	_, ok := library.InCollection(n)
+	return ok
 }
 
 // truncate cuts s to at most w cells, ending in "…" when it had to cut.

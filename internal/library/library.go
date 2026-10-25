@@ -19,6 +19,11 @@ const (
 	transcriptsCode = "transcripts"
 	lettersYearRef  = "letters#year"
 	lettersToRef    = "letters#to"
+
+	// CollectionsRef is the ref of the virtual root above all books; its
+	// children are the user's collections ("collections#/<name>").
+	CollectionsRef  = "collections#"
+	collectionsCode = "collections"
 )
 
 // Node is one entry of the contents tree.
@@ -53,6 +58,8 @@ func Parse(sitemap io.Reader, books []api.Book) (*Library, error) {
 		index: map[string]*Node{},
 		roots: map[string]*Node{},
 	}
+	cols := &Node{Ref: CollectionsRef, Seg: collectionsCode, Title: "★ Collections", Book: collectionsCode}
+	l.index[cols.Ref] = cols
 	seen := map[string]bool{}
 	var order []string // codes in first-seen order, for unknown books
 
@@ -121,6 +128,7 @@ func Parse(sitemap io.Reader, books []api.Book) (*Library, error) {
 		root.Title = titles[c] // empty for unknown books: Label falls back to the code
 		l.Roots = append(l.Roots, root)
 	}
+	l.Roots = append([]*Node{cols}, l.Roots...)
 
 	for _, root := range l.Roots {
 		switch root.Ref {
@@ -246,7 +254,7 @@ func (l *Library) flatten() {
 	l.flat = map[string][]*Node{}
 	l.flatAt = map[*Node]int{}
 	for _, root := range l.Roots {
-		if root.Ref == lettersCode || root.Ref == transcriptsCode {
+		if root.Ref == lettersCode || root.Ref == transcriptsCode || root.Ref == CollectionsRef {
 			continue
 		}
 		var leaves []*Node
@@ -310,4 +318,63 @@ func (l *Library) AddYearGroup(year int, refs []string, titles map[string]string
 		}
 	}
 	return g
+}
+
+// CollectionItem is one entry of a collection as the sidebar shows it.
+type CollectionItem struct{ Ref, Book, Label string }
+
+// CollectionView is a collection as the sidebar shows it. The library takes
+// plain values so it need not know the collections store.
+type CollectionView struct {
+	Name  string
+	Items []CollectionItem
+}
+
+// SetCollections replaces the children of the collections root. Item nodes are
+// separate from the book tree's: Find still returns the book node for a ref.
+func (l *Library) SetCollections(cols []CollectionView) {
+	root := l.index[CollectionsRef]
+	if root == nil {
+		return
+	}
+	root.Children = nil
+	for _, c := range cols {
+		cn := &Node{Ref: CollectionsRef + "/" + c.Name, Seg: c.Name, Title: c.Name, Parent: root, Book: collectionsCode}
+		for _, it := range c.Items {
+			cn.Children = append(cn.Children, &Node{
+				Ref: it.Ref, Seg: it.Ref[strings.LastIndexByte(it.Ref, '/')+1:], Title: it.Label,
+				Leaf: true, Parent: cn, Book: it.Book,
+			})
+		}
+		root.Children = append(root.Children, cn)
+	}
+}
+
+// CollectionItem returns the node of ref inside the named collection, or nil.
+func (l *Library) CollectionItem(name, ref string) *Node {
+	root := l.index[CollectionsRef]
+	if root == nil {
+		return nil
+	}
+	for _, c := range root.Children {
+		if c.Seg == name {
+			for _, it := range c.Children {
+				if it.Ref == ref {
+					return it
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// InCollection reports whether n is an item or a collection under the
+// collections root, and the collection's name.
+func InCollection(n *Node) (name string, ok bool) {
+	for ; n != nil; n = n.Parent {
+		if n.Parent != nil && n.Parent.Ref == CollectionsRef {
+			return n.Seg, true
+		}
+	}
+	return "", false
 }

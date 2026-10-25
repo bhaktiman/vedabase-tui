@@ -47,8 +47,16 @@ func has(ss []string, s string) bool {
 
 func TestTreeExpandAndOpen(t *testing.T) {
 	tr, _ := newTestTree(t)
-	if got := tr.Selected().Label(); got != "Bhagavad-gītā As It Is" {
+	if got := tr.Selected().Label(); got != "★ Collections" {
 		t.Fatalf("start on %q", got)
+	}
+	tr, _ = press(tr, "j")
+	if got := tr.Selected().Label(); got != "Press s on a verse to start one" {
+		t.Fatalf("empty collections show %q", got)
+	}
+	tr, _ = press(tr, "j")
+	if got := tr.Selected().Label(); got != "Bhagavad-gītā As It Is" {
+		t.Fatalf("then %q", got)
 	}
 	tr, _ = press(tr, "l")
 	if !has(labels(tr), "Chapter 1") {
@@ -95,7 +103,7 @@ func TestTreeGGAndG(t *testing.T) {
 		t.Fatalf("G on %q", got)
 	}
 	tr, _ = press(tr, "g", "g")
-	if got := tr.Selected().Ref; got != "bg" {
+	if got := tr.Selected().Ref; got != "collections#" {
 		t.Fatalf("gg on %q", got)
 	}
 }
@@ -133,7 +141,7 @@ func TestTreeStarred(t *testing.T) {
 	if !strings.Contains(line, "★") {
 		t.Fatalf("no star in %q", line)
 	}
-	if strings.Contains(tr.View(), "★") && strings.Count(tr.View(), "★") != 1 {
+	if v := strings.ReplaceAll(tr.View(), "★ Collections", ""); strings.Count(v, "★") != 1 {
 		t.Fatal("more than one star")
 	}
 }

@@ -61,7 +61,7 @@ func eq(t *testing.T, got, want []string) {
 
 func TestRootsOrder(t *testing.T) {
 	l := load(t)
-	eq(t, refs(l.Roots), []string{"bg", "sb", "cc", "iso", "lcfl", "zzz", "letters", "transcripts"})
+	eq(t, refs(l.Roots), []string{"collections#", "bg", "sb", "cc", "iso", "lcfl", "zzz", "letters", "transcripts"})
 	if got := l.Find("zzz").Label(); got != "zzz" {
 		t.Errorf("unknown book label = %q", got)
 	}
@@ -75,7 +75,7 @@ func TestOnlyBooksInSitemapGetRoots(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	eq(t, refs(l.Roots), []string{"bg"})
+	eq(t, refs(l.Roots), []string{"collections#", "bg"})
 }
 
 func TestLeavesAndContainers(t *testing.T) {
@@ -252,5 +252,45 @@ func TestParseRealScale(t *testing.T) {
 func TestLabelSanitized(t *testing.T) {
 	if got := (&Node{Title: "x\x1by", Book: "bg"}).Label(); got != "xy" {
 		t.Errorf("Label = %q", got)
+	}
+}
+
+func TestSetCollections(t *testing.T) {
+	l := load(t)
+	root := l.Roots[0]
+	if root.Ref != "collections#" || root.Label() != "★ Collections" || root.Book != "collections" {
+		t.Fatalf("root = %+v", root)
+	}
+	l.SetCollections([]CollectionView{
+		{Name: "On the soul", Items: []CollectionItem{
+			{Ref: "bg/2/13", Book: "bg", Label: "Bg 2.13 — According to the three modes"},
+			{Ref: "bg/2/14", Book: "bg", Label: "Bg 2.14 — O son of Kunti"},
+		}},
+		{Name: "Empty"},
+	})
+	eq(t, refs(root.Children), []string{"collections#/On the soul", "collections#/Empty"})
+	col := root.Children[0]
+	eq(t, refs(col.Children), []string{"bg/2/13", "bg/2/14"})
+	if col.Children[0].Label() != "Bg 2.13 — According to the three modes" || !col.Children[0].Leaf || col.Children[0].Book != "bg" {
+		t.Fatalf("item = %+v", col.Children[0])
+	}
+	if n := l.Find("bg/2/13"); n == col.Children[0] || n.Parent.Ref != "bg/2" {
+		t.Fatalf("Find returned %+v", n)
+	}
+	if n := l.Next(col.Children[0]); n != col.Children[1] {
+		t.Fatalf("Next = %v", n)
+	}
+	if n := l.Next(col.Children[1]); n != nil {
+		t.Fatalf("Next at end = %v", n)
+	}
+	if n := l.Prev(col.Children[1]); n != col.Children[0] {
+		t.Fatalf("Prev = %v", n)
+	}
+	if got := l.CollectionItem("On the soul", "bg/2/14"); got != col.Children[1] {
+		t.Fatalf("CollectionItem = %v", got)
+	}
+	l.SetCollections(nil)
+	if len(root.Children) != 0 {
+		t.Fatalf("children = %v", refs(root.Children))
 	}
 }

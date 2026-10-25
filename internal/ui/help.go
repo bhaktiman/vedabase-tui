@@ -20,7 +20,7 @@ var helpGroups = []struct {
 	{"Tree", []helpRow{
 		{"j / k", "Move down / up"}, {"h / l", "Collapse / expand"},
 		{"Enter", "Open item / expand"}, {"gg / G", "First / last"},
-		{"f", "Filter the tree"}, {"tab", "Switch focus"}, {"t", "Hide / show tree"},
+		{"f", "Filter the tree"}, {"z", "Collapse all"}, {"tab", "Switch focus"}, {"t", "Hide / show tree"},
 	}},
 	{"Overlays", []helpRow{
 		{"/", "Full-text search"}, {"n / N", "Next / previous result"},
