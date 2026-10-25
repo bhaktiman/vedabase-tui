@@ -3,6 +3,7 @@
 [![Latest release](https://img.shields.io/github/v/release/bhaktiman/vedabase-tui?sort=semver)](https://github.com/bhaktiman/vedabase-tui/releases/latest)
 [![Go](https://img.shields.io/badge/Go-1.26-00ADD8?logo=go&logoColor=white)](go.mod)
 [![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20macOS%20%7C%20Windows-555)](https://github.com/bhaktiman/vedabase-tui/releases/latest)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 A terminal reader for Śrīla Prabhupāda's books, letters and lectures, built on
 the public [vedabase.cc API](https://vedabase.cc/en/api/). Written in Go with
@@ -145,3 +146,8 @@ item is fetched at most once. It sends `User-Agent: vedabase-tui/<version>`.
 The API has no listing for letters and lectures, so those are listed by
 scraping the site's pages. That may break if the site changes; the app then
 falls back to search.
+
+## License
+
+The code is under the [MIT License](LICENSE). The texts it displays come from
+vedabase.cc and remain under their own copyright.
