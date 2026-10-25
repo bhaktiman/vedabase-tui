@@ -340,3 +340,42 @@ func TestSearchArrowsInEmptyBoxStayInBox(t *testing.T) {
 		t.Fatalf("focus %v query %q", a.search.focusInput, a.search.input.Value())
 	}
 }
+
+// The API sends the translation twice: plain and as a highlighted snippet. A
+// match only in the translation must not print the same sentence twice.
+func TestSearchRowNoDuplicateTranslation(t *testing.T) {
+	s := NewSearch(render.Default)
+	tr := "As usual for small children, He learned to play."
+	s.results = []api.SearchResult{
+		{Ref: "cc/adi/14/40", Translation: tr, SnippetTranslation: "As usual for small <mark>children</mark>, He learned to play."},
+		{Ref: "sb/6/5/24", Translation: "Dakṣa lamented his lost children.",
+			SnippetTranslation: "Dakṣa lamented his lost <mark>children</mark>.",
+			SnippetPurport:     "expert in begetting <mark>children</mark>."},
+		{Ref: "sb/4/23/33", Translation: "Anyone who hears this narration.",
+			SnippetTranslation: "…Anyone who hears this narration.",
+			SnippetPurport:     "…surrounded by many <mark>children</mark>."},
+	}
+	text := func(i int) []string {
+		lines := s.row(i, 100)
+		for j := range lines {
+			lines[j] = strings.TrimSpace(ansiRe.ReplaceAllString(lines[j], ""))
+		}
+		return lines
+	}
+
+	got := text(0)
+	if len(got) != rowLines || got[1] != tr || got[2] != "" {
+		t.Errorf("translation-only match: %q", got)
+	}
+	if !strings.Contains(s.row(0, 100)[1], s.hl.Render("children")) {
+		t.Error("translation line not highlighted")
+	}
+	got = text(1)
+	if got[1] != "Dakṣa lamented his lost children." || got[2] != "expert in begetting children." {
+		t.Errorf("both matched: %q", got)
+	}
+	got = text(2) // no mark in the translation snippet: show the full translation
+	if got[1] != "Anyone who hears this narration." || got[2] != "…surrounded by many children." {
+		t.Errorf("purport-only match: %q", got)
+	}
+}

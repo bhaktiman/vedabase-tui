@@ -476,16 +476,18 @@ func (s Search) row(i, inner int) []string {
 	if r.BookTitle != "" {
 		head += dim.Render("  ·  " + r.BookTitle)
 	}
-	snip := r.SnippetPurport
-	if strings.TrimSpace(snip) == "" {
-		snip = r.SnippetTranslation
-	}
 	clip := lipgloss.NewStyle().MaxWidth(max(inner-2, 1))
 	fg := lipgloss.NewStyle().Foreground(s.pal.Fg)
+	// The translation snippet is the translation again, so it replaces the
+	// plain line when it carries a match instead of being shown under it.
+	tr := fg.Render(oneLine(r.Translation))
+	if strings.Contains(r.SnippetTranslation, "<mark>") {
+		tr = render.Marks(oneLine(r.SnippetTranslation), s.hl)
+	}
 	return []string{
 		clip.Render(mark + head),
-		"  " + clip.Render(fg.Render(oneLine(r.Translation))),
-		"  " + clip.Render(render.Marks(oneLine(snip), s.hl)),
+		"  " + clip.Render(tr),
+		"  " + clip.Render(render.Marks(oneLine(r.SnippetPurport), s.hl)),
 	}
 }
 
