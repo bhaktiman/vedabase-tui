@@ -69,6 +69,7 @@ type State struct {
 	Scroll     int       `json:"scroll"`
 	Parts      api.Parts `json:"parts"`
 	TreeHidden bool      `json:"tree_hidden"`
+	Theme      string    `json:"theme"`
 }
 
 // LoadState returns the saved state; a missing or corrupt file gives defaults.

@@ -82,6 +82,13 @@ func NewSearch(pal render.Palette) Search {
 	return Search{pal: pal, input: in, hl: lipgloss.NewStyle().Foreground(pal.Gold).Bold(true)}
 }
 
+// setPalette recolours the overlay, including the match highlight built once
+// in the constructor.
+func (s *Search) setPalette(p render.Palette) {
+	s.pal = p
+	s.hl = lipgloss.NewStyle().Foreground(p.Gold).Bold(true)
+}
+
 func (s *Search) SetSize(w, h int) { s.w, s.h = w, h; s.ensureVisible() }
 
 func (s *Search) Live() bool { return s.live }

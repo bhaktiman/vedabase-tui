@@ -43,12 +43,22 @@ Press `?` in the app for the same list.
 | `s` | Add the current item to a collection |
 | `'` | Open collections |
 | `e` | Export the current item |
+| `T` | Choose a colour theme |
 | `?` | Help |
 | `q` / `Esc` | Close overlay; quit |
 | Mouse | Click a pane to focus it, a tree row to select or open it, a part label to toggle it; the wheel scrolls |
 
 While mouse mode is on, selecting text in most terminals (Windows Terminal,
 iTerm2, GNOME Terminal) needs Shift+drag, or set `mouse = false`.
+
+## Themes
+
+`T` opens a theme picker: Vedabase (the default), Terminal, Dracula, Monokai,
+Solarized Dark, Solarized Light, Gruvbox Dark, Nord, Tokyo Night and
+Catppuccin Mocha. Moving the cursor previews a theme live; Enter keeps and
+remembers it, Esc goes back. Themes set the terminal's background while the app
+runs and restore it on exit; a terminal without that support keeps its own
+background. `Terminal` has the same warm colours but keeps your own background.
 
 ## Where files live
 

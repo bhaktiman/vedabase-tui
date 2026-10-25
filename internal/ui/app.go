@@ -84,6 +84,7 @@ type App struct {
 	search      Search
 	picker      Picker
 	colview     CollectionsView
+	themes      themePicker
 	gotoBar     Goto
 	filtering   bool // the tree filter line is being edited
 	filterIn    textinput.Model
@@ -124,6 +125,10 @@ func New(o Options) *App {
 	if a.parts == (api.Parts{}) { // a state file with no parts saved: show everything
 		a.parts = api.AllParts()
 	}
+	if p, ok := render.ThemeByName(o.State.Theme); ok {
+		a.pal = p
+		a.rend = render.NewRenderer(p)
+	}
 	a.search = NewSearch(a.pal)
 	a.search.be = o.Backend
 	a.picker = NewPicker(a.pal)
@@ -131,6 +136,9 @@ func New(o Options) *App {
 	a.colview = NewCollectionsView(a.pal)
 	a.gotoBar = NewGoto()
 	a.filterIn = lineInput("filter")
+	for _, in := range []*textinput.Model{&a.search.input, &a.picker.input, &a.colview.input, &a.filterIn, &a.gotoBar.input} {
+		themeInput(in, a.pal)
+	}
 	a.tree.pulse = a.starPulse
 	a.layout()
 	return a
@@ -138,7 +146,7 @@ func New(o Options) *App {
 
 // State is what gets persisted on quit.
 func (a *App) State() store.State {
-	s := store.State{LastRef: a.ref, Scroll: a.reader.offset, Parts: a.parts, TreeHidden: a.state.TreeHidden}
+	s := store.State{LastRef: a.ref, Scroll: a.reader.offset, Parts: a.parts, TreeHidden: a.state.TreeHidden, Theme: a.state.Theme}
 	if a.restoreRef == a.ref {
 		s.Scroll = a.restore // the first render has not happened yet
 	}
@@ -500,6 +508,8 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 			return a.picker.Update(kp)
 		case a.colview.visible:
 			return a.colview.Update(kp)
+		case a.themes.visible:
+			return a.themeKey(kp)
 		}
 	}
 	k := a.seq.Resolve(kp)
@@ -529,6 +539,9 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 		return a.gotoBar.Show()
 	case "?":
 		a.help = true
+		return nil
+	case "T":
+		a.openThemes()
 		return nil
 	case "f":
 		if a.focusTree && a.treeVisible() {
