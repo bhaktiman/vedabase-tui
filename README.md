@@ -1,5 +1,9 @@
 # vedabase-tui
 
+[![Latest release](https://img.shields.io/github/v/release/bhaktiman/vedabase-tui?sort=semver)](https://github.com/bhaktiman/vedabase-tui/releases/latest)
+[![Go](https://img.shields.io/badge/Go-1.26-00ADD8?logo=go&logoColor=white)](go.mod)
+[![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20macOS%20%7C%20Windows-555)](https://github.com/bhaktiman/vedabase-tui/releases/latest)
+
 A terminal reader for Śrīla Prabhupāda's books, letters and lectures, built on
 the public [vedabase.cc API](https://vedabase.cc/en/api/). Written in Go with
 Bubble Tea v2; it ships as a single static binary.
@@ -9,9 +13,36 @@ verse, synonyms, translation, purport) that you can toggle, full-text search,
 collections you can save verses into, and Markdown export. It resumes where you
 left off, and anything you have already read works offline.
 
-## Build and run
+## Install
+
+Linux and macOS (Intel or Apple Silicon):
+
+```sh
+curl -fsSL https://github.com/bhaktiman/vedabase-tui/releases/latest/download/install.sh | sh
+```
+
+The script downloads the right binary from the
+[latest release](https://github.com/bhaktiman/vedabase-tui/releases/latest),
+checks it against `checksums.txt` and puts it in `~/.local/bin`; no sudo needed.
+Then run `vedabase`. To install elsewhere or pin a version:
+
+```sh
+curl -fsSL https://github.com/bhaktiman/vedabase-tui/releases/latest/download/install.sh | INSTALL_DIR=~/bin VERSION=v0.1.0 sh
+```
+
+Windows: download `vedabase_windows_amd64.zip` from the
+[latest release](https://github.com/bhaktiman/vedabase-tui/releases/latest),
+unzip it and run `vedabase.exe` in Windows Terminal.
+
+To update, run the install command again. To uninstall, delete the binary
+(`rm ~/.local/bin/vedabase`).
+
+## Build from source
+
+Needs Go 1.26.
 
 ```
+git clone https://github.com/bhaktiman/vedabase-tui.git && cd vedabase-tui
 make build        # CGO_ENABLED=0, writes ./vedabase
 ./vedabase
 ```
@@ -21,6 +52,9 @@ Install into `$GOBIN` instead:
 ```
 go install ./cmd/vedabase
 ```
+
+`make release VERSION=v0.1.0` cross-builds every platform into `dist/` with
+`checksums.txt`, ready to upload to a GitHub release.
 
 ## Keys
 
