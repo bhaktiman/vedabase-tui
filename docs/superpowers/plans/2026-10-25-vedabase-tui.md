@@ -8,6 +8,8 @@
 
 **Tech Stack:** Go 1.26 · `charm.land/bubbletea/v2` v2.1.0 · `charm.land/bubbles/v2` v2.2.1 · `charm.land/lipgloss/v2` v2.0.6 · `charm.land/glamour/v2` v2.0.1 · `golang.org/x/net/html` · `golang.org/x/text` · `golang.org/x/time/rate` · `github.com/BurntSushi/toml`
 
+**Status (2026-10-25):** Tasks 1–16 done; Task 17 steps 1,2,4 done; extra Tasks 18–19 added (briefs in the SDD workspace). Progress lives in the ledger — see PROGRESS.md.
+
 **Spec:** `docs/superpowers/specs/2026-10-25-vedabase-tui-design.md`. Read it before any task; section numbers below (§n) refer to it.
 
 ## Global Constraints
