@@ -301,3 +301,72 @@ func TestTinyTerminalNoBorders(t *testing.T) {
 	}
 	drive(a, click(3, 3), wheel(3, 3, false))
 }
+
+func searchAndOpenFirst(t *testing.T, a *App) {
+	t.Helper()
+	drive(a, key("/"))
+	for _, r := range "eternal" {
+		drive(a, key(string(r)))
+	}
+	drive(a, key("enter"))
+	if len(a.search.results) < 2 {
+		t.Fatalf("results: %d", len(a.search.results))
+	}
+	drive(a, key("enter"))
+	if a.search.visible {
+		t.Fatal("search still visible after opening a result")
+	}
+}
+
+func TestClickSearchResultAfterReopening(t *testing.T) {
+	a, _ := boot(t, newFake(t), store.State{LastRef: "bg/2/13"})
+	searchAndOpenFirst(t, a)
+	first := a.ref
+	drive(a, key("/"))
+	r := a.overlayRect(a.search.View())
+	drive(a, click(r.x+4, r.y+searchResultsY+rowLines))
+	if a.ref != a.search.results[1].Ref || a.ref == first || a.search.visible {
+		t.Fatalf("ref=%q want %q visible=%v", a.ref, a.search.results[1].Ref, a.search.visible)
+	}
+}
+
+func TestClickSearchResultAfterReopeningAndWheel(t *testing.T) {
+	a, _ := boot(t, newFake(t), store.State{LastRef: "bg/2/13"})
+	drive(a, tea.WindowSizeMsg{Width: 120, Height: 15}) // two visible rows
+	searchAndOpenFirst(t, a)
+	drive(a, key("/"), key("down")) // down on the last row loads page 2
+	if len(a.search.results) != 3 {
+		t.Fatalf("results: %d", len(a.search.results))
+	}
+	r := a.overlayRect(a.search.View())
+	drive(a, wheel(r.x+4, r.y+searchResultsY, false))
+	if a.search.top == 0 {
+		t.Fatal("wheel did not scroll")
+	}
+	i := a.search.top + 1
+	drive(a, click(r.x+4, r.y+searchResultsY+rowLines))
+	if a.ref != a.search.results[i].Ref || a.search.visible {
+		t.Fatalf("ref=%q want %q visible=%v", a.ref, a.search.results[i].Ref, a.search.visible)
+	}
+}
+
+func TestSearchRectMatchesDrawing(t *testing.T) {
+	for _, sz := range [][2]int{{120, 40}, {80, 24}, {100, 30}, {200, 60}, {121, 41}, {60, 15}, {160, 50}} {
+		a, _ := boot(t, newFake(t), store.State{LastRef: "bg/2/13"})
+		drive(a, tea.WindowSizeMsg{Width: sz[0], Height: sz[1]})
+		searchAndOpenFirst(t, a)
+		drive(a, key("/"))
+		r := a.overlayRect(a.search.View())
+		lines := strings.Split(plain(a), "\n")
+		for i, l := range lines {
+			if strings.Contains(l, "Bg 2.14") {
+				if want := r.y + searchResultsY + rowLines; i != want {
+					t.Errorf("%v: drawn on row %d, rect says %d", sz, i, want)
+				}
+				if x := strings.Index(l, "Bg 2.14"); x < r.x {
+					t.Errorf("%v: drawn col %d < rect.x %d", sz, x, r.x)
+				}
+			}
+		}
+	}
+}
