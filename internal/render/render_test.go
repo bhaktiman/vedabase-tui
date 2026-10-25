@@ -3,6 +3,7 @@ package render
 import (
 	"encoding/json"
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -107,5 +108,31 @@ func TestDisplayMarkdownProse(t *testing.T) {
 	}
 	if md2 := DisplayMarkdown(loadItem(t, "verse-lcfl-1.json"), api.Parts{}); md2 != md {
 		t.Fatal("toggles should not affect prose")
+	}
+}
+
+var ansiRe = regexp.MustCompile("\x1b\\[[0-9;]*m")
+
+func TestVerseLinesStaySeparate(t *testing.T) {
+	r := NewRenderer(Default)
+	md := DisplayMarkdown(loadItem(t, "verse-bg-2-13.json"), api.AllParts())
+	out, err := r.Render("bg/2/13", md, 100, api.AllParts())
+	if err != nil {
+		t.Fatal(err)
+	}
+	line := func(sub string) int {
+		for i, l := range strings.Split(ansiRe.ReplaceAllString(out, ""), "\n") {
+			if strings.Contains(l, sub) {
+				return i
+			}
+		}
+		t.Fatalf("%q not found in:\n%s", sub, out)
+		return -1
+	}
+	if a, b := line("dehino 'smin yathā dehe"), line("kaumāraṁ yauvanaṁ jarā"); a == b {
+		t.Errorf("verse lines share row %d", a)
+	}
+	if a, b := line("देहिनोऽस्मिन्यथा देहे"), line("तथा देहान्तरप्राप्तिर्धीरस्तत्र"); a == b {
+		t.Errorf("devanagari lines share row %d", a)
 	}
 }

@@ -34,7 +34,7 @@ func DisplayMarkdown(it api.Item, p api.Parts) string {
 			sections = append(sections, strings.Join(meta, " — "))
 		}
 		if it.Purport != "" {
-			sections = append(sections, it.Purport)
+			sections = append(sections, quoteBreaks(it.Purport))
 		}
 		return strings.Join(sections, "\n\n")
 	}
@@ -44,12 +44,36 @@ func DisplayMarkdown(it api.Item, p api.Parts) string {
 			sections = append(sections, "#### "+heading, text)
 		}
 	}
-	add(p.Devanagari, "Devanagari", it.Devanagari)
-	add(p.Verse, "Verse", it.VerseText)
+	add(p.Devanagari, "Devanagari", lineBreaks(it.Devanagari))
+	add(p.Verse, "Verse", lineBreaks(it.VerseText))
 	add(p.Synonyms, "Word for word", it.Synonyms)
 	add(p.Translation, "Translation", it.Translation)
-	add(p.Purport, "Purport", it.Purport)
+	add(p.Purport, "Purport", quoteBreaks(it.Purport))
 	return strings.Join(sections, "\n\n")
+}
+
+// lineBreaks ends every non-blank line that is followed by another non-blank
+// line with a Markdown hard break, so verse lines stay on separate rows.
+func lineBreaks(s string) string { return breaks(s, func(string) bool { return true }) }
+
+// quoteBreaks does the same for consecutive "> " quote lines (verses quoted in
+// purports and lectures).
+func quoteBreaks(s string) string {
+	return breaks(s, func(l string) bool { return strings.HasPrefix(l, ">") })
+}
+
+func breaks(s string, want func(string) bool) string {
+	if !strings.Contains(s, "\n") {
+		return s
+	}
+	lines := strings.Split(s, "\n")
+	for i := 0; i+1 < len(lines); i++ {
+		if want(lines[i]) && strings.TrimSpace(lines[i]) != "" && strings.TrimSpace(lines[i+1]) != "" &&
+			want(lines[i+1]) && !strings.HasSuffix(lines[i], "\\") {
+			lines[i] += "\\"
+		}
+	}
+	return strings.Join(lines, "\n")
 }
 
 type cacheKey struct {
@@ -91,7 +115,7 @@ func (r *Renderer) Render(ref, md string, width int, p api.Parts) (string, error
 	}
 	r.mu.Unlock()
 
-	tr, err := glamour.NewTermRenderer(glamour.WithStyles(GlamourStyle(r.p)), glamour.WithWordWrap(width))
+	tr, err := glamour.NewTermRenderer(glamour.WithStyles(GlamourStyle(r.p)), glamour.WithWordWrap(width), glamour.WithPreservedNewLines())
 	if err != nil {
 		return "", err
 	}
