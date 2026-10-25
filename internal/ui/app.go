@@ -47,6 +47,9 @@ const loadingStatus = "Loading…"
 const (
 	resizeQuiet = 100 * time.Millisecond
 	minTreeCols = 70 // below this width the tree is hidden
+
+	minFrameCols = 50 // below this width or minFrameRows the panes go unframed
+	minFrameRows = 10
 )
 
 // App is the root model.
@@ -177,6 +180,10 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return a, a.resize(m.Width, m.Height)
 	case tea.KeyPressMsg:
 		return a, a.onKey(m)
+	case tea.MouseClickMsg:
+		return a, a.onMouse(tea.Mouse(m), true)
+	case tea.MouseWheelMsg:
+		return a, a.onMouse(tea.Mouse(m), false)
 	case libraryMsg:
 		return a, a.onLibrary(m)
 	case loadTickMsg:
@@ -551,15 +558,7 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 		}
 	}
 	if a.focusTree && a.treeVisible() {
-		var cmd tea.Cmd
-		sel := a.tree.Selected()
-		was := sel != nil && a.tree.expanded[sel.Ref]
-		a.tree, cmd = a.tree.Update(kp)
-		cmds := []tea.Cmd{cmd, a.nextYearPage()}
-		if sel != nil && !was && a.tree.expanded[sel.Ref] {
-			cmds = append(cmds, a.titlesCmd(sel))
-		}
-		return tea.Batch(cmds...)
+		return a.treeUpdate(a.tree.Selected(), func(t Tree) (Tree, tea.Cmd) { return t.Update(kp) })
 	}
 	switch k {
 	case "h", "left":
@@ -574,6 +573,20 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 		a.reader.Key(k)
 	}
 	return nil
+}
+
+// treeUpdate applies f to the tree and does what a change there calls for:
+// titles for the newly opened branch sel (the node f acts on), the next page
+// of letters.
+func (a *App) treeUpdate(sel *library.Node, f func(Tree) (Tree, tea.Cmd)) tea.Cmd {
+	was := sel != nil && a.tree.expanded[sel.Ref]
+	var cmd tea.Cmd
+	a.tree, cmd = f(a.tree)
+	cmds := []tea.Cmd{cmd, a.nextYearPage()}
+	if sel != nil && !was && a.tree.expanded[sel.Ref] {
+		cmds = append(cmds, a.titlesCmd(sel))
+	}
+	return tea.Batch(cmds...)
 }
 
 // target is the item s and e act on: the selected tree leaf when the tree

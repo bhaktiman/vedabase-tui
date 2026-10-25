@@ -135,7 +135,7 @@ func TestSettingsDefaultsAndTilde(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if s.ExportDir != filepath.Join(home, "vedabase-exports") || !s.Animations {
+	if s.ExportDir != filepath.Join(home, "vedabase-exports") || !s.Animations || !s.Mouse {
 		t.Fatalf("defaults: %+v", s)
 	}
 	b, err := os.ReadFile(p)
@@ -146,12 +146,12 @@ func TestSettingsDefaultsAndTilde(t *testing.T) {
 	if s2, err := LoadSettings(p); err != nil || s2 != s {
 		t.Fatalf("reload: %+v %v", s2, err)
 	}
-	os.WriteFile(p, []byte("export_dir = \"~/notes/vb\"\nanimations = false\n"), 0o644)
+	os.WriteFile(p, []byte("export_dir = \"~/notes/vb\"\nanimations = false\nmouse = false\n"), 0o644)
 	s, err = LoadSettings(p)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if s.ExportDir != filepath.Join(home, "notes/vb") || s.Animations {
+	if s.ExportDir != filepath.Join(home, "notes/vb") || s.Animations || s.Mouse {
 		t.Fatalf("custom: %+v", s)
 	}
 }

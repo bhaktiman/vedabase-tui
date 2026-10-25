@@ -103,10 +103,10 @@ func (a *App) filterKey(kp tea.KeyPressMsg) tea.Cmd {
 
 func (a *App) filterLine() string {
 	in := a.filterIn
-	in.SetWidth(max(a.treeW()-2, 1))
+	in.SetWidth(max(a.treeInnerW()-2, 1))
 	dim := lipgloss.NewStyle().Foreground(a.pal.Dim)
 	if !a.filtering {
-		return dim.Render("f ") + truncate(a.tree.filter, max(a.treeW()-2, 1))
+		return dim.Render("f ") + truncate(a.tree.filter, max(a.treeInnerW()-2, 1))
 	}
 	return dim.Render("f ") + in.View()
 }

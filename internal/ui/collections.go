@@ -63,13 +63,19 @@ func newInput(placeholder string) textinput.Model {
 	return in
 }
 
+// listView is how many rows listBox shows and the first one, for n rows and
+// the cursor.
+func listView(h, n, cursor int) (vis, top int) {
+	vis = max(min(h-2, 24)-5, 1)
+	return vis, max(min(cursor-vis+1, n-vis), 0)
+}
+
 // listBox draws a titled, scrolling list in a bordered box.
 func listBox(pal render.Palette, w, h int, title string, rows []string, cursor int, extra, hint string) string {
 	bw := max(min(w-4, 80), 24)
 	inner := bw - 4
 	dim := lipgloss.NewStyle().Foreground(pal.Dim)
-	vis := max(min(h-2, 24)-5, 1)
-	top := max(min(cursor-vis+1, len(rows)-vis), 0)
+	vis, top := listView(h, len(rows), cursor)
 	lines := []string{lipgloss.NewStyle().Foreground(pal.Gold).Bold(true).Render(title)}
 	if extra != "" {
 		lines = append(lines, extra)
@@ -172,6 +178,32 @@ func (p *Picker) Update(kp tea.KeyPressMsg) tea.Cmd {
 		return p.input.Focus()
 	}
 	return nil
+}
+
+// Click handles a left click at x, y inside the box: a row is selected, and
+// the selected row again is chosen.
+func (p *Picker) Click(x, y int) tea.Cmd {
+	if p.typing {
+		return nil
+	}
+	n := len(p.names) + 1
+	_, top := listView(p.h, n, p.cursor)
+	i := top + y - 2
+	if y < 2 || i >= n {
+		return nil
+	}
+	if i == p.cursor {
+		return p.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
+	}
+	p.cursor = i
+	return nil
+}
+
+// Wheel moves the cursor by d rows.
+func (p *Picker) Wheel(d int) {
+	if !p.typing {
+		p.cursor = min(max(p.cursor+d, 0), len(p.names))
+	}
 }
 
 func (p Picker) View() string {
@@ -343,6 +375,32 @@ func (c *CollectionsView) onRename(kp tea.KeyPressMsg) tea.Cmd {
 		return cmd
 	}
 	return nil
+}
+
+// Click handles a left click at x, y inside the box: a row is selected, and
+// the selected row again is activated, as Enter does.
+func (c *CollectionsView) Click(x, y int) tea.Cmd {
+	if c.rename || c.confirm != "" {
+		return nil
+	}
+	_, top := listView(c.h, max(c.count(), 1), c.cursor)
+	i := top + y - 2
+	if y < 2 || i >= c.count() {
+		return nil
+	}
+	if i == c.cursor {
+		return c.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
+	}
+	c.cursor = i
+	return nil
+}
+
+// Wheel moves the cursor by d rows.
+func (c *CollectionsView) Wheel(d int) {
+	if !c.rename && c.confirm == "" {
+		c.cursor += d
+		c.clamp()
+	}
 }
 
 func (c CollectionsView) View() string {

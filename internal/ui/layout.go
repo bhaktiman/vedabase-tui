@@ -8,6 +8,7 @@ import (
 	"charm.land/lipgloss/v2"
 
 	"vedabase-tui/internal/library"
+	"vedabase-tui/internal/ref"
 )
 
 func (a *App) treeVisible() bool {
@@ -18,21 +19,45 @@ func (a *App) treeW() int { return min(max(a.w*30/100, 24), 40) }
 
 func (a *App) bodyH() int { return max(a.h-2, 1) }
 
-// readerW is the reader's width; the tree and a one-column divider come off it.
-func (a *App) readerW() int {
-	if a.treeVisible() {
-		return max(a.w-a.treeW()-1, 1)
+// framed reports whether the panes get borders; tiny terminals go without.
+func (a *App) framed() bool { return a.w >= minFrameCols && a.h >= minFrameRows }
+
+// bw is the border width of a pane: 1 cell each side, or 0 when unframed.
+func (a *App) bw() int {
+	if a.framed() {
+		return 1
 	}
-	return max(a.w, 1)
+	return 0
 }
 
+// readerOuterW is the reader pane's width with its border; the tree takes its
+// share (and, unframed, a one-column divider) off it.
+func (a *App) readerOuterW() int {
+	switch {
+	case !a.treeVisible():
+		return max(a.w, 1)
+	case a.framed():
+		return max(a.w-a.treeW(), 1)
+	}
+	return max(a.w-a.treeW()-1, 1)
+}
+
+// readerW is the width of the reader's text.
+func (a *App) readerW() int { return max(a.readerOuterW()-2*a.bw(), 1) }
+
+// treeInnerW is the width of the tree's rows.
+func (a *App) treeInnerW() int { return max(a.treeW()-2*a.bw(), 1) }
+
+// innerH is the height of the text inside a pane.
+func (a *App) innerH() int { return max(a.bodyH()-2*a.bw(), 1) }
+
 func (a *App) layout() {
-	th := a.bodyH()
+	th := a.innerH()
 	if a.filterShown() {
 		th = max(th-1, 1)
 	}
-	a.tree.SetSize(a.treeW(), th)
-	a.reader.SetSize(a.readerW(), a.bodyH())
+	a.tree.SetSize(a.treeInnerW(), th)
+	a.reader.SetSize(a.readerW(), a.innerH())
 	a.search.SetSize(a.w, a.h)
 	a.picker.SetSize(a.w, a.h)
 	a.colview.SetSize(a.w, a.h)
@@ -62,6 +87,9 @@ func (a *App) resize(w, h int) tea.Cmd {
 func (a *App) View() tea.View {
 	v := tea.NewView(a.content())
 	v.AltScreen = true
+	if a.settings.Mouse {
+		v.MouseMode = tea.MouseModeCellMotion
+	}
 	return v
 }
 
@@ -103,16 +131,29 @@ func (a *App) content() string {
 			}
 		}
 	}
-	rw := a.readerW()
 	if len(body) > 0 { // bottom-right of the reader
 		last := len(body) - 1
-		body[last] = a.placeToast(body[last], rw)
+		body[last] = a.placeToast(body[last], a.readerW())
 	}
+	var tl []string
 	if a.treeVisible() {
-		tl := strings.Split(a.tree.View(), "\n")
+		tl = strings.Split(a.tree.View(), "\n")
 		if a.filterShown() {
 			tl = append(tl, a.filterLine())
 		}
+	}
+	if a.framed() {
+		a.tree.focused = a.focusTree
+		rows := a.box(body, a.readerOuterW(), a.bodyH(), a.readerTitle(), !a.focusTree)
+		if a.treeVisible() {
+			left := a.box(tl, a.treeW(), a.bodyH(), "Contents", a.focusTree)
+			for i := range rows {
+				rows[i] = left[i] + rows[i]
+			}
+		}
+		return strings.Join(append(append([]string{a.topBar()}, rows...), a.bottomBar()), "\n")
+	}
+	if a.treeVisible() {
 		div := lipgloss.NewStyle().Foreground(a.pal.Dim).Render("│")
 		for i := range body {
 			left := ""
@@ -123,6 +164,45 @@ func (a *App) content() string {
 		}
 	}
 	return strings.Join(append(append([]string{a.topBar()}, body...), a.bottomBar()), "\n")
+}
+
+// readerTitle labels the reader's frame: the open item, or the document title.
+func (a *App) readerTitle() string {
+	switch {
+	case a.ref == "":
+		return "Reading"
+	case a.hasItem && a.item.Document != nil && a.node != nil:
+		return a.node.Label()
+	}
+	return ref.Display(a.ref)
+}
+
+// box frames lines (each at most ow-2 wide, padded here) in a rounded border
+// ow x oh outer, the title set into the top edge. The focused frame is gold.
+func (a *App) box(lines []string, ow, oh int, title string, focused bool) []string {
+	col, tst := a.pal.Dim, lipgloss.NewStyle().Foreground(a.pal.Dim)
+	if focused {
+		col = a.pal.Gold
+		tst = lipgloss.NewStyle().Foreground(a.pal.Gold).Bold(true)
+	}
+	edge := lipgloss.NewStyle().Foreground(col)
+	iw := max(ow-2, 0)
+	title = truncate(title, max(iw-3, 0))
+	fill := max(iw-lipgloss.Width(title)-3, 0)
+	top := edge.Render("╭─ ") + tst.Render(title) + edge.Render(" "+strings.Repeat("─", fill)+"╮")
+	if title == "" {
+		top = edge.Render("╭" + strings.Repeat("─", iw) + "╮")
+	}
+	side := edge.Render("│")
+	out := []string{top}
+	for i := 0; i < oh-2; i++ {
+		l := ""
+		if i < len(lines) {
+			l = lines[i]
+		}
+		out = append(out, side+padTo(l, iw)+side)
+	}
+	return append(out, edge.Render("╰"+strings.Repeat("─", iw)+"╯"))
 }
 
 // overlayView centres an overlay box on the screen, toasts still at the bottom.
@@ -182,9 +262,30 @@ func (a *App) topBar() string {
 		strings.Repeat(" ", gap) + lipgloss.NewStyle().Foreground(a.pal.Dim).Render(pos)
 }
 
+// partHit is where a part label sits in the bottom bar.
+type partHit struct {
+	x0, x1 int // columns [x0, x1)
+	key    string
+}
+
 func (a *App) bottomBar() string {
+	line, _ := a.bottomLayout()
+	return line
+}
+
+// focusLabel is the bottom bar's first word, in the focus colour.
+func (a *App) focusLabel() string {
+	name := "Reading"
+	if a.focusTree && a.treeVisible() {
+		name = "Contents"
+	}
+	return lipgloss.NewStyle().Foreground(a.pal.Gold).Bold(true).Render("● " + name)
+}
+
+// bottomLayout is the bottom bar and the part labels' positions in it.
+func (a *App) bottomLayout() (string, []partHit) {
 	if a.gotoBar.visible {
-		return padTo(a.gotoBar.View(a.w), a.w)
+		return padTo(a.gotoBar.View(a.w), a.w), nil
 	}
 	dim := lipgloss.NewStyle().Foreground(a.pal.Dim)
 	on := lipgloss.NewStyle().Foreground(a.pal.Teal)
@@ -198,24 +299,45 @@ func (a *App) bottomBar() string {
 	}
 	var ps []string
 	plain := 0
+	var hits []partHit
+	rel := 0 // column within the right-hand block
+	exW := 0
+	ex := a.exportStatus()
+	if ex != "" {
+		exW = lipgloss.Width(ex) + 3
+		rel = exW
+	}
 	for _, p := range parts {
 		st := off
 		if p.on {
 			st = on
 		}
 		ps = append(ps, st.Render(p.name))
+		hits = append(hits, partHit{rel, rel + len(p.name), p.name[:1]})
+		rel += len(p.name) + 1
 		plain += len(p.name) + 1
 	}
 	right := strings.Join(ps, " ")
-	if ex := a.exportStatus(); ex != "" {
+	if ex != "" {
 		right = lipgloss.NewStyle().Foreground(a.pal.Gold).Render(ex) + dim.Render(" · ") + right
-		plain += lipgloss.Width(ex) + 3
+		plain += exW
 	}
+	shift := func(x int) []partHit {
+		for i := range hits {
+			hits[i].x0 += x
+			hits[i].x1 += x
+		}
+		return hits
+	}
+	ind := a.focusLabel()
+	iw := lipgloss.Width(ind)
 	hints := "tab focus · h/l prev/next · / search · : go to · ? help · q quit"
-	room := a.w - plain - 2
+	room := a.w - plain - 2 - iw - 2
 	if room < 10 {
-		return padTo(lipgloss.NewStyle().MaxWidth(max(a.w, 1)).Render(right), a.w)
+		line := ind + " " + right
+		return padTo(lipgloss.NewStyle().MaxWidth(max(a.w, 1)).Render(line), a.w), shift(iw + 1)
 	}
-	left := dim.Render(truncate(hints, room))
-	return left + strings.Repeat(" ", max(a.w-lipgloss.Width(left)-plain+1, 1)) + right
+	left := ind + "  " + dim.Render(truncate(hints, room))
+	gap := max(a.w-lipgloss.Width(left)-plain+1, 1)
+	return left + strings.Repeat(" ", gap) + right, shift(lipgloss.Width(left) + gap)
 }

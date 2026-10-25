@@ -45,6 +45,10 @@ Press `?` in the app for the same list.
 | `e` | Export the current item |
 | `?` | Help |
 | `q` / `Esc` | Close overlay; quit |
+| Mouse | Click a pane to focus it, a tree row to select or open it, a part label to toggle it; the wheel scrolls |
+
+While mouse mode is on, selecting text in most terminals (Windows Terminal,
+iTerm2, GNOME Terminal) needs Shift+drag, or set `mouse = false`.
 
 ## Where files live
 
@@ -73,6 +77,10 @@ On first run a commented `config.toml` is written for you:
 
 # Set to false to turn off all motion (fades, highlights, slides).
 # animations = true
+
+# Set to false to turn off mouse support, so your terminal's own text
+# selection works without holding Shift.
+# mouse = true
 ```
 
 ## Being a good neighbour

@@ -15,6 +15,7 @@ import (
 type Settings struct {
 	ExportDir  string `toml:"export_dir"` // "~/" expanded on load
 	Animations bool   `toml:"animations"`
+	Mouse      bool   `toml:"mouse"` // click and wheel; false leaves text selection to the terminal
 }
 
 const defaultConfig = `# vedabase-tui settings
@@ -24,6 +25,10 @@ const defaultConfig = `# vedabase-tui settings
 
 # Set to false to turn off all motion (fades, highlights, slides).
 # animations = true
+
+# Set to false to turn off mouse support, so your terminal's own text
+# selection works without holding Shift.
+# mouse = true
 `
 
 func expandHome(p, home string) string {
@@ -40,7 +45,7 @@ func expandHome(p, home string) string {
 // commented default file so the options are discoverable.
 func LoadSettings(path string) (Settings, error) {
 	home, _ := os.UserHomeDir()
-	s := Settings{ExportDir: filepath.Join(home, "vedabase-exports"), Animations: true}
+	s := Settings{ExportDir: filepath.Join(home, "vedabase-exports"), Animations: true, Mouse: true}
 	b, err := os.ReadFile(path)
 	if os.IsNotExist(err) {
 		if werr := WriteFileAtomic(path, []byte(defaultConfig)); werr != nil {
@@ -52,7 +57,7 @@ func LoadSettings(path string) (Settings, error) {
 		return s, err
 	}
 	if err := toml.Unmarshal(b, &s); err != nil {
-		return Settings{ExportDir: filepath.Join(home, "vedabase-exports"), Animations: true}, err
+		return Settings{ExportDir: filepath.Join(home, "vedabase-exports"), Animations: true, Mouse: true}, err
 	}
 	s.ExportDir = expandHome(s.ExportDir, home)
 	return s, nil

@@ -38,6 +38,7 @@ type Tree struct {
 	pulse    func(string) bool // the ★ is pulsing (star burst)
 	pal      render.Palette
 	seq      keySeq
+	focused  bool // the tree pane has focus: the cursor row is bright, else dim
 }
 
 func NewTree(lib *library.Library, starred func(ref string) bool, pal render.Palette) Tree {
@@ -231,6 +232,36 @@ func (t Tree) Update(msg tea.Msg) (Tree, tea.Cmd) {
 	return t, nil
 }
 
+// Click handles a left click on visible row idx. A click on the ▸/▾ marker, or
+// on an already selected container, toggles it; a leaf opens, as Enter does.
+func (t Tree) Click(idx int, onMarker bool) (Tree, tea.Cmd) {
+	if idx < 0 || idx >= len(t.rows) {
+		return t, nil
+	}
+	n := t.rows[idx].node
+	was := t.cursor == idx
+	t.move(idx)
+	switch {
+	case n.Leaf:
+		return t, func() tea.Msg { return OpenMsg{n} }
+	case !was && !onMarker:
+		return t, nil
+	case t.shown != nil: // filter mode keeps every branch open
+		return t, nil
+	case t.expanded[n.Ref]:
+		t.collapse(n)
+		return t, nil
+	}
+	return t.expand(n)
+}
+
+// Scroll moves the view by d rows; the cursor stays unless it would leave it.
+func (t *Tree) Scroll(d int) {
+	t.offset = min(max(t.offset+d, 0), max(len(t.rows)-t.h, 0))
+	t.cursor = min(max(t.cursor, t.offset), max(t.offset+t.h-1, 0))
+	t.cursor = min(t.cursor, max(len(t.rows)-1, 0))
+}
+
 func (t Tree) expand(n *library.Node) (Tree, tea.Cmd) {
 	if t.expanded[n.Ref] && len(n.Children) > 0 {
 		if t.shown == nil || t.cursor+1 < len(t.rows) && t.rows[t.cursor+1].node.Parent == n {
@@ -292,6 +323,15 @@ func (t Tree) View() string {
 		indent := strings.Repeat("  ", r.depth)
 		label := r.node.Label()
 
+		if idx == t.cursor && !t.focused {
+			// A quiet cursor: dim text and a › in the left margin.
+			s := truncate("›"+indent+marker+star+label, t.w)
+			if r.depth > 0 {
+				s = truncate(indent[:len(indent)-1]+"›"+marker+star+label, t.w)
+			}
+			lines[i] = dim.Render(s)
+			continue
+		}
 		if idx == t.cursor {
 			s := truncate(indent+marker+star+label, t.w)
 			lines[i] = cur.Render(s + strings.Repeat(" ", t.w-lipgloss.Width(s)))

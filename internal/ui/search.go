@@ -335,20 +335,92 @@ func (s *Search) ensureVisible() {
 
 var scopeNames = [...]string{"All", "This book", "Letters", "Lectures"}
 
-func (s Search) scopeLine(inner int) string {
-	dim := lipgloss.NewStyle().Foreground(s.pal.Dim)
-	var parts []string
+func (s Search) scopeLabels() []string {
+	var out []string
 	for i, n := range scopeNames {
 		if i == 1 && s.bookCode != "" && s.bookTitle != "" {
 			n += " (" + s.bookTitle + ")"
 		}
+		out = append(out, n)
+	}
+	return out
+}
+
+const scopeSep = " · "
+
+func (s Search) scopeLine(inner int) string {
+	dim := lipgloss.NewStyle().Foreground(s.pal.Dim)
+	var parts []string
+	for i, n := range s.scopeLabels() {
 		if i == s.scope {
 			parts = append(parts, lipgloss.NewStyle().Foreground(s.pal.Teal).Bold(true).Render(n))
 		} else {
 			parts = append(parts, dim.Render(n))
 		}
 	}
-	return lipgloss.NewStyle().MaxWidth(inner).Render(strings.Join(parts, dim.Render(" · ")))
+	return lipgloss.NewStyle().MaxWidth(inner).Render(strings.Join(parts, dim.Render(scopeSep)))
+}
+
+// Box rows (y inside the box): border 0, title 1, query 2, scope 3, message 4,
+// results from 5. Columns start after the border and padding.
+const (
+	searchQueryY   = 2
+	searchScopeY   = 3
+	searchResultsY = 5
+	searchPadX     = 2
+)
+
+// Click handles a left click at x, y inside the box.
+func (s *Search) Click(x, y int) tea.Cmd {
+	switch {
+	case y == searchQueryY:
+		s.focusInput = true
+		return s.input.Focus()
+	case y == searchScopeY:
+		col := searchPadX
+		for i, n := range s.scopeLabels() {
+			w := lipgloss.Width(n)
+			if x >= col && x < col+w {
+				return s.pickScope(i)
+			}
+			col += w + lipgloss.Width(scopeSep)
+		}
+	case y >= searchResultsY:
+		i := s.top + (y-searchResultsY)/rowLines
+		if i < len(s.results) {
+			s.cursor = i
+			return s.open()
+		}
+	}
+	return nil
+}
+
+// pickScope selects scope i and, if a search was already run, runs it again.
+func (s *Search) pickScope(i int) tea.Cmd {
+	if i == 1 && s.bookCode == "" {
+		return nil
+	}
+	s.scope = i
+	if s.live && s.q != "" {
+		s.input.SetValue(s.q)
+		return s.run()
+	}
+	return nil
+}
+
+// Wheel scrolls the results by d rows; the cursor is kept in view.
+func (s *Search) Wheel(d int) tea.Cmd {
+	v := s.visRows()
+	s.top = min(max(s.top+d, 0), max(len(s.results)-v, 0))
+	s.cursor = min(max(s.cursor, s.top), max(s.top+v-1, 0))
+	s.cursor = min(s.cursor, max(len(s.results)-1, 0))
+	return s.maybeMore()
+}
+
+// Close hides the overlay, as Esc does.
+func (s *Search) Close() {
+	s.visible = false
+	s.input.Blur()
 }
 
 func oneLine(s string) string { return strings.Join(strings.Fields(s), " ") }
