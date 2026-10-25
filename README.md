@@ -8,8 +8,7 @@
 ![vedabase-tui showing Śrīmad-Bhāgavatam 1.1.6 with the contents tree on the left](https://github.com/user-attachments/assets/53adf385-9a20-4e78-a7fe-fc713652455e)
 
 A terminal reader for Śrīla Prabhupāda's books, letters and lectures, built on
-the public [vedabase.cc API](https://vedabase.cc/en/api/). Written in Go with
-Bubble Tea v2; it ships as a single static binary.
+the public [vedabase.cc API](https://vedabase.cc/en/api/).
 
 ## What it does
 
