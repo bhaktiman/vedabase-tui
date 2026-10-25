@@ -115,3 +115,30 @@ func TestWriteReportsExisted(t *testing.T) {
 		t.Errorf("content %q", b)
 	}
 }
+
+func TestItemHeadingFullBookName(t *testing.T) {
+	cases := []struct{ ref, title, want string }{
+		{"bg/2/13", "Bhagavad-gītā As It Is", "# Bhagavad-gītā As It Is 2.13\n"},
+		{"sb/1/2/6", "Śrīmad-Bhāgavatam", "# Śrīmad-Bhāgavatam 1.2.6\n"},
+		{"cc/madhya/9/74", "Śrī Caitanya-caritāmṛta", "# Śrī Caitanya-caritāmṛta Madhya 9.74\n"},
+		{"bg/2/13", "", "# Bg 2.13\n"},
+	}
+	for _, c := range cases {
+		got := ItemMarkdown(api.Item{Ref: c.ref, Book: "x", URL: "u"}, Meta{BookTitle: c.title}, api.AllParts(), today)
+		if !strings.Contains(got, "\n"+c.want) {
+			t.Errorf("%s/%q: want heading %q in\n%s", c.ref, c.title, c.want, got)
+		}
+	}
+}
+
+func TestItemEndsWithWebLink(t *testing.T) {
+	it := load(t, "verse-bg-2-13.json")
+	got := ItemMarkdown(it, bgMeta, api.AllParts(), today)
+	if want := "\n\n[Read on vedabase.cc](" + it.URL + ")\n"; !strings.HasSuffix(got, want) {
+		t.Errorf("link not last:\n%s", got[max(0, len(got)-200):])
+	}
+	it.URL = ""
+	if got := ItemMarkdown(it, bgMeta, api.AllParts(), today); strings.Contains(got, "Read on vedabase.cc") {
+		t.Errorf("link present with empty URL")
+	}
+}

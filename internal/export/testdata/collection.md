@@ -6,9 +6,7 @@ count: 2
 
 # On the soul
 
-## Bg 2.13
-
-Bhagavad-gītā As It Is · [vedabase.cc](https://vedabase.cc/bg/2/13/)
+## Bhagavad-gītā As It Is 2.13
 
 > देहिनोऽस्मिन्यथा देहे कौमारं यौवनं जरा ।
 > तथा देहान्तरप्राप्तिर्धीरस्तत्र न मुह्यति ॥१३॥
@@ -27,6 +25,8 @@ Since every living entity is an individual soul, each is changing his body every
 Any man who has perfect knowledge of the constitution of the individual soul, the Supersoul, and nature—both material and spiritual—is called a *dhīra* or a most sober man. Such a man is never deluded by the change of bodies. The Māyāvādī theory of oneness of the spirit soul cannot be entertained on the ground that spirit soul cannot be cut into pieces as a fragmental portion. Such cutting into different individual souls would make the Supreme cleavable or changeable, against the principle of the Supreme Soul being unchangeable.
 
 As confirmed in the *Gītā,* the fragmental portions of the Supreme exist eternally (*sanātana*) and are called *kṣara;* that is, they have a tendency to fall down into material nature. These fragmental portions are eternally so, and even after liberation, the individual soul remains the same—fragmental. But once liberated, he lives an eternal life in bliss and knowledge with the Personality of Godhead. The theory of reflection can be applied to the Supersoul who is present in each and every individual body and is known as the Paramātmā, who is different from the individual living entity. When the sky is reflected in water, the reflections represent both the sun and the moon and the stars also. The stars can be compared to the living entities and the sun or the moon to the Supreme Lord. The individual fragmental spirit soul is represented by Arjuna, and the Supreme Soul is the Personality of Godhead Śrī Kṛṣṇa. They are not on the same level, as it will be apparent in the beginning of the Fourth Chapter. If Arjuna is on the same level with Kṛṣṇa, and Kṛṣṇa is not superior to Arjuna, then their relationship of instructor and instructed becomes meaningless. If both of them are deluded by the illusory energy (*māyā*), then there is no need of one being the instructor and the other the instructed. Such instruction would be useless because, in the clutches of *māyā,* no one can be an authoritative instructor. Under the circumstances, it is admitted that Lord Kṛṣṇa is the Supreme Lord, superior in position to the living entity, Arjuna, who is a forgotten soul deluded by *māyā.*
+
+[Read on vedabase.cc](https://vedabase.cc/bg/2/13/)
 
 ## SB 1.1.1
 

@@ -35,13 +35,21 @@ func quote(s string) string {
 
 func kv(b *strings.Builder, k, v string) { fmt.Fprintf(b, "%s: %s\n", k, quote(v)) }
 
-// label is the heading of an item: its title for documents, else its short ref.
-func label(it api.Item, r string) string {
+// label is the heading of an item: its title for documents, else its display
+// ref with the book abbreviation replaced by the full book title.
+func label(it api.Item, r, bookTitle string) string {
 	if it.Document != nil && strings.TrimSpace(it.Translation) != "" {
 		return strings.TrimSpace(it.Translation)
 	}
-	return ref.Display(r)
+	d := ref.Display(r)
+	if bookTitle == "" {
+		return d
+	}
+	_, rest, _ := strings.Cut(d, " ")
+	return strings.TrimSpace(bookTitle + " " + rest)
 }
+
+func readLink(url string) string { return "[Read on vedabase.cc](" + url + ")\n" }
 
 // parts returns the visible non-empty parts joined by blank lines. For a
 // document the translation is its title and already serves as the heading.
@@ -79,9 +87,12 @@ func ItemMarkdown(it api.Item, m Meta, p api.Parts, today time.Time) string {
 		}
 		kv(&b, "location", d.Location)
 	}
-	b.WriteString("---\n\n# " + label(it, it.Ref) + "\n")
+	b.WriteString("---\n\n# " + label(it, it.Ref, m.BookTitle) + "\n")
 	if s := parts(it, p); s != "" {
 		b.WriteString("\n" + s + "\n")
+	}
+	if it.URL != "" {
+		b.WriteString("\n" + readLink(it.URL))
 	}
 	return b.String()
 }
@@ -100,10 +111,12 @@ func CollectionMarkdown(name string, entries []Entry, p api.Parts, today time.Ti
 			continue
 		}
 		it := *e.Item
-		b.WriteString("\n## " + label(it, e.Ref) + "\n\n")
-		b.WriteString(e.Meta.BookTitle + " · [vedabase.cc](" + it.URL + ")\n")
+		b.WriteString("\n## " + label(it, e.Ref, e.Meta.BookTitle) + "\n")
 		if s := parts(it, p); s != "" {
 			b.WriteString("\n" + s + "\n")
+		}
+		if it.URL != "" {
+			b.WriteString("\n" + readLink(it.URL))
 		}
 	}
 	return b.String()
