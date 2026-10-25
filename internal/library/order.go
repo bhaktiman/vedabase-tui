@@ -35,7 +35,14 @@ func (n *Node) Label() string {
 		return titleCase(n.Seg)
 	}
 	if n.Leaf && p.Parent != nil {
-		return strings.Join(strings.Split(n.Ref, "/")[1:], ".")
+		parts := strings.Split(n.Ref, "/")[1:]
+		if _, ok := lilaLabels[parts[0]]; ok && n.Book == "cc" && len(parts) > 1 {
+			parts = parts[1:] // the lila shows on the ancestor
+		}
+		return strings.Join(parts, ".")
+	}
+	if n.Leaf && p.Parent == nil && root(p).flat {
+		return "Text " + n.Seg
 	}
 	return "Chapter " + n.Seg
 }
@@ -82,6 +89,13 @@ func titleCase(s string) string {
 		}
 		return out
 	}, s)
+}
+
+func root(n *Node) *Node {
+	for n.Parent != nil {
+		n = n.Parent
+	}
+	return n
 }
 
 // Next returns the leaf after n in reading order, or nil at the end. Within a

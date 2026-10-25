@@ -13,7 +13,11 @@ import (
 func testBooks() []api.Book {
 	var bs []api.Book
 	for _, c := range []string{"bg", "sb", "cc", "iso", "lcfl", "letters", "transcripts"} {
-		bs = append(bs, api.Book{Code: c, Title: strings.ToUpper(c) + " title"})
+		b := api.Book{Code: c, Title: strings.ToUpper(c) + " title"}
+		if c == "iso" {
+			b.Type = "flat"
+		}
+		bs = append(bs, b)
 	}
 	return bs
 }
@@ -159,14 +163,20 @@ func TestTranscriptsByYear(t *testing.T) {
 func TestLabels(t *testing.T) {
 	l := load(t)
 	for ref, want := range map[string]string{
-		"bg/2":       "Chapter 2",
-		"sb/1":       "Canto 1",
-		"cc/adi":     "Ādi-līlā",
-		"cc/adi/1":   "Chapter 1",
-		"bg/2/13":    "2.13",
-		"lcfl/1":     "Chapter 1",
-		"bg/0a":      "Front matter (0a)",
-		"sb/4/29/1b": "4.29.1b",
+		"bg/2":           "Chapter 2",
+		"sb/1":           "Canto 1",
+		"cc/adi":         "Ādi-līlā",
+		"cc/adi/1":       "Chapter 1",
+		"bg/2/13":        "2.13",
+		"lcfl/1":         "Chapter 1",
+		"iso/1":          "Text 1",
+		"cc/adi/1/1":     "1.1",
+		"cc/madhya/9/74": "9.74",
+		"sb/1/1/1":       "1.1.1",
+		"bg/1/16-18":     "1.16-18",
+		"zzz/1":          "Chapter 1",
+		"bg/0a":          "Front matter (0a)",
+		"sb/4/29/1b":     "4.29.1b",
 	} {
 		if got := l.Find(ref).Label(); got != want {
 			t.Errorf("%s label = %q, want %q", ref, got, want)

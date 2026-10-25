@@ -31,6 +31,8 @@ type Node struct {
 	Children []*Node
 	Parent   *Node
 	Book     string // book code of the root this node is under
+
+	flat bool // the book's texts hang directly off the root (api.Book.Type "flat")
 }
 
 // Library is the parsed tree plus the indexes used to navigate it.
@@ -89,6 +91,11 @@ func Parse(sitemap io.Reader, books []api.Book) (*Library, error) {
 	titles := map[string]string{}
 	for _, b := range books {
 		titles[b.Code] = b.Title
+	}
+	for _, b := range books {
+		if r := l.roots[b.Code]; r != nil {
+			r.flat = b.Type == "flat"
+		}
 	}
 	var codes []string
 	for _, b := range books {
