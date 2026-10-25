@@ -16,7 +16,8 @@ const (
 	noWebPage   = "No web page for this item"
 	webBtnLabel = "↗ vedabase.cc (o)"
 	siteTag     = "vedabase.cc"
-	installCmd  = "curl -fsSL https://github.com/bhaktiman/vedabase-tui/releases/latest/download/install.sh | sh"
+	releasesURL = "https://github.com/bhaktiman/vedabase-tui/releases/latest"
+	installCmd  = "curl -fsSL " + releasesURL + "/download/install.sh | sh"
 )
 
 // openedMsg is the result of starting the browser.

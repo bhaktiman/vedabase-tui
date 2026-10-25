@@ -4,10 +4,24 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
+)
+
+// ErrPartial means a Windows swap failed half way: the old binary was moved
+// aside but neither it nor the new one could be put in place.
+var ErrPartial = errors.New("update: incomplete")
+
+// rename is a variable so tests can make it fail.
+var rename = os.Rename
+
+var (
+	renameTries = 5
+	renameWait  = 200 * time.Millisecond
 )
 
 const (
@@ -70,8 +84,9 @@ func (u *Updater) install(content []byte, windows bool) (err error) {
 		return fmt.Errorf("update: cannot write next to %s: %w", u.Exe, err)
 	}
 	tmp := f.Name()
+	keepTmp := false
 	defer func() {
-		if err != nil {
+		if err != nil && !keepTmp {
 			os.Remove(tmp)
 		}
 	}()
@@ -88,19 +103,29 @@ func (u *Updater) install(content []byte, windows bool) (err error) {
 		return fmt.Errorf("update: writing %s: %w", tmp, err)
 	}
 	if !windows {
-		if err = os.Rename(tmp, u.Exe); err != nil {
+		if err = rename(tmp, u.Exe); err != nil {
 			return fmt.Errorf("update: replacing %s: %w", u.Exe, err)
 		}
 		return nil
 	}
 	old := u.Exe + ".old"
 	_ = os.Remove(old)
-	if err = os.Rename(u.Exe, old); err != nil {
+	if err = rename(u.Exe, old); err != nil {
 		return fmt.Errorf("update: moving %s aside: %w", u.Exe, err)
 	}
-	if err = os.Rename(tmp, u.Exe); err != nil {
-		_ = os.Rename(old, u.Exe)
-		return fmt.Errorf("update: replacing %s: %w", u.Exe, err)
+	for i := 0; i < renameTries; i++ {
+		if i > 0 {
+			time.Sleep(renameWait)
+		}
+		if err = rename(tmp, u.Exe); err == nil {
+			return nil
+		}
 	}
-	return nil
+	if rerr := rename(old, u.Exe); rerr != nil {
+		keepTmp = true // the new binary may be the only good copy
+		err = fmt.Errorf("%w: could not install %s (%v) or restore %s (%v); rename one of them to %s",
+			ErrPartial, tmp, err, old, rerr, filepath.Base(u.Exe))
+		return err
+	}
+	return fmt.Errorf("update: replacing %s: %w", u.Exe, err)
 }

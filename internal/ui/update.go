@@ -4,10 +4,15 @@ import (
 	"context"
 	"errors"
 	"io/fs"
+	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
+
+	"vedabase-tui/internal/update"
 )
 
 const (
@@ -38,11 +43,21 @@ func (a *App) checkUpdate() tea.Cmd {
 	}
 }
 
+// updateHint is what to show when the binary in dir cannot be replaced: the
+// install command aimed at that directory, or the releases page on Windows,
+// which install.sh does not support.
+func updateHint(goos, dir, home string) string {
+	if goos == "windows" {
+		return releasesURL
+	}
+	if dir == "" || (home != "" && dir == filepath.Join(home, ".local", "bin")) {
+		return installCmd
+	}
+	return "curl -fsSL " + releasesURL + "/download/install.sh | sudo INSTALL_DIR=" + dir + " sh"
+}
+
 func (a *App) onUpdateAvail(m updateAvailMsg) tea.Cmd {
 	a.avail = m.tag
-	if a.state.Zen {
-		return nil // nothing extra in distraction-free mode
-	}
 	return a.Toast("vedabase "+m.tag+" is available — press U to update", false)
 }
 
@@ -76,10 +91,14 @@ func (a *App) onUpdateDone(m updateDoneMsg) tea.Cmd {
 	switch {
 	case m.err == nil:
 		a.restart = true
+		a.updatedTo = a.avail
 		return a.quit() // saves the state, so the restart reopens here
 	case errors.Is(m.err, fs.ErrPermission):
-		a.updCmd = installCmd
+		home, _ := os.UserHomeDir()
+		a.updCmd = updateHint(runtime.GOOS, a.installDir, home)
 		return a.Toast("No permission to replace the app — run the command below", true)
+	case errors.Is(m.err, update.ErrPartial):
+		return a.Toast("Update failed: "+m.err.Error(), true)
 	}
 	return a.Toast("Update failed: "+m.err.Error()+" — nothing changed", true)
 }

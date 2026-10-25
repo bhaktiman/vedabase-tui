@@ -15,6 +15,7 @@ import (
 
 	"vedabase-tui/internal/api"
 	"vedabase-tui/internal/store"
+	"vedabase-tui/internal/update"
 )
 
 type fakeUpdater struct {
@@ -205,6 +206,74 @@ func TestUpdateHintWithSidebarHidden(t *testing.T) {
 	drive(a, key("F")) // distraction-free: nothing extra
 	if strings.Contains(plain(a), "U update to") {
 		t.Fatal("offer shown in zen")
+	}
+}
+
+func TestUpdateToastInZen(t *testing.T) {
+	sv := &saved{}
+	a := New(Options{Backend: newFake(t), State: store.State{LastRef: "bg/2/13", Parts: api.AllParts(), Zen: true},
+		SaveState: sv.save, Version: "0.1.0", Updater: &fakeUpdater{tag: "v0.2.0"}})
+	a.tick = func(time.Duration, tea.Msg) tea.Cmd { return nil }
+	drive(a, tea.WindowSizeMsg{Width: 120, Height: 40}, a.Init()())
+	if got := toastText(a); got != "vedabase v0.2.0 is available — press U to update" {
+		t.Fatalf("toast = %q", got)
+	}
+	lines := strings.Split(plain(a), "\n")
+	if !strings.Contains(lines[len(lines)-1], "press U to update") {
+		t.Fatalf("last row %q", lines[len(lines)-1])
+	}
+}
+
+func TestQuitBlockedWhileUpdating(t *testing.T) {
+	for _, k := range []string{"q", "ctrl+c"} {
+		a, _ := bootUpd(t, &fakeUpdater{tag: "v0.2.0"}, 120)
+		clearToast(a)
+		a.updating = true
+		cmd := a.onKey(key(k))
+		if toastText(a) != "Finishing the update…" {
+			t.Fatalf("%s: toast %q", k, toastText(a))
+		}
+		if cmd != nil {
+			if _, ok := cmd().(tea.QuitMsg); ok {
+				t.Fatalf("%s quit during the update", k)
+			}
+		}
+		a.updating = false
+		if _, ok := a.onKey(key(k))().(tea.QuitMsg); !ok {
+			t.Fatalf("%s does not quit when idle", k)
+		}
+	}
+}
+
+func TestUpdateHint(t *testing.T) {
+	const base = "https://github.com/bhaktiman/vedabase-tui/releases/latest"
+	for _, c := range []struct{ goos, dir, want string }{
+		{"linux", "/home/u/.local/bin", installCmd},
+		{"darwin", "/usr/local/bin", "curl -fsSL " + base + "/download/install.sh | sudo INSTALL_DIR=/usr/local/bin sh"},
+		{"windows", `C:\bin`, base},
+	} {
+		if got := updateHint(c.goos, c.dir, "/home/u"); got != c.want {
+			t.Errorf("%s %s: %q, want %q", c.goos, c.dir, got, c.want)
+		}
+	}
+}
+
+func TestUpdatePartialError(t *testing.T) {
+	u := &fakeUpdater{tag: "v0.2.0", applyErr: fmt.Errorf("%w: rename a.old to vedabase.exe", update.ErrPartial)}
+	a, _ := bootUpd(t, u, 400)
+	clearToast(a)
+	drive(a, key("U"))
+	got := toastText(a)
+	if !strings.HasPrefix(got, "Update failed: ") || strings.Contains(got, "nothing changed") {
+		t.Fatalf("toast %q", got)
+	}
+}
+
+func TestUpdatedTo(t *testing.T) {
+	a, _ := bootUpd(t, &fakeUpdater{tag: "v0.2.0"}, 120)
+	a.Update(updateDoneMsg{})
+	if a.UpdatedTo() != "v0.2.0" {
+		t.Fatalf("UpdatedTo = %q", a.UpdatedTo())
 	}
 }
 

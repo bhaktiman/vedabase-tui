@@ -40,6 +40,7 @@ type Options struct {
 	Toasts      []ToastMsg // shown first, e.g. startup warnings
 	Version     string     // this build's, shown in the sidebar tag
 	Updater     Updater    // nil: no update check, no U
+	InstallDir  string     // the running binary's directory, for the permission-error hint
 }
 
 // Updater finds and installs a newer release.
@@ -82,14 +83,16 @@ type App struct {
 	progTotal atomic.Int64
 	startup   []ToastMsg
 
-	version  string  // "v0.1.0", or "" when unknown
-	upd      Updater // nil: no update check
-	avail    string  // the newer release's tag, once found
-	updating bool    // Apply is running
-	restart  bool    // the app quit to be started again
-	updCmd   string  // shown in the bottom bar until the next key
-	updDone  atomic.Int64
-	updTotal atomic.Int64
+	version    string  // "v0.1.0", or "" when unknown
+	upd        Updater // nil: no update check
+	avail      string  // the newer release's tag, once found
+	updatedTo  string  // tag installed by a finished update
+	installDir string
+	updating   bool   // Apply is running
+	restart    bool   // the app quit to be started again
+	updCmd     string // shown in the bottom bar until the next key
+	updDone    atomic.Int64
+	updTotal   atomic.Int64
 
 	ref        string
 	node       *library.Node
@@ -139,7 +142,7 @@ func New(o Options) *App {
 		be: o.Backend, cols: o.Collections, settings: o.Settings, state: o.State, save: o.SaveState,
 		pal: render.Default, rend: render.NewRenderer(render.Default),
 		w: 80, h: 24, parts: o.State.Parts, startup: o.Toasts,
-		version: versionLabel(o.Version), upd: o.Updater,
+		version: versionLabel(o.Version), upd: o.Updater, installDir: o.InstallDir,
 		prefetched: map[string]bool{}, scr: newScraped(), nowFn: o.Now,
 		tick: func(d time.Duration, msg tea.Msg) tea.Cmd {
 			return tea.Tick(d, func(time.Time) tea.Msg { return msg })
@@ -581,6 +584,9 @@ func (a *App) quit() tea.Cmd {
 // an update replaced the binary.
 func (a *App) RestartRequested() bool { return a.restart }
 
+// UpdatedTo is the release the binary was replaced with, or "".
+func (a *App) UpdatedTo() string { return a.updatedTo }
+
 // openSearch shows the search overlay for the current book.
 func (a *App) openSearch(withInput bool) tea.Cmd {
 	code, title := "", ""
@@ -627,6 +633,9 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 	k := a.seq.Resolve(kp)
 	switch k {
 	case "ctrl+c", "q":
+		if a.updating { // quitting now would kill Apply mid-install
+			return a.Toast("Finishing the update…", false)
+		}
 		return a.quit()
 	}
 	if a.lib == nil {

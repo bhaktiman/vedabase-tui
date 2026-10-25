@@ -12,6 +12,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var tagRe = regexp.MustCompile(`^v\d+\.\d+\.\d+$`)
@@ -120,5 +121,30 @@ func Executable() (string, error) {
 	return filepath.EvalSymlinks(exe)
 }
 
-// Cleanup removes a leftover exe+".old" from a Windows update; errors are ignored.
-func Cleanup(exe string) { _ = os.Remove(exe + ".old") }
+// staleTemp is how old a leftover .vedabase-update-* file must be before
+// Cleanup removes it; a younger one may belong to an update in progress.
+const staleTemp = time.Hour
+
+// Cleanup removes leftovers of earlier updates: on Windows the exe+".old" a
+// swap leaves behind, and on every platform temp files older than an hour.
+// Errors are ignored.
+func Cleanup(exe string) { cleanup(exe, runtime.GOOS, time.Now()) }
+
+func cleanup(exe, goos string, now time.Time) {
+	if goos == "windows" {
+		_ = os.Remove(exe + ".old")
+	}
+	dir := filepath.Dir(exe)
+	ents, err := os.ReadDir(dir)
+	if err != nil {
+		return
+	}
+	for _, e := range ents {
+		if !strings.HasPrefix(e.Name(), ".vedabase-update-") {
+			continue
+		}
+		if fi, err := e.Info(); err == nil && fi.Mode().IsRegular() && now.Sub(fi.ModTime()) > staleTemp {
+			_ = os.Remove(filepath.Join(dir, e.Name()))
+		}
+	}
+}

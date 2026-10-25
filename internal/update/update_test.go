@@ -14,9 +14,11 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 )
 
 const repo = "o/r"
@@ -167,7 +169,7 @@ func TestApplyHappyPath(t *testing.T) {
 	if b, _ := os.ReadFile(u.Exe); string(b) != "new" {
 		t.Errorf("exe = %q", b)
 	}
-	if st, _ := os.Stat(u.Exe); st.Mode().Perm() != 0o755 {
+	if st, _ := os.Stat(u.Exe); runtime.GOOS != "windows" && st.Mode().Perm() != 0o755 {
 		t.Errorf("mode = %v", st.Mode())
 	}
 	if done != int64(len(arc)) || total != int64(len(arc)) {
@@ -211,6 +213,9 @@ func TestApplyFailures(t *testing.T) {
 }
 
 func TestApplyReadOnlyDir(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("directory permission bits do not apply")
+	}
 	if os.Getuid() == 0 {
 		t.Skip("root ignores directory permissions")
 	}
@@ -242,7 +247,7 @@ func TestApplyWindows(t *testing.T) {
 	if b, _ := os.ReadFile(u.Exe + ".old"); string(b) != "old" {
 		t.Errorf(".old = %q", b)
 	}
-	Cleanup(u.Exe)
+	cleanup(u.Exe, "windows", time.Now())
 	if _, err := os.Stat(u.Exe + ".old"); !os.IsNotExist(err) {
 		t.Errorf(".old still present: %v", err)
 	}
@@ -259,5 +264,80 @@ func TestApplyBadTag(t *testing.T) {
 	}
 	if hits.Load() != 0 {
 		t.Error("server was hit")
+	}
+}
+
+func TestCleanupStaleTemps(t *testing.T) {
+	dir := t.TempDir()
+	exe := filepath.Join(dir, "vedabase")
+	stale, fresh := filepath.Join(dir, ".vedabase-update-old"), filepath.Join(dir, ".vedabase-update-new")
+	other := filepath.Join(dir, "keep.txt")
+	for _, p := range []string{exe, stale, fresh, other} {
+		if err := os.WriteFile(p, []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	past := time.Now().Add(-2 * time.Hour)
+	if err := os.Chtimes(stale, past, past); err != nil {
+		t.Fatal(err)
+	}
+	Cleanup(exe)
+	for p, want := range map[string]bool{stale: false, fresh: true, other: true, exe: true} {
+		if _, err := os.Stat(p); (err == nil) != want {
+			t.Errorf("%s exists=%v, want %v", filepath.Base(p), err == nil, want)
+		}
+	}
+}
+
+func TestCleanupOldOnlyOnWindows(t *testing.T) {
+	exe := filepath.Join(t.TempDir(), "vedabase")
+	if err := os.WriteFile(exe+".old", []byte("mine"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cleanup(exe, "linux", time.Now())
+	if _, err := os.Stat(exe + ".old"); err != nil {
+		t.Fatalf("a user's vedabase.old was removed off Windows: %v", err)
+	}
+	cleanup(exe, "windows", time.Now())
+	if _, err := os.Stat(exe + ".old"); err == nil {
+		t.Fatal(".old kept on Windows")
+	}
+}
+
+func TestInstallPartialKeepsTemp(t *testing.T) {
+	dir := t.TempDir()
+	exe := filepath.Join(dir, "vedabase.exe")
+	if err := os.WriteFile(exe, []byte("old"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	u := &Updater{Exe: exe}
+	realRename, realWait, realTries := rename, renameWait, renameTries
+	t.Cleanup(func() { rename, renameWait, renameTries = realRename, realWait, realTries })
+	renameWait, renameTries = 0, 2
+	rename = func(from, to string) error {
+		if to == exe { // installing the new copy and restoring the old one both fail
+			return errors.New("locked")
+		}
+		return os.Rename(from, to)
+	}
+	err := u.install([]byte("new"), true)
+	if !errors.Is(err, ErrPartial) {
+		t.Fatalf("err = %v, want ErrPartial", err)
+	}
+	var tmp string
+	ents, _ := os.ReadDir(dir)
+	for _, e := range ents {
+		if strings.HasPrefix(e.Name(), ".vedabase-update-") {
+			tmp = filepath.Join(dir, e.Name())
+		}
+	}
+	if b, _ := os.ReadFile(tmp); tmp == "" || string(b) != "new" {
+		t.Fatalf("temp copy lost: %q", tmp)
+	}
+	if b, _ := os.ReadFile(exe + ".old"); string(b) != "old" {
+		t.Fatalf(".old = %q", b)
+	}
+	if msg := err.Error(); !strings.Contains(msg, tmp) || !strings.Contains(msg, exe+".old") || !strings.Contains(msg, "vedabase.exe") {
+		t.Fatalf("message %q lacks the paths", msg)
 	}
 }
