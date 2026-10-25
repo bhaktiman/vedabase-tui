@@ -356,6 +356,32 @@ func (a *App) focusLabel() string {
 	return lipgloss.NewStyle().Foreground(a.pal.Gold).Bold(true).Render("● " + name)
 }
 
+// hintLine is the key hints that fit in room cells. Whole hints are dropped,
+// least important first; "? help" stays as long as anything does.
+func (a *App) hintLine(room int) string {
+	width := "w full width"
+	if a.state.Wide {
+		width = "w centred"
+	}
+	// Most important first; dropping takes from the end.
+	keep := []string{"? help", "/ search", "s save", "e export", width, "t sidebar", "T theme",
+		"o web", ": go to", "h/l prev/next", "tab focus"}
+	// Display order, as indexes into keep.
+	order := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 0}
+	for n := len(keep); n > 0; n-- {
+		var out []string
+		for _, i := range order {
+			if i < n {
+				out = append(out, keep[i])
+			}
+		}
+		if s := strings.Join(out, " · "); lipgloss.Width(s) <= room {
+			return s
+		}
+	}
+	return ""
+}
+
 // bottomLayout is the bottom bar and the part labels' positions in it.
 func (a *App) bottomLayout() (string, []partHit) {
 	if a.gotoBar.visible {
@@ -405,13 +431,13 @@ func (a *App) bottomLayout() (string, []partHit) {
 	}
 	ind := a.focusLabel()
 	iw := lipgloss.Width(ind)
-	hints := "tab focus · h/l prev/next · / search · : go to · ? help · q quit"
+	hints := a.hintLine(a.w - plain - 2 - iw - 2)
 	room := a.w - plain - 2 - iw - 2
 	if room < 10 {
 		line := ind + " " + right
 		return padTo(lipgloss.NewStyle().MaxWidth(max(a.w, 1)).Render(line), a.w), shift(iw + 1)
 	}
-	left := ind + "  " + dim.Render(truncate(hints, room))
+	left := ind + "  " + dim.Render(hints)
 	gap := max(a.w-lipgloss.Width(left)-plain+1, 1)
 	return left + strings.Repeat(" ", gap) + right, shift(lipgloss.Width(left) + gap)
 }
