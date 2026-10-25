@@ -176,7 +176,7 @@ func (a *App) content() string {
 		}
 		rows := a.box(body, a.readerOuterW(), a.bodyH(), a.readerTitle(), !a.focusTree, btn, "", th...)
 		if a.treeVisible() {
-			left := a.box(tl, a.treeW(), a.bodyH(), "Contents", a.focusTree, "", siteTag)
+			left := a.box(tl, a.treeW(), a.bodyH(), "Contents", a.focusTree, "", a.siteTagView(a.treeW()-2))
 			for i := range rows {
 				rows[i] = left[i] + rows[i]
 			}
@@ -205,6 +205,9 @@ func (a *App) zenView(body []string) string {
 	}
 	last := len(rows) - 1
 	rows[last] = a.placeToast(rows[last], a.w)
+	if a.updCmd != "" {
+		rows[last] = a.bottomBar()
+	}
 	return strings.Join(rows, "\n")
 }
 
@@ -222,7 +225,7 @@ func (a *App) readerTitle() string {
 // box frames lines (each at most ow-2 wide, padded here) in a rounded border
 // ow x oh outer, the title set into the top edge. The focused frame is gold.
 // btn, if set, sits right-aligned in the top edge; tag is centred in the
-// bottom edge. th, if given, marks a run of the right edge as a scroll thumb.
+// bottom edge (already styled). th, if given, marks a run of the right edge as a scroll thumb.
 func (a *App) box(lines []string, ow, oh int, title string, focused bool, btn, tag string, th ...thumb) []string {
 	col, tst := a.pal.Dim, lipgloss.NewStyle().Foreground(a.pal.Dim)
 	if focused {
@@ -267,7 +270,7 @@ func (a *App) box(lines []string, ow, oh int, title string, focused bool, btn, t
 	if tag != "" && iw >= lipgloss.Width(tag)+4 {
 		l := (iw - lipgloss.Width(tag) - 2) / 2
 		r := iw - lipgloss.Width(tag) - 2 - l
-		return append(out, edge.Render("╰"+strings.Repeat("─", l)+" ")+gradientText(tag, stops(a.pal)...)+
+		return append(out, edge.Render("╰"+strings.Repeat("─", l)+" ")+tag+
 			edge.Render(" "+strings.Repeat("─", r)+"╯"))
 	}
 	return append(out, edge.Render("╰"+strings.Repeat("─", iw)+"╯"))
@@ -355,6 +358,9 @@ type partHit struct {
 }
 
 func (a *App) bottomBar() string {
+	if a.updCmd != "" { // until the next key, so it can be copied
+		return lipgloss.NewStyle().Foreground(a.pal.Gold).MaxWidth(max(a.w, 1)).Render(a.updCmd)
+	}
 	line, _ := a.bottomLayout()
 	return line
 }
@@ -443,16 +449,39 @@ func (a *App) bottomLayout() (string, []partHit) {
 	}
 	ind := a.focusLabel()
 	iw := lipgloss.Width(ind)
-	hints := ""
-	if !a.state.HideHints {
-		hints = a.hintLine(a.w - plain - 2 - iw - 2)
-	}
 	room := a.w - plain - 2 - iw - 2
-	if room < 10 {
+	// The update offer leads the hints, and stays when they are hidden.
+	lead, leadW := "", 0
+	switch {
+	case a.updating:
+		t := "Downloading " + a.avail + "…"
+		if total := a.updTotal.Load(); total > 0 {
+			t += fmt.Sprintf(" %d%%", a.updDone.Load()*100/total)
+		}
+		lead = lipgloss.NewStyle().Foreground(a.pal.Accent).Render(t)
+	case a.avail != "" && !a.sideShowsUpdate():
+		lead = lipgloss.NewStyle().Foreground(a.pal.Accent).Render("U update to " + a.avail)
+	}
+	if lead != "" {
+		leadW = lipgloss.Width(lead)
+		if room < leadW {
+			lead, leadW = "", 0
+		}
+	}
+	hints := ""
+	if !a.state.HideHints && !a.updating {
+		hints = a.hintLine(room - leadW - min(leadW, 3))
+	}
+	if room < 10 && lead == "" {
 		line := ind + " " + right
 		return padTo(lipgloss.NewStyle().MaxWidth(max(a.w, 1)).Render(line), a.w), shift(iw + 1)
 	}
-	left := ind + "  " + dim.Render(hints)
+	if lead != "" && hints != "" {
+		hints = dim.Render(" · ") + dim.Render(hints)
+	} else {
+		hints = dim.Render(hints)
+	}
+	left := ind + "  " + lead + hints
 	gap := max(a.w-lipgloss.Width(left)-plain+1, 1)
 	return left + strings.Repeat(" ", gap) + right, shift(lipgloss.Width(left) + gap)
 }

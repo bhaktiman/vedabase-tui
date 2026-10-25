@@ -16,6 +16,7 @@ const (
 	noWebPage   = "No web page for this item"
 	webBtnLabel = "↗ vedabase.cc (o)"
 	siteTag     = "vedabase.cc"
+	installCmd  = "curl -fsSL https://github.com/bhaktiman/vedabase-tui/releases/latest/download/install.sh | sh"
 )
 
 // openedMsg is the result of starting the browser.
@@ -127,12 +128,53 @@ func (a *App) webButtonRect() rect {
 }
 
 // siteTagRect is where the sidebar's bottom-edge tag sits on the screen.
+// Only the site name is clickable, not the version after it.
 func (a *App) siteTagRect() (rect, bool) {
 	t, _ := a.paneRects()
 	if !a.framed() || !a.treeVisible() || t.w < len(siteTag)+4 {
 		return rect{}, false
 	}
 	iw := t.w - 2
-	left := (iw - (len(siteTag) + 2)) / 2
+	left := (iw - (a.siteLabel(iw).width() + 2)) / 2
 	return rect{t.x + 1 + left, t.y + t.h - 1, len(siteTag) + 2, 1}, true
+}
+
+// tagLabel is what follows "vedabase.cc" in the sidebar tag: dim is the
+// version, acc the update offer.
+type tagLabel struct{ dim, acc string }
+
+func (l tagLabel) width() int {
+	return lipgloss.Width(siteTag) + lipgloss.Width(l.dim) + lipgloss.Width(l.acc)
+}
+
+// siteLabel is the longest tag that fits an inner width of iw.
+func (a *App) siteLabel(iw int) tagLabel {
+	var opts []tagLabel
+	switch {
+	case a.avail != "":
+		opts = []tagLabel{{" · " + a.avail, " available · U"}, {" · " + a.avail, " · U"}, {"", " · U"}}
+	case a.version != "":
+		opts = []tagLabel{{" · " + a.version, ""}}
+	}
+	for _, o := range opts {
+		if o.width()+4 <= iw {
+			return o
+		}
+	}
+	return tagLabel{}
+}
+
+// siteTagView is the styled sidebar tag for an inner width of iw.
+func (a *App) siteTagView(iw int) string {
+	l := a.siteLabel(iw)
+	return gradientText(siteTag, stops(a.pal)...) +
+		lipgloss.NewStyle().Foreground(a.pal.Dim).Render(l.dim) +
+		lipgloss.NewStyle().Foreground(a.pal.Accent).Render(l.acc)
+}
+
+// sideShowsUpdate reports whether the sidebar tag is on screen with the
+// update offer in it.
+func (a *App) sideShowsUpdate() bool {
+	t, _ := a.paneRects()
+	return a.framed() && a.treeVisible() && !a.state.Zen && a.siteLabel(t.w-2).acc != ""
 }

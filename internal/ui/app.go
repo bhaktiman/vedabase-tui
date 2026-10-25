@@ -38,6 +38,16 @@ type Options struct {
 	SaveState   func(store.State) error
 	Now         func() time.Time
 	Toasts      []ToastMsg // shown first, e.g. startup warnings
+	Version     string     // this build's, shown in the sidebar tag
+	Updater     Updater    // nil: no update check, no U
+}
+
+// Updater finds and installs a newer release.
+type Updater interface {
+	// Available returns the newer release's tag, or "" when there is none.
+	Available(ctx context.Context) (string, error)
+	// Apply downloads tag and replaces the running binary.
+	Apply(ctx context.Context, tag string, progress func(done, total int64)) error
 }
 
 // loadRefresh redraws the startup screen with motion off.
@@ -71,6 +81,15 @@ type App struct {
 	progDone  atomic.Int64
 	progTotal atomic.Int64
 	startup   []ToastMsg
+
+	version  string  // "v0.1.0", or "" when unknown
+	upd      Updater // nil: no update check
+	avail    string  // the newer release's tag, once found
+	updating bool    // Apply is running
+	restart  bool    // the app quit to be started again
+	updCmd   string  // shown in the bottom bar until the next key
+	updDone  atomic.Int64
+	updTotal atomic.Int64
 
 	ref        string
 	node       *library.Node
@@ -120,6 +139,7 @@ func New(o Options) *App {
 		be: o.Backend, cols: o.Collections, settings: o.Settings, state: o.State, save: o.SaveState,
 		pal: render.Default, rend: render.NewRenderer(render.Default),
 		w: 80, h: 24, parts: o.State.Parts, startup: o.Toasts,
+		version: versionLabel(o.Version), upd: o.Updater,
 		prefetched: map[string]bool{}, scr: newScraped(), nowFn: o.Now,
 		tick: func(d time.Duration, msg tea.Msg) tea.Cmd {
 			return tea.Tick(d, func(time.Time) tea.Msg { return msg })
@@ -163,6 +183,9 @@ func (a *App) Init() tea.Cmd {
 	cmds := []tea.Cmd{a.loadLibrary(), a.tick(loadRefresh, loadTickMsg{}), a.fx.Start(Loader, a.now())}
 	for _, t := range a.startup {
 		cmds = append(cmds, a.Toast(t.Text, t.Error))
+	}
+	if a.upd != nil {
+		cmds = append(cmds, a.checkUpdate())
 	}
 	return tea.Batch(cmds...)
 }
@@ -260,6 +283,14 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cmd = tea.Batch(cmd, a.tick(time.Second, cdTickMsg{m.seq}))
 			}
 			return a, cmd
+		}
+	case updateAvailMsg:
+		return a, a.onUpdateAvail(m)
+	case updateDoneMsg:
+		return a, a.onUpdateDone(m)
+	case updateTickMsg:
+		if a.updating {
+			return a, a.tick(loadRefresh, updateTickMsg{})
 		}
 	case progressMsg:
 		a.progDone.Store(m.done)
@@ -546,6 +577,10 @@ func (a *App) quit() tea.Cmd {
 	return tea.Quit
 }
 
+// RestartRequested reports whether the app quit to be started again, after
+// an update replaced the binary.
+func (a *App) RestartRequested() bool { return a.restart }
+
 // openSearch shows the search overlay for the current book.
 func (a *App) openSearch(withInput bool) tea.Cmd {
 	code, title := "", ""
@@ -564,6 +599,7 @@ func (a *App) openSearch(withInput bool) tea.Cmd {
 
 func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 	a.fx.FinishAll()
+	a.updCmd = ""
 	if a.lib != nil && kp.String() != "ctrl+c" {
 		switch {
 		case a.help:
@@ -640,6 +676,8 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 	case "T":
 		a.openThemes()
 		return nil
+	case "U":
+		return a.startUpdate()
 	case "f":
 		if a.focusTree && a.treeVisible() {
 			return a.startFilter()

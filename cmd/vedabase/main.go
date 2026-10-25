@@ -12,6 +12,7 @@ import (
 	"vedabase-tui/internal/service"
 	"vedabase-tui/internal/store"
 	"vedabase-tui/internal/ui"
+	"vedabase-tui/internal/update"
 )
 
 var version = "dev"
@@ -40,6 +41,14 @@ func run() error {
 	}
 	statePath := filepath.Join(paths.State, "state.json")
 
+	// A failed lookup only turns updates off; the reader still works.
+	exe, exeErr := update.Executable()
+	var updater ui.Updater
+	if exeErr == nil {
+		update.Cleanup(exe)
+		updater = &update.Updater{Repo: "bhaktiman/vedabase-tui", Current: version, Exe: exe}
+	}
+
 	cols, warning, err := collections.Open(filepath.Join(paths.Data, "collections.json"))
 	switch {
 	case err != nil:
@@ -61,7 +70,14 @@ func run() error {
 		State:       store.LoadState(statePath),
 		SaveState:   func(s store.State) error { return store.SaveState(statePath, s) },
 		Toasts:      toasts,
+		Version:     version,
+		Updater:     updater,
 	})
-	_, err = tea.NewProgram(app).Run()
-	return err
+	if _, err := tea.NewProgram(app).Run(); err != nil {
+		return err
+	}
+	if app.RestartRequested() {
+		return update.Restart(exe)
+	}
+	return nil
 }
