@@ -33,6 +33,14 @@ type fakeBackend struct {
 	itemCall []string
 	libCalls int
 	refresh  int
+
+	searchCalls []searchCall
+	searchErr   error
+}
+
+type searchCall struct {
+	q, book string
+	page    int
 }
 
 func newFake(t *testing.T) *fakeBackend {
@@ -100,8 +108,31 @@ func (b *fakeBackend) RefreshLibrary(ctx context.Context) (*library.Library, err
 	return b.lib, nil
 }
 
+// Search serves a two-page result set: page 1 has bg/2/13 and bg/2/14, page 2
+// has bg/2/15.
 func (b *fakeBackend) Search(ctx context.Context, q, book string, page int) (api.SearchPage, error) {
-	return api.SearchPage{}, nil
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.searchCalls = append(b.searchCalls, searchCall{q, book, page})
+	if b.searchErr != nil {
+		return api.SearchPage{}, b.searchErr
+	}
+	res := func(ref string) api.SearchResult {
+		return api.SearchResult{Ref: ref, Book: "bg", BookTitle: "Bhagavad-gītā As It Is",
+			Translation:    "Translation line of " + ref,
+			SnippetPurport: "the <mark>" + q + "</mark> is eternal in " + ref}
+	}
+	if page == 1 {
+		return api.SearchPage{Query: q, Book: book, Page: 1, HasMore: true,
+			Results: []api.SearchResult{res("bg/2/13"), res("bg/2/14")}}, nil
+	}
+	return api.SearchPage{Query: q, Book: book, Page: page, Results: []api.SearchResult{res("bg/2/15")}}, nil
+}
+
+func (b *fakeBackend) searches() []searchCall {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return append([]searchCall(nil), b.searchCalls...)
 }
 
 func (b *fakeBackend) Page(ctx context.Context, url string) ([]byte, error) { return nil, nil }

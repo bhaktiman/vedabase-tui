@@ -29,6 +29,7 @@ func (a *App) readerW() int {
 func (a *App) layout() {
 	a.tree.SetSize(a.treeW(), a.bodyH())
 	a.reader.SetSize(a.readerW(), a.bodyH())
+	a.search.SetSize(a.w, a.h)
 }
 
 // relayout re-renders at once when the reader's width changed.
@@ -69,6 +70,9 @@ func (a *App) content() string {
 	if a.lib == nil {
 		return a.startupView()
 	}
+	if a.search.visible {
+		return a.searchView()
+	}
 	body := a.reader.Lines()
 	if a.status != "" && !a.hasItem {
 		st := lipgloss.NewStyle().Foreground(a.pal.Dim)
@@ -99,6 +103,16 @@ func (a *App) content() string {
 		}
 	}
 	return strings.Join(append(append([]string{a.topBar()}, body...), a.bottomBar()), "\n")
+}
+
+// searchView centres the search box on the screen, toasts still at the bottom.
+func (a *App) searchView() string {
+	lines := strings.Split(lipgloss.Place(a.w, a.h, lipgloss.Center, lipgloss.Center, a.search.View()), "\n")
+	if t := a.toastView(a.w); t != "" && len(lines) > 0 {
+		last := len(lines) - 1
+		lines[last] = padTo("", max(a.w-lipgloss.Width(t)-1, 0)) + " " + t
+	}
+	return strings.Join(lines, "\n")
 }
 
 func (a *App) startupView() string {
@@ -155,7 +169,7 @@ func (a *App) bottomBar() string {
 		plain += len(p.name) + 1
 	}
 	right := strings.Join(ps, " ")
-	hints := "tab focus · h/l prev/next · t tree · q quit"
+	hints := "tab focus · h/l prev/next · / search · t tree · q quit"
 	room := a.w - plain - 2
 	if room < 10 {
 		return padTo(lipgloss.NewStyle().MaxWidth(max(a.w, 1)).Render(right), a.w)

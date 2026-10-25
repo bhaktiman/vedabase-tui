@@ -71,6 +71,8 @@ type App struct {
 	restoreRef string // first render of this ref scrolls to restore
 	restore    int
 
+	search Search
+
 	focusTree  bool
 	seq        keySeq
 	resizeSeq  int
@@ -93,6 +95,8 @@ func New(o Options) *App {
 	if a.parts == (api.Parts{}) { // a state file with no parts saved: show everything
 		a.parts = api.AllParts()
 	}
+	a.search = NewSearch(a.pal)
+	a.search.be = o.Backend
 	a.layout()
 	return a
 }
@@ -159,6 +163,11 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.err != nil {
 			delete(a.prefetched, m.ref) // let a later display try again
 		}
+	case searchResultsMsg:
+		return a, a.search.Update(m)
+	case searchOpenMsg:
+		a.focusTree = false
+		return a, a.Open(m.ref)
 	case OpenMsg:
 		a.focusTree = false
 		return a, a.Open(m.Node.Ref)
@@ -358,7 +367,23 @@ func (a *App) quit() tea.Cmd {
 	return tea.Quit
 }
 
+// openSearch shows the search overlay for the current book.
+func (a *App) openSearch(withInput bool) tea.Cmd {
+	code, title := "", ""
+	if a.node != nil {
+		root := a.node
+		for root.Parent != nil {
+			root = root.Parent
+		}
+		code, title = root.Book, root.Label()
+	}
+	return a.search.Show(code, title, withInput)
+}
+
 func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
+	if a.lib != nil && a.search.visible && kp.String() != "ctrl+c" {
+		return a.search.Update(kp)
+	}
 	k := a.seq.Resolve(kp)
 	switch k {
 	case "ctrl+c", "q":
@@ -380,6 +405,16 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 		return nil
 	case "1", "2", "3", "4", "5":
 		return a.togglePart(k)
+	case "/":
+		return a.openSearch(true)
+	case "n":
+		return a.search.Next(1)
+	case "N":
+		return a.search.Next(-1)
+	case "esc":
+		if a.search.Live() {
+			return a.openSearch(false)
+		}
 	}
 	if a.focusTree && a.treeVisible() {
 		var cmd tea.Cmd
