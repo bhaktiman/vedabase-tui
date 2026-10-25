@@ -247,9 +247,9 @@ func (p *Picker) Wheel(d int) {
 
 func (p Picker) View() string {
 	rows := append(append([]string(nil), p.names...), newCollectionRow)
-	sort := "tab A–Z"
+	sort := "recent first (tab: A–Z)" // says the order in use, then what Tab gives
 	if p.alpha {
-		sort = "tab recent"
+		sort = "A–Z (tab: recent first)"
 	}
 	extra, hint := "", "enter choose · j/k move · "+sort+" · esc close"
 	if p.typing {

@@ -216,14 +216,14 @@ func TestPickerOrder(t *testing.T) {
 	if want := []string{"Beta", "Alpha", "Gamma"}; !slices.Equal(a.picker.names, want) {
 		t.Fatalf("recent order %v, want %v", a.picker.names, want)
 	}
-	if !strings.Contains(plain(a), "tab A–Z") {
+	if !strings.Contains(plain(a), "recent first (tab: A–Z)") {
 		t.Fatal("no sort hint")
 	}
 	drive(a, key("j"), key("tab")) // on Alpha
 	if want := []string{"Alpha", "Beta", "Gamma"}; !slices.Equal(a.picker.names, want) || a.picker.cursor != 0 {
 		t.Fatalf("A–Z order %v cursor %d", a.picker.names, a.picker.cursor)
 	}
-	if !strings.Contains(plain(a), "tab recent") {
+	if !strings.Contains(plain(a), "A–Z (tab: recent first)") {
 		t.Fatal("no hint back to recent")
 	}
 	drive(a, key("esc"), key("s")) // the choice holds while the app runs
