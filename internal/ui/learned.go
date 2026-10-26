@@ -11,26 +11,22 @@ import (
 
 	"vedabase-tui/internal/api"
 	"vedabase-tui/internal/library"
-	"vedabase-tui/internal/scrape"
 )
 
 const (
-	siteURL     = "https://vedabase.cc"
-	lettersURL  = siteURL + "/en/library/letters/"
 	yearRefPfx  = "letters#year/"
 	pageTimeout = 30 * time.Second
 )
 
-// Results of background scrapes. They are applied in Update, never in the Cmd.
+// Results of background fetches. They are applied in Update, never in the Cmd.
 type (
-	titlesMsg struct {
-		parent string
-		titles map[string]string
+	yearsMsg struct {
+		years []api.YearCount
+		err   error
 	}
-	yearsMsg    struct{ years []scrape.YearCount }
 	yearPageMsg struct {
 		year, page int
-		entries    []scrape.LetterEntry
+		entries    []api.ListingEntry
 		more       bool
 	}
 )
@@ -43,80 +39,17 @@ type yearPages struct {
 	titles  map[string]string
 }
 
-// scraped remembers what the site's HTML told us, so it survives the library
-// being replaced by a background refresh.
-type scraped struct {
-	asked     map[string]bool   // containers whose titles were requested this session
+// learned remembers what the API told us beyond the sitemap, so it survives
+// the library being replaced by a background refresh.
+type learned struct {
 	titles    map[string]string // node ref -> title
-	years     []scrape.YearCount
+	years     []api.YearCount
 	yearsAsk  bool
 	yearPages map[int]*yearPages
 }
 
-func newScraped() scraped {
-	return scraped{asked: map[string]bool{}, titles: map[string]string{}, yearPages: map[int]*yearPages{}}
-}
-
-// titlesCmd fetches the child titles of a container the first time it is
-// needed. Only containers of containers (a book, a canto, a līlā) are listed
-// with titles; a chapter's verses are not.
-func (a *App) titlesCmd(n *library.Node) tea.Cmd {
-	if n == nil || n.Leaf || strings.Contains(n.Ref, "#") || n.Book == "letters" || n.Book == "transcripts" {
-		return nil
-	}
-	if a.scr.asked[n.Ref] {
-		return nil
-	}
-	if _, ok := a.tocs[n.Book]; ok { // the API's contents already name every chapter
-		return nil
-	}
-	hasContainer := false
-	for _, c := range n.Children {
-		if !c.Leaf {
-			hasContainer = true
-		}
-	}
-	if !hasContainer {
-		return nil
-	}
-	a.scr.asked[n.Ref] = true
-	ref, be := n.Ref, a.be
-	return func() tea.Msg {
-		ctx, cancel := context.WithTimeout(context.Background(), pageTimeout)
-		defer cancel()
-		page, err := be.Page(ctx, siteURL+"/"+ref+"/")
-		if err != nil {
-			return titlesMsg{parent: ref}
-		}
-		return titlesMsg{parent: ref, titles: scrape.ChapterTitles(page, ref)}
-	}
-}
-
-// ancestorTitlesCmd fetches titles for every container above n.
-func (a *App) ancestorTitlesCmd(n *library.Node) tea.Cmd {
-	var cmds []tea.Cmd
-	for p := n; p != nil; p = p.Parent {
-		if c := a.titlesCmd(p); c != nil {
-			cmds = append(cmds, c)
-		}
-	}
-	return tea.Batch(cmds...)
-}
-
-func (a *App) onTitles(m titlesMsg) tea.Cmd {
-	if len(m.titles) == 0 {
-		return nil
-	}
-	if n := a.lib.Find(m.parent); n != nil {
-		if _, ok := a.tocs[n.Book]; ok { // the contents arrived while this was on its way
-			return nil
-		}
-	}
-	for r, t := range m.titles {
-		a.scr.titles[r] = t
-	}
-	a.applyScraped()
-	return nil
+func newLearned() learned {
+	return learned{titles: map[string]string{}, yearPages: map[int]*yearPages{}}
 }
 
 // onExpandLazy loads the children of a Lazy node: the year list, or a year.
@@ -126,19 +59,16 @@ func (a *App) onExpandLazy(n *library.Node) tea.Cmd {
 	}
 	switch {
 	case n.Ref == "letters#year":
-		if a.scr.yearsAsk {
+		if a.learn.yearsAsk {
 			return nil
 		}
-		a.scr.yearsAsk = true
+		a.learn.yearsAsk = true
 		be := a.be
 		return func() tea.Msg {
 			ctx, cancel := context.WithTimeout(context.Background(), pageTimeout)
 			defer cancel()
-			page, err := be.Page(ctx, lettersURL)
-			if err != nil {
-				return yearsMsg{}
-			}
-			return yearsMsg{years: scrape.LetterYears(page)}
+			years, _, err := be.LetterYears(ctx) // undated letters cannot be listed: no filter for them
+			return yearsMsg{years: years, err: err}
 		}
 	case strings.HasPrefix(n.Ref, yearRefPfx):
 		y, err := strconv.Atoi(n.Seg)
@@ -151,46 +81,41 @@ func (a *App) onExpandLazy(n *library.Node) tea.Cmd {
 }
 
 func (a *App) onYears(m yearsMsg) tea.Cmd {
-	if len(m.years) == 0 {
-		a.scr.yearsAsk = false // let a later expand retry
+	if m.err != nil || len(m.years) == 0 {
+		a.learn.yearsAsk = false // let a later expand retry
 		return nil
 	}
-	a.scr.years = m.years
-	a.applyScraped()
+	a.learn.years = m.years
+	a.applyLearned()
 	return nil
 }
 
 // yearPageCmd fetches the next unloaded page of a year, if there is one and
 // none is on its way.
 func (a *App) yearPageCmd(y int) tea.Cmd {
-	yp := a.scr.yearPages[y]
+	yp := a.learn.yearPages[y]
 	if yp == nil {
 		yp = &yearPages{more: true, titles: map[string]string{}}
-		a.scr.yearPages[y] = yp
+		a.learn.yearPages[y] = yp
 	}
 	if !yp.more || yp.loading {
 		return nil
 	}
 	yp.loading = true
 	page, be := yp.loaded+1, a.be
-	url := fmt.Sprintf("%s?year=%d", lettersURL, y)
-	if page > 1 {
-		url += fmt.Sprintf("&page=%d", page)
-	}
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), pageTimeout)
 		defer cancel()
-		b, err := be.Page(ctx, url)
+		l, err := be.LetterYearPage(ctx, y, page)
 		if err != nil {
 			return yearPageMsg{year: y, page: page}
 		}
-		es, more := scrape.LetterYearPage(b)
-		return yearPageMsg{year: y, page: page, entries: es, more: more}
+		return yearPageMsg{year: y, page: page, entries: l.Items, more: l.HasMore}
 	}
 }
 
 func (a *App) onYearPage(m yearPageMsg) tea.Cmd {
-	yp := a.scr.yearPages[m.year]
+	yp := a.learn.yearPages[m.year]
 	if yp == nil {
 		return nil
 	}
@@ -204,7 +129,7 @@ func (a *App) onYearPage(m yearPageMsg) tea.Cmd {
 		yp.refs = append(yp.refs, e.Ref)
 		yp.titles[e.Ref] = api.SanitizeText(e.Title)
 	}
-	a.applyScraped()
+	a.applyLearned()
 	return nil
 }
 
@@ -226,16 +151,36 @@ func (a *App) nextYearPage() tea.Cmd {
 	return a.yearPageCmd(y)
 }
 
-// applyScraped writes everything scraped so far onto the current library and
+// yearLetter is the By-year row for ref, looked for in n's year first, so a
+// letter read from By year stays under By year.
+func (a *App) yearLetter(n *library.Node, ref string) *library.Node {
+	if a.lib == nil || n == nil || n.Parent == nil || !strings.HasPrefix(n.Parent.Ref, yearRefPfx) {
+		return nil
+	}
+	groups := []*library.Node{n.Parent}
+	if root := a.lib.Find("letters#year"); root != nil {
+		groups = append(groups, root.Children...)
+	}
+	for _, g := range groups {
+		for _, c := range g.Children {
+			if c.Ref == ref {
+				return c
+			}
+		}
+	}
+	return nil
+}
+
+// applyLearned writes everything learned so far onto the current library and
 // refreshes the tree.
-func (a *App) applyScraped() {
+func (a *App) applyLearned() {
 	if a.lib == nil {
 		return
 	}
-	for _, yc := range a.scr.years {
+	for _, yc := range a.learn.years {
 		var refs []string
 		var titles map[string]string
-		if yp := a.scr.yearPages[yc.Year]; yp != nil {
+		if yp := a.learn.yearPages[yc.Year]; yp != nil {
 			refs, titles = yp.refs, yp.titles
 		}
 		if g := a.lib.AddYearGroup(yc.Year, refs, titles); g != nil {
@@ -243,7 +188,7 @@ func (a *App) applyScraped() {
 			g.Title = fmt.Sprintf("%d (%d)", yc.Year, yc.Count)
 		}
 	}
-	for r, t := range a.scr.titles {
+	for r, t := range a.learn.titles {
 		if n := a.lib.Find(r); n != nil {
 			n.Title = t
 		}
@@ -254,7 +199,7 @@ func (a *App) applyScraped() {
 // setItemTitle names a front-matter page, a document or a flat book's text
 // from its own translation, unless a title is already known.
 func (a *App) setItemTitle(n *library.Node, it api.Item) {
-	if n == nil || !n.Leaf || n.Title != "" || a.scr.titles[n.Ref] != "" {
+	if n == nil || !n.Leaf || n.Title != "" || a.learn.titles[n.Ref] != "" {
 		return
 	}
 	front := len(n.Seg) == 2 && n.Seg[0] == '0' && n.Seg[1] >= 'a' && n.Seg[1] <= 'z'
@@ -266,6 +211,6 @@ func (a *App) setItemTitle(n *library.Node, it api.Item) {
 	if t == "" || strings.ContainsAny(t, "*_#>") {
 		return
 	}
-	a.scr.titles[n.Ref] = t
-	a.applyScraped()
+	a.learn.titles[n.Ref] = t
+	a.applyLearned()
 }

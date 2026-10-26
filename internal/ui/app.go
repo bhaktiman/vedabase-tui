@@ -27,7 +27,8 @@ type Backend interface {
 	Library(ctx context.Context, progress func(done, total int64)) (*library.Library, bool, error)
 	RefreshLibrary(ctx context.Context) (*library.Library, error)
 	Search(ctx context.Context, q, book string, page int, lang string) (api.SearchPage, error)
-	Page(ctx context.Context, url string) ([]byte, error)
+	LetterYears(ctx context.Context) (years []api.YearCount, undated int, err error)
+	LetterYearPage(ctx context.Context, year, page int) (api.Listing, error)
 	TOC(ctx context.Context, code, lang string) (api.TOC, error)
 	// CachedTOC reads the stored contents from disk only.
 	CachedTOC(code, lang string) (t api.TOC, fresh, ok bool)
@@ -135,7 +136,7 @@ type App struct {
 	seq          keySeq
 	resizeSeq    int
 	prefetched   map[string]bool
-	scr          scraped
+	learn        learned
 	tocs         map[string]api.TOC // contents known for a.lang, by book code
 	tocPending   map[string]bool    // books still to fetch this session
 	tocFront     []string           // books the reader expanded, newest first
@@ -156,7 +157,7 @@ func New(o Options) *App {
 		pal: render.Default, rend: render.NewRenderer(render.Default),
 		w: 80, h: 24, parts: o.State.Parts, startup: o.Toasts,
 		version: versionLabel(o.Version), upd: o.Updater, installDir: o.InstallDir,
-		prefetched: map[string]bool{}, scr: newScraped(), tocs: map[string]api.TOC{}, tocPending: map[string]bool{}, nowFn: o.Now,
+		prefetched: map[string]bool{}, learn: newLearned(), tocs: map[string]api.TOC{}, tocPending: map[string]bool{}, nowFn: o.Now,
 		tick: func(d time.Duration, msg tea.Msg) tea.Cmd {
 			return tea.Tick(d, func(time.Time) tea.Msg { return msg })
 		},
@@ -270,8 +271,6 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmd = tea.Batch(cmd, a.startCountdown(countdown{kind: cdSearch, gen: gen, total: d}))
 		}
 		return a, cmd
-	case titlesMsg:
-		return a, a.onTitles(m)
 	case tocMsg:
 		return a, a.onTOC(m)
 	case ExpandLazyMsg:
@@ -356,7 +355,7 @@ func (a *App) onLibrary(m libraryMsg) tea.Cmd {
 		a.reapplyTOCs()
 		a.tree.SetLibrary(m.lib)
 		a.refindNode()   // nodes are new objects in the new library
-		a.applyScraped() // the new tree has none of the scraped titles
+		a.applyLearned() // the new tree has none of the learned titles
 	}
 	return tea.Batch(cmds...)
 }
@@ -437,11 +436,21 @@ func (a *App) openStart() tea.Cmd {
 	return a.Open(n.Ref)
 }
 
+// keepsRow reports whether a node reached from the tree stays the current
+// node instead of the ref's own: collection items and By-year letters.
+func (a *App) keepsRow(n *library.Node) bool {
+	if _, ok := library.InCollection(n); ok {
+		return true
+	}
+	return n.Parent != nil && strings.HasPrefix(n.Parent.Ref, yearRefPfx)
+}
+
 // Open makes ref the current item and loads it.
 func (a *App) Open(ref string) tea.Cmd { return a.open(ref, nil) }
 
-// open is Open for an item reached through from, a collection item node: the
-// reader then belongs to that collection (breadcrumb, h/l order).
+// open is Open for an item reached through from, a collection item or a
+// By-year letter: the reader then belongs to that group (breadcrumb, h/l
+// order, tree cursor).
 func (a *App) open(ref string, from *library.Node) tea.Cmd {
 	a.ref, a.hasItem = ref, false
 	a.reader.Clear()
@@ -450,7 +459,7 @@ func (a *App) open(ref string, from *library.Node) tea.Cmd {
 	}
 	if a.lib != nil {
 		a.node = a.lib.Find(ref)
-		if _, ok := library.InCollection(from); ok && from.Ref == ref {
+		if from != nil && from.Ref == ref && a.keepsRow(from) {
 			a.node = from
 		}
 		a.tree.Reveal(a.node)
@@ -471,7 +480,7 @@ func (a *App) open(ref string, from *library.Node) tea.Cmd {
 		a.status = ""
 	}
 	be, lang := a.be, a.lang
-	return tea.Batch(delay, a.ancestorTitlesCmd(a.node), func() tea.Msg {
+	return tea.Batch(delay, func() tea.Msg {
 		it, _, err := be.Item(context.Background(), ref, lang)
 		return itemLoadedMsg{ref: ref, lang: lang, item: it, err: err}
 	})
@@ -584,6 +593,9 @@ func (a *App) step(d int) tea.Cmd {
 		return nil
 	}
 	if r := a.siteRef(d); r != "" {
+		if n := a.yearLetter(a.node, r); n != nil {
+			return a.open(r, n)
+		}
 		return a.Open(r)
 	}
 	if a.node == nil {
@@ -808,7 +820,7 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 }
 
 // treeUpdate applies f to the tree and does what a change there calls for:
-// titles for the newly opened branch sel (the node f acts on), the next page
+// contents for the newly opened book sel (the node f acts on), the next page
 // of letters.
 func (a *App) treeUpdate(sel *library.Node, f func(Tree) (Tree, tea.Cmd)) tea.Cmd {
 	was := sel != nil && a.tree.expanded[sel.Ref]
@@ -816,7 +828,6 @@ func (a *App) treeUpdate(sel *library.Node, f func(Tree) (Tree, tea.Cmd)) tea.Cm
 	a.tree, cmd = f(a.tree)
 	cmds := []tea.Cmd{cmd, a.nextYearPage()}
 	if sel != nil && !was && a.tree.expanded[sel.Ref] {
-		cmds = append(cmds, a.titlesCmd(sel))
 		a.bumpTOC(sel)
 		cmds = append(cmds, a.nextTOC())
 	}

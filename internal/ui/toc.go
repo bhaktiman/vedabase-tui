@@ -114,12 +114,12 @@ func (a *App) onTOC(m tocMsg) tea.Cmd {
 	if m.lang == a.lang && m.err == nil && a.lib != nil && a.lib.ApplyTOC(m.code, m.toc) {
 		a.tocs[m.code] = m.toc
 		// the TOC's titles win over anything scraped for this book
-		for r := range a.scr.titles {
+		for r := range a.learn.titles {
 			if r == m.code || strings.HasPrefix(r, m.code+"/") {
-				delete(a.scr.titles, r)
+				delete(a.learn.titles, r)
 			}
 		}
-		a.applyScraped()
+		a.applyLearned()
 		a.refindNode()
 	}
 	return a.nextTOC()

@@ -214,20 +214,6 @@ func TestTOCSurvivesLibraryRefresh(t *testing.T) {
 	}
 }
 
-func TestNoScrapingForBooksWithATOC(t *testing.T) {
-	be := newFake(t)
-	be.scrapeFixtures()
-	be.cachedTOC = map[string]api.TOC{"bg": smallBG(true)}
-	be.tocFresh = true
-	a := bootWith(t, be, "bg/2/13")
-	a.focusTree = true
-	a.tree.Reveal(a.lib.Find("bg"))
-	drive(a, key("h"), key("l"))
-	if got := be.pagesCalled(); len(got) != 0 {
-		t.Errorf("scraped %v", got)
-	}
-}
-
 func TestFailedTOCDoesNotStopTheQueue(t *testing.T) {
 	be := newFake(t)
 	be.tocs = map[string]api.TOC{"cc": loadTOC(t, "toc-cc-trim.json")}

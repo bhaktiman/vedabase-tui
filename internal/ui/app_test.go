@@ -35,9 +35,10 @@ type fakeBackend struct {
 	libCalls int
 	refresh  int
 
-	pages     map[string][]byte // Page(url) fixtures
-	pageErr   error
-	pageCalls []string
+	yearList  []api.YearCount // LetterYears serves these
+	yearsErr  error
+	yearPages map[[2]int]api.Listing // LetterYearPage(year, page); a missing page fails
+	letterReq []string               // "years" and "<year>/<page>", in call order
 
 	searchCalls []searchCall
 	searchErr   error
@@ -175,37 +176,51 @@ func (b *fakeBackend) searches() []searchCall {
 	return append([]searchCall(nil), b.searchCalls...)
 }
 
-func (b *fakeBackend) Page(ctx context.Context, url string) ([]byte, error) {
+func (b *fakeBackend) LetterYears(ctx context.Context) ([]api.YearCount, int, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	b.pageCalls = append(b.pageCalls, url)
-	if b.pageErr != nil {
-		return nil, b.pageErr
+	b.letterReq = append(b.letterReq, "years")
+	if b.yearsErr != nil {
+		return nil, 0, b.yearsErr
 	}
-	return b.pages[url], nil
+	return b.yearList, 57, nil
 }
 
-func (b *fakeBackend) pagesCalled() []string {
+func (b *fakeBackend) LetterYearPage(ctx context.Context, year, page int) (api.Listing, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	return append([]string(nil), b.pageCalls...)
+	b.letterReq = append(b.letterReq, fmt.Sprintf("%d/%d", year, page))
+	l, ok := b.yearPages[[2]int{year, page}]
+	if !ok {
+		return api.Listing{}, errors.New("no such page")
+	}
+	return l, nil
 }
 
-// scrapeFixtures serves the recorded site pages.
-func (b *fakeBackend) scrapeFixtures() {
-	b.t.Helper()
-	b.pages = map[string][]byte{}
-	for url, f := range map[string]string{
-		"https://vedabase.cc/bg/":                                  "bg.html",
-		"https://vedabase.cc/en/library/letters/":                  "letters.html",
-		"https://vedabase.cc/en/library/letters/?year=1967":        "letters-1967-p1.html",
-		"https://vedabase.cc/en/library/letters/?year=1967&page=2": "letters-1967-p1.html",
-	} {
-		data, err := os.ReadFile("../scrape/testdata/" + f)
-		if err != nil {
-			b.t.Fatal(err)
-		}
-		b.pages[url] = data
+func (b *fakeBackend) lettersCalled() []string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return append([]string(nil), b.letterReq...)
+}
+
+// lettersFixtures serves 1967 as two pages: 20 letters, then 5 more. The
+// first two and the last are in the sitemap's By-recipient list too.
+func (b *fakeBackend) lettersFixtures() {
+	b.yearList = []api.YearCount{{Year: 1966, Count: 1}, {Year: 1967, Count: 25}}
+	entry := func(ref, title string) api.ListingEntry {
+		return api.ListingEntry{Ref: ref, Title: title, IsoDate: "1967-01-01", Year: 1967}
+	}
+	p1 := []api.ListingEntry{entry("letters/letter-to-aatie", "Letter to: Aatie"), entry("letters/letter-to-abhirama", "Letter to: Abhirama")}
+	for i := range 18 {
+		p1 = append(p1, entry(fmt.Sprintf("letters/letter-to-x%d", i), fmt.Sprintf("Letter to: X%d", i)))
+	}
+	var p2 []api.ListingEntry
+	for i := range 5 {
+		p2 = append(p2, entry(fmt.Sprintf("letters/letter-to-y%d", i), fmt.Sprintf("Letter to: Y%d", i)))
+	}
+	b.yearPages = map[[2]int]api.Listing{
+		{1967, 1}: {Total: 25, Page: 1, PerPage: 100, HasMore: true, Items: p1},
+		{1967, 2}: {Total: 25, Page: 2, PerPage: 100, Items: p2},
 	}
 }
 
