@@ -1,32 +1,27 @@
 # Progress
 
-## Resume here — 2026-10-25 15:30
+## Resume here — 2026-10-26 13:55
 
-**Published:** public at https://github.com/bhaktiman/vedabase-tui. `main` and `feat/vedabase-tui` point at the same commit and both are pushed. Latest release is **v0.1.1**, which has the curl installer, binaries for Linux, macOS and Windows, and `checksums.txt`. Race suite green; working tree clean.
+**Branch `feat/api-features`** (from `feat/vedabase-tui` @ b74c959, not pushed): uses the seven new vedabase.cc API features (maintainer's reply 2026-10-26). Race suite green; both Opus reviews approved (phases 0–2 after one fix round; phases 3–4 with minors); tmux smoke run passed.
 
-**This session:**
-- **History:** rewritten so all commits are by bhaktiman.
-- **Repo setup:** MIT license, an in-depth README with a screenshot and badges, and a one-line curl install (works in WSL too).
-- **Release tooling:** `make release VERSION=vX.Y.Z`, then `gh release create` (steps in `PROGRESS.local.md`).
-- **In-app updates:** the sidebar tag shows the version, the app checks GitHub on launch, and `U` swaps the binary and restarts. The update code passed an Opus review after one fix round, and I tested it live from v0.1.0 to v0.1.1.
+**What's in it:**
+- Phase 0: new fields (prev/next, references, iso_date, recipients, audio_url, address); raw per-language item cache `items-v2/<lang>/`, old `items/` served read-only when a fetch fails; letter cleanup only for old-format letters.
+- Phase 1: `h`/`l` follow the site's prev/next; `[[ref|label]]` shows as the label; O4 (Tab re-runs the query) and O1 (transport timeouts) fixed.
+- Phase 2: book contents from `/books/{code}/toc` (cached a day, background queue under 10/min); Letters › By year from `/letters`; HTML scraping removed; O3 fixed.
+- Phase 3: references underlined and clickable; `f` shows Vimium-style key labels; Backspace/`[` back, `]` forward.
+- Phase 4: languages en/es/pt/hi/ru via the `EN ▾` tag in the sidebar's top edge or `L`; books missing a language are dimmed `· not in XX` and show a note, never English.
+
+**Next action:** ask the user to release v0.2.0 (merge `feat/api-features` into `feat/vedabase-tui` and `main`, `make release`, steps in `PROGRESS.local.md`). Remind them: the maintainer asked apps to credit vedabase.cc (README credit line not added; user didn't pick it).
+
+**Out of scope, future:** a terminal audio player for lectures (via mpv) and "Lectures on this verse" (index built from lecture titles; maybe ask the maintainer for a verse → lectures field). Collapse button not wanted.
+
+**Deferred minors:** ledger `.superpowers/sdd/2026-10-26-api-features/progress.md` (review 1 #7, #10; review 2 #3, #5, #8, #9, #10). Older ones: `.superpowers/sdd/2026-10-25-vedabase-tui/progress.md`.
 
 **Identity, release steps, backup:** in git-ignored `PROGRESS.local.md` (read it too).
 
-**Next action:** ask the user the three still-open questions below, then build what they approve.
-
-**Waiting on the user** (carried over, not raised this session):
-1. **Letter footer junk.** API letters end with the site's prev/next links glued on, e.g. `…ACBS/hsLetter to: G. L. Kapoor…` (`letters/letter-to-lokanatha-2`). Proposed: strip the trailing `Letter to: …` and the `ACBS/xx` initials in `api.Clean`.
-2. **Collapse button.** Proposed `⊟ collapse (z)` in the sidebar's top border, plus a `z collapse` hint. Awaiting yes.
-3. **Five smoke-run fixes:**
-   - O5: overlays over the dimmed app
-   - O3: Letters › By year jumps to By recipient
-   - O7: duplicate search snippet
-   - O4: Tab in search doesn't re-run the query
-   - O1: offline uncached load waits 8–30 s
-
-**Deferred minors:**
+**Older deferred minors:**
 - **Update review:** 9 (the 3-minute timeout covers the whole download), 11 (`hash *file` checksum lines), 12 (the toast queue is cleared, the progress pair isn't atomic).
 - **Earlier:** listed in the ledger `.superpowers/sdd/2026-10-25-vedabase-tui/progress.md`, which is git-ignored and also holds the briefs and reports.
 - **Stale hashes:** the commit hashes in that ledger predate the history rewrite.
 
-**Docs:** spec `docs/superpowers/specs/2026-10-25-vedabase-tui-design.md`, plan `docs/superpowers/plans/2026-10-25-vedabase-tui.md`. Implementer briefs must say: tests first, no `git stash`, stub the App opener in UI tests, and the commit trailer is Claude Opus 5.5.
+**Docs:** specs `docs/superpowers/specs/2026-10-25-vedabase-tui-design.md` and `…/2026-10-26-api-v1-features-design.md`; plans in `docs/superpowers/plans/`. Implementer briefs must say: tests first, no `git stash`, stub the App opener in UI tests, and the commit trailer is Claude Opus 5.5.
