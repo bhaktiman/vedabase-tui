@@ -29,6 +29,7 @@ type Client struct {
 	ua     string
 	verse  *rate.Limiter
 	search *rate.Limiter
+	toc    *rate.Limiter
 	// RetryDelay is the pause before the single retry of a 5xx response.
 	RetryDelay time.Duration
 }
@@ -45,6 +46,7 @@ func NewClient(base, userAgent string, hc *http.Client) *Client {
 		ua:         userAgent,
 		verse:      rate.NewLimiter(rate.Every(time.Minute/100), 5),
 		search:     rate.NewLimiter(rate.Every(time.Minute/25), 5),
+		toc:        rate.NewLimiter(rate.Every(7*time.Second), 2),
 		RetryDelay: 500 * time.Millisecond,
 	}
 }
@@ -95,6 +97,38 @@ func (c *Client) Search(ctx context.Context, q, book string, page int, lang stri
 	var sp SearchPage
 	err := c.getJSON(ctx, c.search, c.base+"/api/v1/search?"+v.Encode(), &sp)
 	return sp, err
+}
+
+// TOC fetches a book's table of contents. The server allows about 10 of these
+// a minute, so they have a limiter of their own.
+func (c *Client) TOC(ctx context.Context, code, lang string) (TOC, error) {
+	var t TOC
+	err := c.getJSON(ctx, c.toc, c.base+"/api/v1/books/"+url.PathEscape(code)+"/toc?lang="+url.QueryEscape(lang), &t)
+	t.sanitize()
+	return t, err
+}
+
+// Letters lists letters (English only). year <= 0 means all years.
+func (c *Client) Letters(ctx context.Context, year, page, perPage int) (Listing, error) {
+	return c.listing(ctx, "letters", year, page, perPage)
+}
+
+// Transcripts lists lecture transcripts, with the same shape as Letters.
+func (c *Client) Transcripts(ctx context.Context, year, page, perPage int) (Listing, error) {
+	return c.listing(ctx, "transcripts", year, page, perPage)
+}
+
+func (c *Client) listing(ctx context.Context, kind string, year, page, perPage int) (Listing, error) {
+	v := url.Values{}
+	if year > 0 {
+		v.Set("year", strconv.Itoa(year))
+	}
+	v.Set("page", strconv.Itoa(page))
+	v.Set("per_page", strconv.Itoa(perPage))
+	var l Listing
+	err := c.getJSON(ctx, c.verse, c.base+"/api/v1/"+kind+"?"+v.Encode(), &l)
+	l.sanitize()
+	return l, err
 }
 
 // Fetch downloads an absolute URL (site page or sitemap). progress may be nil;

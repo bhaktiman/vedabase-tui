@@ -115,3 +115,72 @@ func IsNotFound(err error) bool {
 	var ae *APIError
 	return errors.As(err, &ae) && (ae.Status == 404 || ae.Code == "not_found")
 }
+
+// TOC is a book's table of contents in site order.
+type TOC struct {
+	Book     string    `json:"book"`
+	Lang     string    `json:"lang"`
+	Title    string    `json:"title"`
+	Children []TOCNode `json:"children,omitempty"`
+}
+
+// TOCNode is one entry: a container (Title, Children) or a leaf (Label, and
+// sometimes Title, as in front matter). JSON null decodes to "" and nil.
+type TOCNode struct {
+	Ref      string    `json:"ref"`
+	Title    string    `json:"title,omitempty"`
+	Label    string    `json:"label,omitempty"`
+	Children []TOCNode `json:"children,omitempty"`
+}
+
+// YearCount is one entry of a listing's year index.
+type YearCount struct {
+	Year  int `json:"year"`
+	Count int `json:"count"`
+}
+
+// ListingEntry is one letter or transcript in a listing.
+type ListingEntry struct {
+	Ref        string   `json:"ref"`
+	Title      string   `json:"title"`
+	IsoDate    string   `json:"iso_date"`
+	Year       int      `json:"year"`
+	Location   string   `json:"location"`
+	Recipients []string `json:"recipients,omitempty"`
+}
+
+// Listing is one page of /letters or /transcripts. Years and Undated describe
+// the whole collection, whatever the page.
+type Listing struct {
+	Total   int            `json:"total"`
+	Page    int            `json:"page"`
+	PerPage int            `json:"per_page"`
+	HasMore bool           `json:"has_more"`
+	Undated int            `json:"undated"`
+	Years   []YearCount    `json:"years"`
+	Items   []ListingEntry `json:"items"`
+}
+
+func sanitizeTOCNodes(ns []TOCNode) {
+	for i := range ns {
+		n := &ns[i]
+		n.Ref, n.Title, n.Label = SanitizeText(n.Ref), SanitizeText(n.Title), SanitizeText(n.Label)
+		sanitizeTOCNodes(n.Children)
+	}
+}
+
+func (t *TOC) sanitize() {
+	t.Book, t.Lang, t.Title = SanitizeText(t.Book), SanitizeText(t.Lang), SanitizeText(t.Title)
+	sanitizeTOCNodes(t.Children)
+}
+
+func (l *Listing) sanitize() {
+	for i := range l.Items {
+		e := &l.Items[i]
+		e.Ref, e.Title = SanitizeText(e.Ref), SanitizeText(e.Title)
+		e.IsoDate, e.Location = SanitizeText(e.IsoDate), SanitizeText(e.Location)
+		for j := range e.Recipients {
+			e.Recipients[j] = SanitizeText(e.Recipients[j])
+		}
+	}
+}

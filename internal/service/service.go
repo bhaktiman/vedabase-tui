@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -243,3 +244,78 @@ func pageBlobName(pageURL string) string {
 }
 
 var unsafeChars = regexp.MustCompile(`[^A-Za-z0-9._-]`)
+
+const (
+	tocFresh     = 24 * time.Hour
+	listingFresh = weekly
+	// letterPerPage is the page size for By year; the API allows up to 100.
+	letterPerPage = 100
+	lettersYears  = "list/letters/years.json"
+)
+
+// cachedJSON serves name from the blob cache while it is younger than ttl,
+// else calls fetch and stores the result. When fetch fails, an older copy is
+// returned instead, unless the caller gave up or the thing does not exist.
+func cachedJSON[T any](ctx context.Context, s *Service, name string, ttl time.Duration, fetch func() (T, error)) (T, error) {
+	var zero T
+	data, saved, ok := s.Blobs.Get(name)
+	var old T
+	haveOld := false
+	if ok {
+		if json.Unmarshal(data, &old) == nil {
+			haveOld = true
+			if s.now().Sub(saved) < ttl {
+				return old, nil
+			}
+		}
+	}
+	v, err := fetch()
+	if err != nil {
+		if haveOld && ctx.Err() == nil && !api.IsNotFound(err) {
+			return old, nil
+		}
+		return zero, err
+	}
+	if raw, merr := json.Marshal(v); merr == nil {
+		_ = s.Blobs.Put(name, raw)
+	}
+	return v, nil
+}
+
+func tocBlob(code, lang string) string {
+	return "toc/" + unsafeChars.ReplaceAllString(lang, "-") + "/" + unsafeChars.ReplaceAllString(code, "-") + ".json"
+}
+
+// TOC is a book's table of contents, cached for a day; if a refresh fails the
+// older copy is used, so the contents also work offline.
+func (s *Service) TOC(ctx context.Context, code, lang string) (api.TOC, error) {
+	return cachedJSON(ctx, s, tocBlob(code, lang), tocFresh, func() (api.TOC, error) {
+		return s.Client.TOC(ctx, code, lang)
+	})
+}
+
+// CachedTOC reads the stored table of contents without touching the network.
+func (s *Service) CachedTOC(code, lang string) (t api.TOC, fresh, ok bool) {
+	data, saved, found := s.Blobs.Get(tocBlob(code, lang))
+	if !found || json.Unmarshal(data, &t) != nil {
+		return api.TOC{}, false, false
+	}
+	return t, s.now().Sub(saved) < tocFresh, true
+}
+
+// LetterYears gives the years that have letters, with their counts, and how
+// many letters have no date.
+func (s *Service) LetterYears(ctx context.Context) (years []api.YearCount, undated int, err error) {
+	l, err := cachedJSON(ctx, s, lettersYears, listingFresh, func() (api.Listing, error) {
+		return s.Client.Letters(ctx, 0, 1, 1)
+	})
+	return l.Years, l.Undated, err
+}
+
+// LetterYearPage is one page of a year's letters.
+func (s *Service) LetterYearPage(ctx context.Context, year, page int) (api.Listing, error) {
+	name := "list/letters/" + strconv.Itoa(year) + "-" + strconv.Itoa(page) + ".json"
+	return cachedJSON(ctx, s, name, listingFresh, func() (api.Listing, error) {
+		return s.Client.Letters(ctx, year, page, letterPerPage)
+	})
+}

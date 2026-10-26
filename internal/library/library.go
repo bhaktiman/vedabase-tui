@@ -257,20 +257,70 @@ func (l *Library) flatten() {
 		if root.Ref == lettersCode || root.Ref == transcriptsCode || root.Ref == CollectionsRef {
 			continue
 		}
-		var leaves []*Node
-		var walk func(n *Node)
-		walk = func(n *Node) {
-			if n.Leaf {
-				l.flatAt[n] = len(leaves)
-				leaves = append(leaves, n)
-			}
-			for _, c := range n.Children {
-				walk(c)
-			}
-		}
-		walk(root)
-		l.flat[root.Ref] = leaves
+		l.flattenBook(root)
 	}
+}
+
+func (l *Library) flattenBook(root *Node) {
+	var leaves []*Node
+	var walk func(n *Node)
+	walk = func(n *Node) {
+		if n.Leaf {
+			l.flatAt[n] = len(leaves)
+			leaves = append(leaves, n)
+		}
+		for _, c := range n.Children {
+			walk(c)
+		}
+	}
+	walk(root)
+	l.flat[root.Ref] = leaves
+}
+
+// ApplyTOC replaces the children of a book's root with the API's table of
+// contents, keeping its order and titles. The book's old nodes are discarded:
+// callers must look their nodes up again by ref. It returns false, changing
+// nothing, for letters, transcripts, collections, unknown codes and empty
+// tables. Entries without a ref, or outside the book, are skipped but their
+// children are kept.
+func (l *Library) ApplyTOC(code string, t api.TOC) bool {
+	root := l.roots[code]
+	if root == nil || len(t.Children) == 0 || code == lettersCode || code == transcriptsCode || code == collectionsCode {
+		return false
+	}
+	var drop func(n *Node)
+	drop = func(n *Node) {
+		for _, c := range n.Children {
+			delete(l.index, c.Ref)
+			delete(l.flatAt, c)
+			drop(c)
+		}
+	}
+	drop(root)
+	root.Children = l.tocNodes(root, root, t.Children)
+	l.flattenBook(root)
+	return true
+}
+
+func (l *Library) tocNodes(root, parent *Node, in []api.TOCNode) []*Node {
+	var out []*Node
+	for _, e := range in {
+		if e.Ref == "" || !strings.HasPrefix(e.Ref, root.Ref+"/") {
+			out = append(out, l.tocNodes(root, parent, e.Children)...)
+			continue
+		}
+		n := &Node{
+			Ref: e.Ref, Seg: e.Ref[strings.LastIndexByte(e.Ref, '/')+1:],
+			Title: e.Title, Parent: parent, Book: root.Book,
+		}
+		if _, dup := l.index[n.Ref]; !dup {
+			l.index[n.Ref] = n
+		}
+		n.Children = l.tocNodes(root, n, e.Children)
+		n.Leaf = len(n.Children) == 0
+		out = append(out, n)
+	}
+	return out
 }
 
 // Find returns the primary node for a ref: the book tree, the By-recipient
