@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -36,7 +37,7 @@ type Client struct {
 // Limiters stay under the server's 120 verse / 30 search requests per minute.
 func NewClient(base, userAgent string, hc *http.Client) *Client {
 	if hc == nil {
-		hc = &http.Client{Timeout: 30 * time.Second}
+		hc = newHTTPClient(5*time.Second, 5*time.Second, 15*time.Second)
 	}
 	return &Client{
 		base:       strings.TrimRight(base, "/"),
@@ -46,6 +47,17 @@ func NewClient(base, userAgent string, hc *http.Client) *Client {
 		search:     rate.NewLimiter(rate.Every(time.Minute/25), 5),
 		RetryDelay: 500 * time.Millisecond,
 	}
+}
+
+// newHTTPClient bounds each phase of a request so a dead network fails in
+// seconds; the overall 30 s stays for large answers. It starts from the
+// default transport to keep proxy settings and HTTP/2.
+func newHTTPClient(dial, tlsHandshake, header time.Duration) *http.Client {
+	tr := http.DefaultTransport.(*http.Transport).Clone()
+	tr.DialContext = (&net.Dialer{Timeout: dial, KeepAlive: 30 * time.Second}).DialContext
+	tr.TLSHandshakeTimeout = tlsHandshake
+	tr.ResponseHeaderTimeout = header
+	return &http.Client{Timeout: 30 * time.Second, Transport: tr}
 }
 
 func (c *Client) Verse(ctx context.Context, ref, lang string) (Item, error) {
