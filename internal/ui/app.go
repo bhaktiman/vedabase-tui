@@ -522,12 +522,12 @@ func (a *App) renderCmd() tea.Cmd {
 	}
 	ref, parts, item, rend, pal := a.ref, a.parts, a.item, a.rend, a.pal.Name
 	return func() tea.Msg {
-		md := render.DisplayMarkdown(item, parts)
-		out, err := rend.Render(ref, md, w, parts)
+		md, refs := render.DisplayLinked(item, parts)
+		out, links, err := rend.Render(ref, md, refs, w, parts)
 		if err != nil {
-			out = md
+			out, links = render.DisplayMarkdown(item, parts), nil
 		}
-		return renderedMsg{ref: ref, width: w, parts: parts, pal: pal, out: out}
+		return renderedMsg{ref: ref, width: w, parts: parts, pal: pal, out: out, links: links}
 	}
 }
 
@@ -536,7 +536,7 @@ func (a *App) onRendered(m renderedMsg) tea.Cmd {
 		return nil
 	}
 	fresh := a.reader.Empty()
-	a.reader.SetContent(m.out, !fresh)
+	a.reader.SetContent(m.out, m.links, !fresh)
 	a.renderedW = m.width
 	if a.restoreRef == a.ref {
 		a.reader.offset = a.restore

@@ -52,20 +52,20 @@ func TestDisplayMarkdownDocument(t *testing.T) {
 func TestRenderCaches(t *testing.T) {
 	r := NewRenderer(Default)
 	md := DisplayMarkdown(loadItem(t, "verse-bg-2-13.json"), api.AllParts())
-	a, err := r.Render("bg/2/13", md, 80, api.AllParts())
+	a, _, err := r.Render("bg/2/13", md, nil, 80, api.AllParts())
 	if err != nil {
 		t.Fatal(err)
 	}
-	b, _ := r.Render("bg/2/13", md, 80, api.AllParts())
+	b, _, _ := r.Render("bg/2/13", md, nil, 80, api.AllParts())
 	if a != b || r.renders != 1 {
 		t.Fatalf("second call not cached: renders=%d", r.renders)
 	}
-	r.Render("bg/2/13", md, 60, api.AllParts())
+	r.Render("bg/2/13", md, nil, 60, api.AllParts())
 	if r.renders != 2 {
 		t.Fatalf("different width should re-render, renders=%d", r.renders)
 	}
 	for i := 0; i < 40; i++ {
-		r.Render("x", "hi", 10+i, api.AllParts())
+		r.Render("x", "hi", nil, 10+i, api.AllParts())
 	}
 	if r.lru.Len() != cacheSize || len(r.entries) != cacheSize {
 		t.Fatalf("lru size %d/%d", r.lru.Len(), len(r.entries))
@@ -75,7 +75,7 @@ func TestRenderCaches(t *testing.T) {
 func TestRenderNoANSIWidthOverflow(t *testing.T) {
 	r := NewRenderer(Default)
 	md := DisplayMarkdown(loadItem(t, "verse-bg-2-13.json"), api.AllParts())
-	out, err := r.Render("bg/2/13", md, 60, api.AllParts())
+	out, _, err := r.Render("bg/2/13", md, nil, 60, api.AllParts())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,7 +116,7 @@ var ansiRe = regexp.MustCompile("\x1b\\[[0-9;]*m")
 func TestVerseLinesStaySeparate(t *testing.T) {
 	r := NewRenderer(Default)
 	md := DisplayMarkdown(loadItem(t, "verse-bg-2-13.json"), api.AllParts())
-	out, err := r.Render("bg/2/13", md, 100, api.AllParts())
+	out, _, err := r.Render("bg/2/13", md, nil, 100, api.AllParts())
 	if err != nil {
 		t.Fatal(err)
 	}

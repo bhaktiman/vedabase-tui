@@ -52,10 +52,10 @@ func TestGlamourStyleLight(t *testing.T) {
 
 func TestRendererSetPaletteDropsCache(t *testing.T) {
 	r := NewRenderer(Default)
-	a, _ := r.Render("x", "## hi", 40, api.AllParts())
+	a, _, _ := r.Render("x", "## hi", nil, 40, api.AllParts())
 	d, _ := ThemeByName("Dracula")
 	r.SetPalette(d)
-	b, _ := r.Render("x", "## hi", 40, api.AllParts())
+	b, _, _ := r.Render("x", "## hi", nil, 40, api.AllParts())
 	if a == b || r.renders != 2 {
 		t.Fatalf("palette swap did not re-render: renders=%d", r.renders)
 	}

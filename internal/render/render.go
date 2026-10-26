@@ -18,14 +18,33 @@ import (
 // Documents and prose chapters (no verse parts) show title, date and body
 // instead; the part toggles do not apply to them.
 func DisplayMarkdown(it api.Item, p api.Parts) string {
-	it.Purport = inlineLinks(it.Purport)
-	it.Translation = inlineLinks(it.Translation)
+	md, _ := displayMarkdown(it, p, false)
+	return md
+}
+
+// DisplayLinked is DisplayMarkdown with the item's references marked by
+// sentinels (see links.go). refs lists the target of each marked span in order
+// of appearance; pass both to Renderer.Render.
+func DisplayLinked(it api.Item, p api.Parts) (md string, refs []string) {
+	return displayMarkdown(it, p, true)
+}
+
+func displayMarkdown(it api.Item, p api.Parts, link bool) (string, []string) {
+	var refs []string
+	// shown fields are marked exactly when they are placed in the output, so
+	// refs follows the order of appearance and hidden parts contribute none.
+	field := func(name, text string) string {
+		if link {
+			text = markRefs(text, name, it.References, &refs)
+		}
+		return inlineLinks(text)
+	}
 	it.Synonyms = inlineLinks(it.Synonyms)
 	it.VerseText = inlineLinks(it.VerseText)
 	var sections []string
 	prose := strings.TrimSpace(it.Devanagari+it.VerseText+it.Synonyms) == ""
 	if it.Document != nil || prose {
-		sections = append(sections, "## "+it.Translation)
+		sections = append(sections, "## "+field("translation", it.Translation))
 		var meta []string
 		if it.Document != nil {
 			for _, s := range []string{it.Document.Date, it.Document.Location} {
@@ -38,9 +57,9 @@ func DisplayMarkdown(it api.Item, p api.Parts) string {
 			sections = append(sections, strings.Join(meta, " — "))
 		}
 		if it.Purport != "" {
-			sections = append(sections, quoteBreaks(it.Purport))
+			sections = append(sections, quoteBreaks(field("purport", it.Purport)))
 		}
-		return strings.Join(sections, "\n\n")
+		return strings.Join(sections, "\n\n"), refs
 	}
 	sections = append(sections, "## "+ref.Display(it.Ref))
 	add := func(show bool, heading, text string) {
@@ -48,12 +67,18 @@ func DisplayMarkdown(it api.Item, p api.Parts) string {
 			sections = append(sections, "#### "+heading, text)
 		}
 	}
+	addField := func(show bool, heading, name, text string, br func(string) string) {
+		if show && strings.TrimSpace(text) != "" {
+			sections = append(sections, "#### "+heading, br(field(name, text)))
+		}
+	}
+	id := func(s string) string { return s }
 	add(p.Devanagari, "Devanagari", lineBreaks(it.Devanagari))
 	add(p.Verse, "Verse", lineBreaks(it.VerseText))
 	add(p.Synonyms, "Word for word", it.Synonyms)
-	add(p.Translation, "Translation", it.Translation)
-	add(p.Purport, "Purport", quoteBreaks(it.Purport))
-	return strings.Join(sections, "\n\n")
+	addField(p.Translation, "Translation", "translation", it.Translation, id)
+	addField(p.Purport, "Purport", "purport", it.Purport, quoteBreaks)
+	return strings.Join(sections, "\n\n"), refs
 }
 
 var wikiLink = regexp.MustCompile(`\[\[([^\[\]|]*)(?:\|([^\[\]]*))?\]\]`)
@@ -104,8 +129,9 @@ type cacheKey struct {
 }
 
 type cacheEntry struct {
-	key cacheKey
-	out string
+	key   cacheKey
+	out   string
+	links []Link
 }
 
 const cacheSize = 32
@@ -134,45 +160,51 @@ func (r *Renderer) SetPalette(p Palette) {
 }
 
 // Render returns md styled for the given width, cached by {ref, width, parts}.
-func (r *Renderer) Render(ref, md string, width int, p api.Parts) (string, error) {
+// md may carry the sentinels of DisplayLinked, with refs as its targets: they
+// are stripped, the spans underlined, and their positions returned. The links
+// are shared with the cache and must not be modified.
+func (r *Renderer) Render(ref, md string, refs []string, width int, p api.Parts) (string, []Link, error) {
 	key := cacheKey{ref, width, p}
 	r.mu.Lock()
 	if e, ok := r.entries[key]; ok {
 		r.lru.MoveToFront(e)
-		out := e.Value.(*cacheEntry).out
+		ce := e.Value.(*cacheEntry)
 		r.mu.Unlock()
-		return out, nil
+		return ce.out, ce.links, nil
 	}
 	pal := r.p
 	r.mu.Unlock()
 
 	tr, err := glamour.NewTermRenderer(glamour.WithStyles(GlamourStyle(pal)), glamour.WithWordWrap(width), glamour.WithPreservedNewLines())
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	out, err := tr.Render(md)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
+	var links []Link
+	out, links = applyLinks(out, refs, pal.Accent)
 
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.p.Name != pal.Name { // the palette changed while rendering: drop this result
-		return out, nil
+		return out, links, nil
 	}
 	r.renders++
 	if e, ok := r.entries[key]; ok { // a concurrent render won; keep one entry
-		e.Value.(*cacheEntry).out = out
+		ce := e.Value.(*cacheEntry)
+		ce.out, ce.links = out, links
 		r.lru.MoveToFront(e)
-		return out, nil
+		return out, links, nil
 	}
-	r.entries[key] = r.lru.PushFront(&cacheEntry{key, out})
+	r.entries[key] = r.lru.PushFront(&cacheEntry{key, out, links})
 	if r.lru.Len() > cacheSize {
 		old := r.lru.Back()
 		r.lru.Remove(old)
 		delete(r.entries, old.Value.(*cacheEntry).key)
 	}
-	return out, nil
+	return out, links, nil
 }
 
 var (

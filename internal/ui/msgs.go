@@ -3,6 +3,7 @@ package ui
 import (
 	"vedabase-tui/internal/api"
 	"vedabase-tui/internal/library"
+	"vedabase-tui/internal/render"
 )
 
 type itemLoadedMsg struct {
@@ -18,6 +19,7 @@ type renderedMsg struct {
 	parts api.Parts
 	pal   string // palette name the render started with
 	out   string
+	links []render.Link
 }
 
 type libraryMsg struct {

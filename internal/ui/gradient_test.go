@@ -211,7 +211,7 @@ func TestReaderScrollThumb(t *testing.T) {
 	for i := range long {
 		long[i] = fmt.Sprintf("line %d", i)
 	}
-	a.reader.SetContent(strings.Join(long, "\n"), false)
+	a.reader.SetContent(strings.Join(long, "\n"), nil, false)
 	edge := func() (marks []int) {
 		lines := strings.Split(plain(a), "\n")
 		for i := 0; i < a.innerH(); i++ {
@@ -250,7 +250,7 @@ func TestReaderScrollThumb(t *testing.T) {
 	if len(thumb) != 1 || !thumb[rgb(a.pal.Fg)] {
 		t.Fatalf("thumb colours %v, want only the text colour %s", thumb, rgb(a.pal.Fg))
 	}
-	a.reader.SetContent("short\ntext", false)
+	a.reader.SetContent("short\ntext", nil, false)
 	if m := edge(); len(m) != 0 {
 		t.Fatalf("thumb on a short item: %v", m)
 	}
