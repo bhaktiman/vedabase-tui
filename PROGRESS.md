@@ -2,7 +2,7 @@
 
 ## Resume here — 2026-10-26 13:55
 
-**Branch `feat/api-features`** (from `feat/vedabase-tui` @ b74c959, not pushed): uses the seven new vedabase.cc API features (maintainer's reply 2026-10-26). Race suite green; both Opus reviews approved (phases 0–2 after one fix round; phases 3–4 with minors); tmux smoke run passed.
+**Branch `feat/api-features`** (merged into `feat/vedabase-tui` and `main`): uses the seven new vedabase.cc API features (maintainer's reply 2026-10-26). Race suite green; both Opus reviews approved (phases 0–2 after one fix round; phases 3–4 with minors); tmux smoke run passed.
 
 **What's in it:**
 - Phase 0: new fields (prev/next, references, iso_date, recipients, audio_url, address); raw per-language item cache `items-v2/<lang>/`, old `items/` served read-only when a fetch fails; letter cleanup only for old-format letters.
@@ -11,7 +11,9 @@
 - Phase 3: references underlined and clickable; `f` shows Vimium-style key labels; Backspace/`[` back, `]` forward.
 - Phase 4: languages en/es/pt/hi/ru via the `EN ▾` tag in the sidebar's top edge or `L`; books missing a language are dimmed `· not in XX` and show a note, never English.
 
-**Next action:** ask the user to release v0.2.0 (merge `feat/api-features` into `feat/vedabase-tui` and `main`, `make release`, steps in `PROGRESS.local.md`). Remind them: the maintainer asked apps to credit vedabase.cc (README credit line not added; user didn't pick it).
+**Released:** v0.2.0 on 2026-10-26 (7 assets; `main`, `feat/vedabase-tui` and `feat/api-features` pushed). README credits vedabase.cc as the source.
+
+**Next action:** none pending; ask the user what's next (the audio player is the parked idea).
 
 **Out of scope, future:** a terminal audio player for lectures (via mpv) and "Lectures on this verse" (index built from lecture titles; maybe ask the maintainer for a verse → lectures field). Collapse button not wanted.
 
