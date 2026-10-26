@@ -532,12 +532,17 @@ func (a *App) prefetch() tea.Cmd {
 	if a.lib == nil || a.node == nil {
 		return nil
 	}
-	next := a.lib.Next(a.node)
-	if next == nil || a.prefetched[next.Ref] || a.be.Cached(next.Ref, a.lang) {
+	nextRef := a.siteRef(1)
+	if nextRef == "" {
+		if next := a.lib.Next(a.node); next != nil {
+			nextRef = next.Ref
+		}
+	}
+	if nextRef == "" || a.prefetched[nextRef] || a.be.Cached(nextRef, a.lang) {
 		return nil
 	}
-	a.prefetched[next.Ref] = true
-	be, ref, lang := a.be, next.Ref, a.lang
+	a.prefetched[nextRef] = true
+	be, ref, lang := a.be, nextRef, a.lang
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
@@ -546,9 +551,31 @@ func (a *App) prefetch() tea.Cmd {
 	}
 }
 
+// siteRef is the shown item's Next (d=1) or Prev (d=-1) as the site gives it,
+// or "" when it has none or the reader is inside a collection, whose own
+// order wins.
+func (a *App) siteRef(d int) string {
+	if !a.hasItem {
+		return ""
+	}
+	if _, ok := library.InCollection(a.node); ok {
+		return ""
+	}
+	if d < 0 {
+		return a.item.Prev
+	}
+	return a.item.Next
+}
+
 // step opens the next (d=1) or previous (d=-1) item, or toasts at a book's end.
 func (a *App) step(d int) tea.Cmd {
-	if a.lib == nil || a.node == nil {
+	if a.lib == nil {
+		return nil
+	}
+	if r := a.siteRef(d); r != "" {
+		return a.Open(r)
+	}
+	if a.node == nil {
 		return nil
 	}
 	n := a.lib.Next(a.node)

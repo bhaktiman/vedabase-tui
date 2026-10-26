@@ -477,3 +477,47 @@ func TestItemOfOtherLanguageDropped(t *testing.T) {
 		t.Fatalf("item of another language shown:\n%s", v)
 	}
 }
+
+func TestStepFollowsSiteOrder(t *testing.T) {
+	be := newFake(t)
+	it := be.items["bg/2/13"]
+	it.Prev, it.Next = "bg/1/19", "bg/2/14"
+	be.items["bg/2/13"] = it
+	a, _ := boot(t, be, store.State{LastRef: "bg/2/13"})
+	drive(a, key("l"))
+	if a.ref != "bg/2/14" || a.hasItem != true {
+		t.Fatalf("after l: %q", a.ref)
+	}
+	if !strings.Contains(plain(a), "Translation of bg/2/14") {
+		t.Fatalf("target not shown:\n%s", plain(a))
+	}
+	a, _ = boot(t, be, store.State{LastRef: "bg/2/13"})
+	drive(a, key("h"))
+	if a.ref != "bg/1/19" || a.node == nil || a.node.Ref != "bg/1/19" {
+		t.Fatalf("after h: ref %q node %v", a.ref, a.node)
+	}
+}
+
+func TestStepFallsBackToLibraryOrder(t *testing.T) {
+	be := newFake(t)
+	it := be.items["bg/2/13"]
+	it.Prev, it.Next = "", ""
+	be.items["bg/2/13"] = it
+	a, _ := boot(t, be, store.State{LastRef: "bg/2/13"})
+	want := a.lib.Next(a.node).Ref
+	drive(a, key("l"))
+	if a.ref != want {
+		t.Fatalf("after l: %q, want %q", a.ref, want)
+	}
+}
+
+func TestPrefetchUsesSiteNext(t *testing.T) {
+	be := newFake(t)
+	it := be.items["bg/2/13"]
+	it.Next = "bg/2/14"
+	be.items["bg/2/13"] = it
+	boot(t, be, store.State{LastRef: "bg/2/13"})
+	if !be.called("bg/2/14") {
+		t.Fatalf("calls = %v", be.itemCall)
+	}
+}
