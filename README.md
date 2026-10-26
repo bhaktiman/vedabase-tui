@@ -42,7 +42,8 @@ unzip it and run `vedabase.exe` in Windows Terminal.
 
 ## What's in it
 
-Everything is fetched from vedabase.cc (English). The titles below are the
+Everything is fetched from vedabase.cc: the books in English, Spanish,
+Portuguese, Hindi or Russian, the letters and lectures in English. The titles below are the
 ones the app shows and searches on. People often type Bhagavad Gita, Srimad
 Bhagavatam or Chaitanya Charitamrita; in the app these are the first three
 books below, and `:` takes their short codes (`bg`, `sb`, `cc`).
@@ -285,3 +286,8 @@ everything it downloads so each item is fetched only once.
 
 The code is under the [MIT License](LICENSE). The texts it displays come from
 vedabase.cc and remain under their own copyright.
+
+**Source:** the texts are the works of Śrīla Prabhupāda, served by
+[vedabase.cc](https://vedabase.cc), which offers them for educational and
+devotional purposes. If you quote them, cite vedabase.cc as the source; don't
+use them commercially without permission.
