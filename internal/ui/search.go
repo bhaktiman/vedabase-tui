@@ -292,13 +292,13 @@ func (s *Search) onKey(kp tea.KeyPressMsg) tea.Cmd {
 		return nil
 	case "tab":
 		s.cycleScope()
-		return nil
+		return s.run()
 	case "shift+tab":
 		s.scope = (s.scope + 3) % 4
 		if s.scope == 1 && s.bookCode == "" {
 			s.scope = 0
 		}
-		return nil
+		return s.run()
 	case "enter":
 		if s.focusInput {
 			if s.live && len(s.results) > 0 && strings.TrimSpace(s.input.Value()) == s.q && s.scopeBook() == s.book {

@@ -46,17 +46,16 @@ func TestSearchScope(t *testing.T) {
 	if v := plain(a); !strings.Contains(v, "This book (Bhagavad-gītā As It Is)") {
 		t.Fatalf("scope line missing book:\n%s", v)
 	}
-	drive(a, key("enter"))
-	if got := be.searches(); got[0].book != "bg" {
-		t.Fatalf("book = %q", got[0].book)
+	if got := be.searches(); len(got) != 1 || got[0].book != "bg" {
+		t.Fatalf("book = %+v", got) // tab re-runs the query in the new scope
 	}
-	drive(a, key("/"), key("tab"), key("tab"), key("enter"))
-	if got := be.searches(); len(got) != 2 || got[1].book != "transcripts" {
-		// "/" reopens with the query kept; this->letters->lectures
+	// "/" reopens with the query kept; this->letters->lectures
+	drive(a, key("/"), key("tab"), key("tab"))
+	if got := be.searches(); len(got) != 3 || got[2].book != "transcripts" {
 		t.Fatalf("calls = %+v", got)
 	}
-	drive(a, key("/"), key("tab"), key("tab"), key("enter")) // lectures -> all -> this book
-	drive(a, key("/"), key("tab"), key("enter"))
+	drive(a, key("/"), key("tab"), key("tab")) // lectures -> all -> this book
+	drive(a, key("/"), key("tab"))
 	if got := be.searches(); got[len(got)-1].book != "letters" {
 		t.Fatalf("calls = %+v", got)
 	}
@@ -189,8 +188,8 @@ func TestSearchNWithoutSearch(t *testing.T) {
 
 func TestSearchScopeLetters(t *testing.T) {
 	a, be := searchApp(t)
-	drive(a, key("tab"), key("tab"), key("enter"))
-	if got := be.searches(); len(got) != 1 || got[0].book != "letters" {
+	drive(a, key("tab"), key("tab"))
+	if got := be.searches(); len(got) != 2 || got[1].book != "letters" {
 		t.Fatalf("calls = %+v", got)
 	}
 }
@@ -388,5 +387,30 @@ func TestSearchResultsOfOtherLanguageDropped(t *testing.T) {
 		page: api.SearchPage{Results: []api.SearchResult{{Ref: "bg/9/9", Book: "bg"}}}})
 	if len(a.search.results) != n {
 		t.Fatalf("results grew from %d to %d", n, len(a.search.results))
+	}
+}
+
+func TestSearchTabRerunsQuery(t *testing.T) {
+	a, be := searchApp(t)
+	drive(a, key("enter"), key("/")) // search "soul" everywhere, reopen with the query kept
+	n := len(be.searches())
+	drive(a, key("tab"))
+	got := be.searches()
+	if len(got) != n+1 || got[n] != (searchCall{"soul", "bg", 1}) {
+		t.Fatalf("calls = %+v", got)
+	}
+	drive(a, key("shift+tab"))
+	got = be.searches()
+	if len(got) != n+2 || got[n+1].book != "" {
+		t.Fatalf("calls = %+v", got)
+	}
+}
+
+func TestSearchTabWithoutQueryDoesNotSearch(t *testing.T) {
+	be := newFake(t)
+	a, _ := boot(t, be, store.State{LastRef: "bg/2/13"})
+	drive(a, key("/"), key("tab"))
+	if n := len(be.searches()); n != 0 {
+		t.Fatalf("searched %d times", n)
 	}
 }
