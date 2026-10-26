@@ -3,6 +3,7 @@ package ui
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"regexp"
@@ -40,6 +41,12 @@ type fakeBackend struct {
 
 	searchCalls []searchCall
 	searchErr   error
+
+	cachedTOC map[string]api.TOC // CachedTOC serves these (disk)
+	tocFresh  bool               // ...and calls them fresh
+	tocs      map[string]api.TOC // TOC serves these; any other book fails
+	tocCalls  []string
+	onTOC     func(code string) // runs inside TOC, before it answers
 }
 
 type searchCall struct {
@@ -131,6 +138,35 @@ func (b *fakeBackend) Search(ctx context.Context, q, book string, page int, lang
 			Results: []api.SearchResult{res("bg/2/13"), res("bg/2/14")}}, nil
 	}
 	return api.SearchPage{Query: q, Book: book, Page: page, Results: []api.SearchResult{res("bg/2/15")}}, nil
+}
+
+func (b *fakeBackend) TOC(ctx context.Context, code, lang string) (api.TOC, error) {
+	b.mu.Lock()
+	b.tocCalls = append(b.tocCalls, code)
+	hook := b.onTOC
+	b.mu.Unlock()
+	if hook != nil {
+		hook(code)
+	}
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if t, ok := b.tocs[code]; ok {
+		return t, nil
+	}
+	return api.TOC{}, errors.New("no toc for " + code)
+}
+
+func (b *fakeBackend) CachedTOC(code, lang string) (api.TOC, bool, bool) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	t, ok := b.cachedTOC[code]
+	return t, b.tocFresh, ok
+}
+
+func (b *fakeBackend) tocCalled() []string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return append([]string(nil), b.tocCalls...)
 }
 
 func (b *fakeBackend) searches() []searchCall {

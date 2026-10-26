@@ -67,6 +67,9 @@ func (a *App) titlesCmd(n *library.Node) tea.Cmd {
 	if a.scr.asked[n.Ref] {
 		return nil
 	}
+	if _, ok := a.tocs[n.Book]; ok { // the API's contents already name every chapter
+		return nil
+	}
 	hasContainer := false
 	for _, c := range n.Children {
 		if !c.Leaf {
@@ -103,6 +106,11 @@ func (a *App) ancestorTitlesCmd(n *library.Node) tea.Cmd {
 func (a *App) onTitles(m titlesMsg) tea.Cmd {
 	if len(m.titles) == 0 {
 		return nil
+	}
+	if n := a.lib.Find(m.parent); n != nil {
+		if _, ok := a.tocs[n.Book]; ok { // the contents arrived while this was on its way
+			return nil
+		}
 	}
 	for r, t := range m.titles {
 		a.scr.titles[r] = t

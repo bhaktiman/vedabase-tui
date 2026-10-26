@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"unicode"
 
@@ -96,6 +97,15 @@ func (t *Tree) SetLibrary(lib *library.Library) {
 				first = i
 				break
 			}
+		}
+		if first < 0 {
+			// The ref is gone (a book's contents were replaced): fall back to
+			// the root of its tree.
+			root := sel
+			for root.Parent != nil {
+				root = root.Parent
+			}
+			first = slices.IndexFunc(t.rows, func(r row) bool { return r.node.Ref == root.Ref })
 		}
 		if first >= 0 {
 			t.cursor = first

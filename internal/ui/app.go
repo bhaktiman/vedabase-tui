@@ -28,6 +28,9 @@ type Backend interface {
 	RefreshLibrary(ctx context.Context) (*library.Library, error)
 	Search(ctx context.Context, q, book string, page int, lang string) (api.SearchPage, error)
 	Page(ctx context.Context, url string) ([]byte, error)
+	TOC(ctx context.Context, code, lang string) (api.TOC, error)
+	// CachedTOC reads the stored contents from disk only.
+	CachedTOC(code, lang string) (t api.TOC, fresh, ok bool)
 }
 
 type Options struct {
@@ -133,6 +136,10 @@ type App struct {
 	resizeSeq    int
 	prefetched   map[string]bool
 	scr          scraped
+	tocs         map[string]api.TOC // contents known for a.lang, by book code
+	tocPending   map[string]bool    // books still to fetch this session
+	tocFront     []string           // books the reader expanded, newest first
+	tocBusy      bool               // a fetch is running
 	toasts       toaster
 	opener       func(string) error // starts the browser; nil means openURL
 
@@ -149,7 +156,7 @@ func New(o Options) *App {
 		pal: render.Default, rend: render.NewRenderer(render.Default),
 		w: 80, h: 24, parts: o.State.Parts, startup: o.Toasts,
 		version: versionLabel(o.Version), upd: o.Updater, installDir: o.InstallDir,
-		prefetched: map[string]bool{}, scr: newScraped(), nowFn: o.Now,
+		prefetched: map[string]bool{}, scr: newScraped(), tocs: map[string]api.TOC{}, tocPending: map[string]bool{}, nowFn: o.Now,
 		tick: func(d time.Duration, msg tea.Msg) tea.Cmd {
 			return tea.Tick(d, func(time.Time) tea.Msg { return msg })
 		},
@@ -265,6 +272,8 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return a, cmd
 	case titlesMsg:
 		return a, a.onTitles(m)
+	case tocMsg:
+		return a, a.onTOC(m)
 	case ExpandLazyMsg:
 		return a, a.onExpandLazy(m.Node)
 	case yearsMsg:
@@ -339,10 +348,12 @@ func (a *App) onLibrary(m libraryMsg) tea.Cmd {
 	a.colViews = nil
 	a.setCollections()
 	if first {
+		a.loadCachedTOCs(m.lib) // before the first frame
 		a.tree = NewTree(m.lib, a.starred, a.pal)
 		a.layout()
-		cmds = append(cmds, a.openStart())
+		cmds = append(cmds, a.openStart(), a.nextTOC())
 	} else {
+		a.reapplyTOCs()
 		a.tree.SetLibrary(m.lib)
 		a.refindNode()   // nodes are new objects in the new library
 		a.applyScraped() // the new tree has none of the scraped titles
@@ -806,6 +817,8 @@ func (a *App) treeUpdate(sel *library.Node, f func(Tree) (Tree, tea.Cmd)) tea.Cm
 	cmds := []tea.Cmd{cmd, a.nextYearPage()}
 	if sel != nil && !was && a.tree.expanded[sel.Ref] {
 		cmds = append(cmds, a.titlesCmd(sel))
+		a.bumpTOC(sel)
+		cmds = append(cmds, a.nextTOC())
 	}
 	return tea.Batch(cmds...)
 }
