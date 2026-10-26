@@ -2,6 +2,7 @@
 ref: "bg/2/13"
 book: "bg"
 book_title: "Bhagavad-gītā As It Is"
+lang: "en"
 chapter: "2: Contents of the Gītā Summarized"
 url: "https://vedabase.cc/bg/2/13/"
 exported: "2026-10-25"

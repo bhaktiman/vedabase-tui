@@ -29,6 +29,8 @@ type Backend interface {
 	Search(ctx context.Context, q, book string, page int, lang string) (api.SearchPage, error)
 	LetterYears(ctx context.Context) (years []api.YearCount, undated int, err error)
 	LetterYearPage(ctx context.Context, year, page int) (api.Listing, error)
+	// Books is the books list, with the languages each book has.
+	Books(ctx context.Context, lang string) ([]api.Book, error)
 	TOC(ctx context.Context, code, lang string) (api.TOC, error)
 	// CachedTOC reads the stored contents from disk only.
 	CachedTOC(code, lang string) (t api.TOC, fresh, ok bool)
@@ -70,15 +72,16 @@ const (
 
 // App is the root model.
 type App struct {
-	be       Backend
-	lang     string // text language; results made with another one are dropped
-	cols     *collections.Store
-	settings store.Settings
-	state    store.State
-	save     func(store.State) error
-	pal      render.Palette
-	rend     *render.Renderer
-	w, h     int
+	be        Backend
+	lang      string              // text language; results made with another one are dropped
+	bookLangs map[string][]string // languages of each book, once the books list is in
+	cols      *collections.Store
+	settings  store.Settings
+	state     store.State
+	save      func(store.State) error
+	pal       render.Palette
+	rend      *render.Renderer
+	w, h      int
 
 	lib       *library.Library
 	colViews  []library.CollectionView // what the sidebar's collections root last got
@@ -173,6 +176,9 @@ func New(o Options) *App {
 		a.pal = p
 		a.rend = render.NewRenderer(p)
 	}
+	if validLang(o.State.Lang) {
+		a.lang = o.State.Lang
+	}
 	a.search = NewSearch(a.pal)
 	a.search.be = o.Backend
 	a.search.lang = func() string { return a.lang }
@@ -190,7 +196,7 @@ func New(o Options) *App {
 
 // State is what gets persisted on quit.
 func (a *App) State() store.State {
-	s := store.State{LastRef: a.ref, Scroll: a.reader.offset, Parts: a.parts, PartsSet: true, TreeHidden: a.state.TreeHidden, Wide: a.state.Wide, HideHints: a.state.HideHints, Zen: a.state.Zen, Theme: a.state.Theme, TreeWidth: a.state.TreeWidth}
+	s := store.State{LastRef: a.ref, Scroll: a.reader.offset, Parts: a.parts, PartsSet: true, TreeHidden: a.state.TreeHidden, Wide: a.state.Wide, HideHints: a.state.HideHints, Zen: a.state.Zen, Theme: a.state.Theme, Lang: a.lang, TreeWidth: a.state.TreeWidth}
 	if a.restoreRef == a.ref {
 		s.Scroll = a.restore // the first render has not happened yet
 	}
@@ -201,7 +207,7 @@ func (a *App) State() store.State {
 }
 
 func (a *App) Init() tea.Cmd {
-	cmds := []tea.Cmd{a.loadLibrary(), a.tick(loadRefresh, loadTickMsg{}), a.fx.Start(Loader, a.now())}
+	cmds := []tea.Cmd{a.loadBooks(), a.loadLibrary(), a.tick(loadRefresh, loadTickMsg{}), a.fx.Start(Loader, a.now())}
 	for _, t := range a.startup {
 		cmds = append(cmds, a.Toast(t.Text, t.Error))
 	}
@@ -248,7 +254,12 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.MouseWheelMsg:
 		return a, a.onMouse(tea.Mouse(m), false)
 	case libraryMsg:
+		if m.reset {
+			return a, a.onLibraryReset(m)
+		}
 		return a, a.onLibrary(m)
+	case booksMsg:
+		a.onBooks(m)
 	case loadTickMsg:
 		if a.lib == nil && a.libErr == nil {
 			return a, a.tick(loadRefresh, loadTickMsg{})
@@ -266,7 +277,7 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			delete(a.prefetched, m.ref) // let a later display try again
 		}
 	case searchResultsMsg:
-		if m.lang != a.lang {
+		if m.lang != searchLang(m.scope, a.lang) {
 			return a, nil
 		}
 		cmd := a.search.Update(m)
@@ -484,6 +495,10 @@ func (a *App) open(ref string, from *library.Node) tea.Cmd {
 		a.fx.Stop(Countdown)
 	}
 	var delay tea.Cmd
+	if !a.available(ref) {
+		a.status = a.unavailableNote()
+		return nil
+	}
 	if !a.be.Cached(ref, a.lang) {
 		a.status = loadingStatus
 		if a.fx.enabled {
@@ -493,8 +508,9 @@ func (a *App) open(ref string, from *library.Node) tea.Cmd {
 		a.status = ""
 	}
 	be, lang := a.be, a.lang
+	reqLang := requestLang(ref, lang)
 	return tea.Batch(delay, func() tea.Msg {
-		it, _, err := be.Item(context.Background(), ref, lang)
+		it, _, err := be.Item(context.Background(), ref, reqLang)
 		return itemLoadedMsg{ref: ref, lang: lang, item: it, err: err}
 	})
 }
@@ -515,6 +531,9 @@ func (a *App) onItem(m itemLoadedMsg) tea.Cmd {
 func (a *App) itemFailed(err error) tea.Cmd {
 	var rl *api.RateLimitedError
 	switch {
+	case api.IsNotFound(err) && a.lang != "en" && !isEnglishOnly(a.ref):
+		a.status = a.unavailableNote()
+		return nil
 	case errors.Is(err, api.ErrOffline):
 		a.status = "You're offline and this hasn't been downloaded yet."
 		return nil
@@ -533,19 +552,19 @@ func (a *App) renderCmd() tea.Cmd {
 	if !a.hasItem || w <= 0 {
 		return nil
 	}
-	ref, parts, item, rend, pal := a.ref, a.parts, a.item, a.rend, a.pal.Name
+	ref, lang, parts, item, rend, pal := a.ref, a.lang, a.parts, a.item, a.rend, a.pal.Name
 	return func() tea.Msg {
 		md, refs := render.DisplayLinked(item, parts)
-		out, links, err := rend.Render(ref, md, refs, w, parts)
+		out, links, err := rend.Render(ref, lang, md, refs, w, parts)
 		if err != nil {
 			out, links = render.DisplayMarkdown(item, parts), nil
 		}
-		return renderedMsg{ref: ref, width: w, parts: parts, pal: pal, out: out, links: links}
+		return renderedMsg{ref: ref, lang: lang, width: w, parts: parts, pal: pal, out: out, links: links}
 	}
 }
 
 func (a *App) onRendered(m renderedMsg) tea.Cmd {
-	if m.ref != a.ref || m.width != a.textW() || m.parts != a.parts || m.pal != a.pal.Name {
+	if m.ref != a.ref || m.lang != a.lang || m.width != a.textW() || m.parts != a.parts || m.pal != a.pal.Name {
 		return nil
 	}
 	fresh := a.reader.Empty()
@@ -572,11 +591,11 @@ func (a *App) prefetch() tea.Cmd {
 			nextRef = next.Ref
 		}
 	}
-	if nextRef == "" || a.prefetched[nextRef] || a.be.Cached(nextRef, a.lang) {
+	if nextRef == "" || !a.available(nextRef) || a.prefetched[nextRef] || a.be.Cached(nextRef, a.lang) {
 		return nil
 	}
 	a.prefetched[nextRef] = true
-	be, ref, lang := a.be, nextRef, a.lang
+	be, ref, lang := a.be, nextRef, requestLang(nextRef, a.lang)
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()

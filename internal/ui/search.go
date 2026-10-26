@@ -133,12 +133,26 @@ func (s *Search) cycleScope() {
 
 func (s *Search) fetch(page int) tea.Cmd {
 	s.loading = true
-	be, q, book, gen, lang := s.be, s.q, s.book, s.gen, s.lang()
+	be, q, book, gen := s.be, s.q, s.book, s.gen
+	lang := searchLang(book, s.lang())
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), searchTimeout)
 		defer cancel()
 		p, err := be.Search(ctx, q, book, page, lang)
 		return searchResultsMsg{q: q, scope: book, page: p, err: err, gen: gen, req: page, lang: lang}
+	}
+}
+
+// langChanged forgets the results and any search in flight: they are in the
+// old language. The query stays in the box for the next run.
+func (s *Search) langChanged() {
+	s.gen++ // a reply still on its way is dropped
+	s.loading, s.openAfter, s.live, s.opened = false, false, false, false
+	s.results, s.page, s.hasMore, s.cursor, s.top, s.errLine = nil, 0, false, 0, 0, ""
+	s.retryAfter = 0
+	if s.visible {
+		s.focusInput = true
+		s.input.Focus()
 	}
 }
 

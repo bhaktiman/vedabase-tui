@@ -80,6 +80,7 @@ type State struct {
 	Parts      api.Parts `json:"parts"`
 	TreeHidden bool      `json:"tree_hidden"`
 	Theme      string    `json:"theme"`
+	Lang       string    `json:"lang"` // text language: en, es, pt, hi or ru; empty means en
 	Wide       bool      `json:"wide"` // text uses the whole pane instead of a centred column
 	HideHints  bool      `json:"hide_hints"`
 	Zen        bool      `json:"zen"`                  // distraction-free reading: only the text column

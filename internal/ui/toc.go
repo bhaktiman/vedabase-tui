@@ -127,6 +127,9 @@ func dropTitled(learned map[string]string, nodes []api.TOCNode) {
 
 func (a *App) onTOC(m tocMsg) tea.Cmd {
 	a.tocBusy = false
+	if m.lang != a.lang { // started before a language switch: nothing of it applies
+		return a.nextTOC()
+	}
 	delete(a.tocPending, m.code) // no retry loop: a failure waits until the reader expands the book
 	if m.lang == a.lang && m.err != nil {
 		a.tocFailed[m.code] = true

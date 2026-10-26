@@ -124,6 +124,7 @@ func breaks(s string, want func(string) bool) string {
 
 type cacheKey struct {
 	ref   string
+	lang  string
 	width int
 	parts api.Parts
 }
@@ -159,12 +160,12 @@ func (r *Renderer) SetPalette(p Palette) {
 	r.entries = map[cacheKey]*list.Element{}
 }
 
-// Render returns md styled for the given width, cached by {ref, width, parts}.
+// Render returns md styled for the given width, cached by {ref, lang, width, parts}.
 // md may carry the sentinels of DisplayLinked, with refs as its targets: they
 // are stripped, the spans underlined, and their positions returned. The links
 // are shared with the cache and must not be modified.
-func (r *Renderer) Render(ref, md string, refs []string, width int, p api.Parts) (string, []Link, error) {
-	key := cacheKey{ref, width, p}
+func (r *Renderer) Render(ref, lang, md string, refs []string, width int, p api.Parts) (string, []Link, error) {
+	key := cacheKey{ref, lang, width, p}
 	r.mu.Lock()
 	if e, ok := r.entries[key]; ok {
 		r.lru.MoveToFront(e)

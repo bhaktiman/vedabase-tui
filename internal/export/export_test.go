@@ -72,6 +72,16 @@ func TestLetterFrontMatter(t *testing.T) {
 	golden(t, "letter-aatie.md", got)
 }
 
+func TestFrontMatterLang(t *testing.T) {
+	it := api.Item{Ref: "bg/2/13", Book: "bg", URL: "u"}
+	if got := ItemMarkdown(it, Meta{Lang: "es"}, api.AllParts(), today); !strings.Contains(got, "\nlang: \"es\"\n") {
+		t.Errorf("no lang: es:\n%s", got)
+	}
+	if got := CollectionMarkdown("c", "pt", nil, api.AllParts(), today); !strings.Contains(got, "\nlang: \"pt\"\n") {
+		t.Errorf("collection has no lang: pt:\n%s", got)
+	}
+}
+
 func TestFrontMatterEscapes(t *testing.T) {
 	it := api.Item{Ref: "x/1", Book: "x", URL: "u"}
 	got := ItemMarkdown(it, Meta{BookTitle: `A "B" \ C`}, api.AllParts(), today)
@@ -82,7 +92,7 @@ func TestFrontMatterEscapes(t *testing.T) {
 
 func TestCollectionWithMissing(t *testing.T) {
 	bg := load(t, "verse-bg-2-13.json")
-	got := CollectionMarkdown("On the soul", []Entry{
+	got := CollectionMarkdown("On the soul", "", []Entry{
 		{Ref: "bg/2/13", Item: &bg, Meta: bgMeta},
 		{Ref: "sb/1/1/1"},
 	}, api.AllParts(), today)

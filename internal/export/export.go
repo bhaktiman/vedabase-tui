@@ -14,8 +14,9 @@ import (
 	"vedabase-tui/internal/store"
 )
 
-// Meta is what an item does not carry itself. An empty Chapter is omitted.
-type Meta struct{ BookTitle, Chapter string }
+// Meta is what an item does not carry itself. An empty Chapter is omitted; an
+// empty Lang means English.
+type Meta struct{ BookTitle, Chapter, Lang string }
 
 // Entry is one member of a collection; a nil Item means it could not be fetched.
 type Entry struct {
@@ -34,6 +35,13 @@ func quote(s string) string {
 }
 
 func kv(b *strings.Builder, k, v string) { fmt.Fprintf(b, "%s: %s\n", k, quote(v)) }
+
+func langOr(l string) string {
+	if l == "" {
+		return "en"
+	}
+	return l
+}
 
 // label is the heading of an item: its title for documents, else its display
 // ref with the book abbreviation replaced by the full book title.
@@ -75,6 +83,7 @@ func ItemMarkdown(it api.Item, m Meta, p api.Parts, today time.Time) string {
 	kv(&b, "ref", it.Ref)
 	kv(&b, "book", it.Book)
 	kv(&b, "book_title", m.BookTitle)
+	kv(&b, "lang", langOr(m.Lang))
 	if m.Chapter != "" {
 		kv(&b, "chapter", m.Chapter)
 	}
@@ -98,10 +107,12 @@ func ItemMarkdown(it api.Item, m Meta, p api.Parts, today time.Time) string {
 }
 
 // CollectionMarkdown renders a whole collection as a single file.
-func CollectionMarkdown(name string, entries []Entry, p api.Parts, today time.Time) string {
+// lang is the language the collection is read in.
+func CollectionMarkdown(name string, lang string, entries []Entry, p api.Parts, today time.Time) string {
 	var b strings.Builder
 	b.WriteString("---\n")
 	kv(&b, "collection", name)
+	kv(&b, "lang", langOr(lang))
 	kv(&b, "exported", today.Format(dateLayout))
 	b.WriteString("count: " + strconv.Itoa(len(entries)) + "\n")
 	b.WriteString("---\n\n# " + name + "\n")

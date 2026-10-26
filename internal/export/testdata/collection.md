@@ -1,5 +1,6 @@
 ---
 collection: "On the soul"
+lang: "en"
 exported: "2026-10-25"
 count: 2
 ---

@@ -65,7 +65,7 @@ func TestRenderRecordsLinks(t *testing.T) {
 		api.Reference{Text: "[[bg/7/1|Bg. 7.1]]", Ref: "bg/7/1", Field: "purport"},
 		api.Reference{Text: "Bg. 4.7", Ref: "bg/4/7", Field: "purport"})
 	md, refs := DisplayLinked(it, api.AllParts())
-	out, links, err := NewRenderer(Default).Render("x", md, refs, 80, api.AllParts())
+	out, links, err := NewRenderer(Default).Render("x", "en", md, refs, 80, api.AllParts())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,7 +91,7 @@ func TestLinkWrappedAcrossLines(t *testing.T) {
 	for pad := 0; pad < 40; pad++ {
 		it := linkedItem(strings.Repeat("x", pad)+" see Bg. 4.7 and more words after it", ref)
 		md, refs := DisplayLinked(it, api.AllParts())
-		out, links, err := NewRenderer(Default).Render("x", md, refs, 40, api.AllParts())
+		out, links, err := NewRenderer(Default).Render("x", "en", md, refs, 40, api.AllParts())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -123,11 +123,11 @@ func TestLinksDoNotChangeText(t *testing.T) {
 			bare.References = nil
 			md, refs := DisplayLinked(it, api.AllParts())
 			r := NewRenderer(Default)
-			got, links, err := r.Render("a", md, refs, w, api.AllParts())
+			got, links, err := r.Render("a", "en", md, refs, w, api.AllParts())
 			if err != nil {
 				t.Fatal(err)
 			}
-			want, _, _ := r.Render("b", DisplayMarkdown(bare, api.AllParts()), nil, w, api.AllParts())
+			want, _, _ := r.Render("b", "en", DisplayMarkdown(bare, api.AllParts()), nil, w, api.AllParts())
 			if len(links) == 0 {
 				t.Fatalf("%s: no links", name)
 			}
@@ -183,11 +183,11 @@ func TestLinksOnLongLecture(t *testing.T) {
 	}
 	var n int
 	plain := best(func() {
-		NewRenderer(Default).Render("a", DisplayMarkdown(bare, api.AllParts()), nil, 80, api.AllParts())
+		NewRenderer(Default).Render("a", "en", DisplayMarkdown(bare, api.AllParts()), nil, 80, api.AllParts())
 	})
 	linked := best(func() {
 		md, refs := DisplayLinked(it, api.AllParts())
-		_, links, _ := NewRenderer(Default).Render("a", md, refs, 80, api.AllParts())
+		_, links, _ := NewRenderer(Default).Render("a", "en", md, refs, 80, api.AllParts())
 		n = len(links)
 	})
 	t.Log(fmt.Sprintf("%d chars, %d link pieces: plain %v, linked %v", len(it.Purport), n, plain, linked))

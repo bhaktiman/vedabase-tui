@@ -15,6 +15,7 @@ type itemLoadedMsg struct {
 
 type renderedMsg struct {
 	ref   string
+	lang  string
 	width int
 	parts api.Parts
 	pal   string // palette name the render started with
@@ -26,7 +27,14 @@ type libraryMsg struct {
 	lib   *library.Library
 	stale bool
 	err   error
+	// reset marks a library rebuilt for lang after a language switch: it
+	// replaces the tree outright and is dropped if lang has changed again.
+	reset bool
+	lang  string
 }
+
+// booksMsg carries the books list, which says which languages each book has.
+type booksMsg struct{ books []api.Book }
 
 type progressMsg struct{ done, total int64 }
 

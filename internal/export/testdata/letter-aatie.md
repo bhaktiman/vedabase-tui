@@ -2,6 +2,7 @@
 ref: "letters/letter-to-aatie"
 book: "letters"
 book_title: "Letters"
+lang: "en"
 url: "https://vedabase.cc/en/library/letters/letter-to-aatie/"
 exported: "2026-10-25"
 date: "October 28th 1967"

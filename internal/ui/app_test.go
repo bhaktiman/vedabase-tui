@@ -32,6 +32,8 @@ type fakeBackend struct {
 	stale    bool
 	block    map[string]chan struct{} // Item(ref) waits for close
 	itemCall []string
+	itemLang []string // language of each Item call, parallel to itemCall
+	books    []api.Book
 	libCalls int
 	refresh  int
 
@@ -41,6 +43,7 @@ type fakeBackend struct {
 	letterReq []string               // "years" and "<year>/<page>", in call order
 
 	searchCalls []searchCall
+	searchLangs []string // language of each Search call, parallel to searchCalls
 	searchErr   error
 
 	cachedTOC map[string]api.TOC // CachedTOC serves these (disk)
@@ -82,6 +85,7 @@ func (b *fakeBackend) item(ref string) api.Item {
 func (b *fakeBackend) Item(ctx context.Context, ref, lang string) (api.Item, bool, error) {
 	b.mu.Lock()
 	b.itemCall = append(b.itemCall, ref)
+	b.itemLang = append(b.itemLang, lang)
 	ch, err := b.block[ref], b.itemErr[ref]
 	b.mu.Unlock()
 	if ch != nil {
@@ -126,6 +130,7 @@ func (b *fakeBackend) Search(ctx context.Context, q, book string, page int, lang
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	b.searchCalls = append(b.searchCalls, searchCall{q, book, page})
+	b.searchLangs = append(b.searchLangs, lang)
 	if b.searchErr != nil {
 		return api.SearchPage{}, b.searchErr
 	}
@@ -139,6 +144,12 @@ func (b *fakeBackend) Search(ctx context.Context, q, book string, page int, lang
 			Results: []api.SearchResult{res("bg/2/13"), res("bg/2/14")}}, nil
 	}
 	return api.SearchPage{Query: q, Book: book, Page: page, Results: []api.SearchResult{res("bg/2/15")}}, nil
+}
+
+func (b *fakeBackend) Books(ctx context.Context, lang string) ([]api.Book, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.books, nil
 }
 
 func (b *fakeBackend) TOC(ctx context.Context, code, lang string) (api.TOC, error) {

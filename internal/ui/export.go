@@ -30,6 +30,21 @@ const exportFetchTimeout = 60 * time.Second
 
 // metaFor is the book title and chapter for ref, from the library.
 func (a *App) metaFor(r string) export.Meta {
+	m := a.metaIn(r)
+	m.Lang = requestLang(r, a.lang)
+	return m
+}
+
+// requestLang is the language ref is asked for in, and exported in: letters and transcripts are
+// English whatever the reader shows.
+func requestLang(r, lang string) string {
+	if isEnglishOnly(r) {
+		return "en"
+	}
+	return lang
+}
+
+func (a *App) metaIn(r string) export.Meta {
 	if a.lib == nil {
 		return export.Meta{}
 	}
@@ -138,7 +153,7 @@ func runCollectionExport(be Backend, lang, dir, name string, items []collections
 		ch <- exportProgressMsg{done: i + 1, total: len(items)}
 	}
 	path, existed, err := export.Write(dir, export.CollectionFilename(name),
-		export.CollectionMarkdown(name, entries, parts, today))
+		export.CollectionMarkdown(name, lang, entries, parts, today))
 	ch <- exportDoneMsg{path: path, existed: existed, missing: missing, err: err, collection: true}
 }
 
