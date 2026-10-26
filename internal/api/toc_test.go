@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 )
 
 func serveFile(t *testing.T, file string, seen *string) *Client {
@@ -105,7 +106,8 @@ func TestListingWithoutYear(t *testing.T) {
 
 func TestTOCHasItsOwnLimiter(t *testing.T) {
 	c := serveFile(t, "toc-iso.json", nil)
-	for range 2 { // the burst
+	c.SetTOCLimit(time.Millisecond, 1)
+	for range 2 {
 		if _, err := c.TOC(context.Background(), "iso", "en"); err != nil {
 			t.Fatal(err)
 		}
