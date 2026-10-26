@@ -1,6 +1,6 @@
 # Progress
 
-## Resume here — 2026-10-26 14:35
+## Resume here — 2026-10-26 14:45
 
 **Branch `feat/api-features`** (merged into `feat/vedabase-tui` and `main`): uses the seven new vedabase.cc API features (maintainer's reply 2026-10-26). Race suite green; both Opus reviews approved (phases 0–2 after one fix round; phases 3–4 with minors); tmux smoke run passed.
 
@@ -12,6 +12,8 @@
 - Phase 4: languages en/es/pt/hi/ru via the `EN ▾` tag in the sidebar's top edge or `L`; books missing a language are dimmed `· not in XX` and show a note, never English.
 
 **Released:** v0.2.0 on 2026-10-26 (7 assets; `main`, `feat/vedabase-tui` and `feat/api-features` pushed). README credits vedabase.cc as the source.
+
+**v0.2.1 (2026-10-26):** the books list is cached as `books-v2.json`; v0.1's `books.json` (every book `en` only) made every book "not available in Español". The legacy file only gives Library its order offline.
 
 **Next action:** none pending; ask the user what's next (the audio player is the parked idea).
 
