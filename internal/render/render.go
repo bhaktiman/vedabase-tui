@@ -18,6 +18,10 @@ import (
 // Documents and prose chapters (no verse parts) show title, date and body
 // instead; the part toggles do not apply to them.
 func DisplayMarkdown(it api.Item, p api.Parts) string {
+	it.Purport = inlineLinks(it.Purport)
+	it.Translation = inlineLinks(it.Translation)
+	it.Synonyms = inlineLinks(it.Synonyms)
+	it.VerseText = inlineLinks(it.VerseText)
 	var sections []string
 	prose := strings.TrimSpace(it.Devanagari+it.VerseText+it.Synonyms) == ""
 	if it.Document != nil || prose {
@@ -50,6 +54,23 @@ func DisplayMarkdown(it api.Item, p api.Parts) string {
 	add(p.Translation, "Translation", it.Translation)
 	add(p.Purport, "Purport", quoteBreaks(it.Purport))
 	return strings.Join(sections, "\n\n")
+}
+
+var wikiLink = regexp.MustCompile(`\[\[([^\[\]|]*)(?:\|([^\[\]]*))?\]\]`)
+
+// inlineLinks shows the site's [[ref|label]] links as their label, or the ref
+// when there is none.
+func inlineLinks(s string) string {
+	if !strings.Contains(s, "[[") {
+		return s
+	}
+	return wikiLink.ReplaceAllStringFunc(s, func(m string) string {
+		sub := wikiLink.FindStringSubmatch(m)
+		if sub[2] != "" {
+			return sub[2]
+		}
+		return sub[1]
+	})
 }
 
 // lineBreaks ends every non-blank line that is followed by another non-blank

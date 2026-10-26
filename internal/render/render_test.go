@@ -143,3 +143,15 @@ func TestMarksStripsDecodedControls(t *testing.T) {
 		t.Fatalf("control character survived: %q", got)
 	}
 }
+
+func TestDisplayMarkdownInlineLinks(t *testing.T) {
+	it := api.Item{Ref: "sb/1/1/1", Translation: "t", Purport: "See [[bg/9/4|*Bg.* 9.4]], [[sb/1/2/3]] and [[cc/madhya/6/1|Śrī Caitanya]]."}
+	md := DisplayMarkdown(it, api.AllParts())
+	want := "See *Bg.* 9.4, sb/1/2/3 and Śrī Caitanya."
+	if !strings.Contains(md, want) {
+		t.Fatalf("md = %q", md)
+	}
+	if it.Purport == md || !strings.Contains(it.Purport, "[[bg/9/4|") {
+		t.Fatal("raw item must keep its links")
+	}
+}
