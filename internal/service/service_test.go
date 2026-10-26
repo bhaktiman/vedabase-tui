@@ -280,6 +280,35 @@ func TestBooksStaleFallback(t *testing.T) {
 	}
 }
 
+// v0.1 cached books.json before the site had translations: every book says
+// "en" only. That list must not be read as the languages a book has.
+const legacyBooks = `{"books":[{"code":"bg","title":"OLD","type":"chapters","languages":["en"]}]}`
+
+func TestBooksIgnoresLegacyCache(t *testing.T) {
+	e := newEnv(t)
+	if err := e.svc.Blobs.Put("books.json", []byte(legacyBooks)); err != nil {
+		t.Fatal(err)
+	}
+	books, err := e.svc.Books(context.Background(), "en")
+	if err != nil || len(books) == 0 || books[0].Title == "OLD" || e.hits.Load() != 1 {
+		t.Fatalf("books=%+v err=%v hits=%d", books, err, e.hits.Load())
+	}
+}
+
+func TestLibraryOfflineUsesLegacyBooks(t *testing.T) {
+	e := newEnv(t)
+	if err := e.svc.Blobs.Put("books.json", []byte(legacyBooks)); err != nil {
+		t.Fatal(err)
+	}
+	if err := e.svc.Blobs.Put("sitemap-en-books.xml", fixture(t, "sitemap-sample.xml")); err != nil {
+		t.Fatal(err)
+	}
+	e.srv.Close()
+	if lib, _, err := e.svc.Library(context.Background(), nil); err != nil || lib == nil {
+		t.Fatalf("lib=%v err=%v", lib, err)
+	}
+}
+
 func TestOldCacheServedOnServerErrors(t *testing.T) {
 	for _, code := range []int{503, 429} {
 		e := newEnv(t)

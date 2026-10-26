@@ -18,8 +18,11 @@ import (
 )
 
 const (
-	booksBlob   = "books.json"
-	sitemapBlob = "sitemap-en-books.xml"
+	// booksBlob is versioned: v0.1's books.json predates translations and
+	// says every book is English only.
+	booksBlob       = "books-v2.json"
+	legacyBooksBlob = "books.json"
+	sitemapBlob     = "sitemap-en-books.xml"
 	// DefaultBase is the site root used when Service.Base is empty.
 	DefaultBase = "https://vedabase.cc"
 
@@ -117,7 +120,7 @@ func (s *Service) Books(ctx context.Context, lang string) ([]api.Book, error) {
 	return books, nil
 }
 
-// booksBlobFor keeps English at the name earlier versions used.
+// booksBlobFor names the cached books list of a language.
 func booksBlobFor(lang string) string {
 	if lang == "en" || lang == "" {
 		return booksBlob
@@ -137,10 +140,13 @@ func decodeBooks(data []byte) ([]api.Book, error) {
 
 // libraryBooks prefers any cached books list, however old: the root order
 // rarely changes and Library must not hit the network when it has a tree.
+// Only the order is used here, so the legacy list will do.
 func (s *Service) libraryBooks(ctx context.Context) ([]api.Book, error) {
-	if data, _, ok := s.Blobs.Get(booksBlob); ok {
-		if books, err := decodeBooks(data); err == nil {
-			return books, nil
+	for _, blob := range []string{booksBlob, legacyBooksBlob} {
+		if data, _, ok := s.Blobs.Get(blob); ok {
+			if books, err := decodeBooks(data); err == nil {
+				return books, nil
+			}
 		}
 	}
 	return s.Books(ctx, "en")
