@@ -218,8 +218,10 @@ and asked that the work go ahead without further questions.
 ### 6.5 Phase 4 — language switcher
 
 - **State:** current language saved in `state.json` (`lang`, default `en`).
-- **Sidebar tag:** the sidebar's top border shows `EN ▾` (code in capitals) next
-  to the version tag. Clicking it, or `L` anywhere outside text inputs, opens a
+- **Sidebar tag:** the sidebar's top border shows `EN ▾` (code in capitals),
+  right-aligned like the reader's web button (`╭─ Contents ──── EN ▾ ─╮`); the
+  version tag stays in the bottom border (amended 2026-10-26: the version tag
+  turned out to be in the bottom edge). Clicking it, or `L` anywhere outside text inputs, opens a
   picker overlay styled like the theme picker: English, Español, Português,
   हिन्दी, Русский, with the current one marked. Enter/click picks, Esc cancels.
 - **Switching:** applies at once: TOCs on disk for the new language are applied
