@@ -7,9 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"net/url"
 	"regexp"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -25,8 +23,7 @@ const (
 	// DefaultBase is the site root used when Service.Base is empty.
 	DefaultBase = "https://vedabase.cc"
 
-	weekly     = 7 * 24 * time.Hour
-	pageExpiry = 30 * 24 * time.Hour
+	weekly = 7 * 24 * time.Hour
 )
 
 type Service struct {
@@ -194,53 +191,6 @@ func (s *Service) RefreshLibrary(ctx context.Context) (*library.Library, error) 
 // Search is never cached.
 func (s *Service) Search(ctx context.Context, q, book string, page int, lang string) (api.SearchPage, error) {
 	return s.Client.Search(ctx, q, book, page, lang)
-}
-
-// Page returns scraped HTML, refetched after 30 days; if the refetch fails
-// the stale copy is returned (except when ctx was cancelled).
-func (s *Service) Page(ctx context.Context, pageURL string) ([]byte, error) {
-	name := pageBlobName(pageURL)
-	data, saved, ok := s.Blobs.Get(name)
-	if ok && s.now().Sub(saved) < pageExpiry {
-		return data, nil
-	}
-	fresh, err := s.Client.Fetch(ctx, pageURL, nil)
-	if err != nil {
-		if ok && !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
-			return data, nil
-		}
-		return nil, err
-	}
-	_ = s.Blobs.Put(name, fresh)
-	return fresh, nil
-}
-
-// pageBlobName keys a page by path and sorted query, so ?year=1967 and
-// ?year=1968 of the same list page are separate blobs.
-func pageBlobName(pageURL string) string {
-	p, q := pageURL, ""
-	if u, err := url.Parse(pageURL); err == nil {
-		p = u.Path
-		vals := u.Query()
-		keys := make([]string, 0, len(vals))
-		for k := range vals {
-			keys = append(keys, k)
-		}
-		sort.Strings(keys)
-		for _, k := range keys {
-			for _, v := range vals[k] {
-				q += "_" + unsafeChars.ReplaceAllString(k+"-"+v, "-")
-			}
-		}
-	}
-	p = strings.Trim(p, "/")
-	if p == "" {
-		p = "index"
-	}
-	if q != "" {
-		p += "_" + q
-	}
-	return "pages/" + strings.ReplaceAll(p, "..", "_") + ".html"
 }
 
 var unsafeChars = regexp.MustCompile(`[^A-Za-z0-9._-]`)
