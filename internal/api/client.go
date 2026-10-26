@@ -46,7 +46,7 @@ func NewClient(base, userAgent string, hc *http.Client) *Client {
 		ua:         userAgent,
 		verse:      rate.NewLimiter(rate.Every(time.Minute/100), 5),
 		search:     rate.NewLimiter(rate.Every(time.Minute/25), 5),
-		toc:        rate.NewLimiter(rate.Every(7*time.Second), 2),
+		toc:        rate.NewLimiter(rate.Every(7*time.Second), 1),
 		RetryDelay: 500 * time.Millisecond,
 	}
 }

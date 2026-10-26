@@ -145,3 +145,54 @@ func TestItemTitleFromTranslation(t *testing.T) {
 		t.Errorf("label %q", got)
 	}
 }
+
+// stepFromYearLetter reads the first By-year letter, runs f, then steps to the
+// next letter and checks the reader and the cursor stayed under By year.
+func stepFromYearLetter(t *testing.T, be *fakeBackend, a *App, f func()) {
+	t.Helper()
+	drive(a, key("j"), key("enter"))
+	if a.node == nil || a.node.Parent == nil || a.node.Parent.Ref != "letters#year/1967" {
+		t.Fatalf("not under By year: %+v", a.node)
+	}
+	f()
+	if a.node == nil || a.node.Parent == nil || a.node.Parent.Ref != "letters#year/1967" {
+		t.Fatalf("a.node left By year: %+v", a.node)
+	}
+	be.items["letters/letter-to-abhirama"] = api.Item{Ref: "letters/letter-to-abhirama", Book: "letters", Translation: "x"}
+	a.item.Next = "letters/letter-to-abhirama"
+	drive(a, key("l"))
+	if sel := a.tree.Selected(); sel.Parent == nil || sel.Parent.Ref != "letters#year/1967" || sel.Ref != a.ref {
+		t.Errorf("cursor on %q under %+v", sel.Ref, sel.Parent)
+	}
+}
+
+func TestByYearLetterSurvivesATOCArrival(t *testing.T) {
+	be := newFake(t)
+	a := openYear(t, be)
+	stepFromYearLetter(t, be, a, func() {
+		drive(a, tocMsg{code: "bg", lang: "en", toc: smallBG(true)})
+	})
+}
+
+func TestByYearLetterSurvivesACollectionsSync(t *testing.T) {
+	be := newFake(t)
+	a := openYear(t, be)
+	stepFromYearLetter(t, be, a, func() {
+		a.colViews = nil
+		a.syncCollections()
+	})
+}
+
+func TestByYearCursorSurvivesABackgroundLibraryRefresh(t *testing.T) {
+	be := newFake(t)
+	a := openYear(t, be)
+	drive(a, key("j"), key("enter"))
+	ref := a.ref
+	drive(a, libraryMsg{lib: sampleLibrary(t)})
+	if a.node == nil || a.node.Parent == nil || a.node.Parent.Ref != "letters#year/1967" || a.node.Ref != ref {
+		t.Errorf("a.node = %+v", a.node)
+	}
+	if sel := a.tree.Selected(); sel == nil || sel.Ref != ref || sel.Parent.Ref != "letters#year/1967" {
+		t.Errorf("cursor on %+v", sel)
+	}
+}

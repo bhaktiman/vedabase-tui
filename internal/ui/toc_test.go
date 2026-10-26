@@ -222,3 +222,40 @@ func TestFailedTOCDoesNotStopTheQueue(t *testing.T) {
 		t.Errorf("calls %v", got)
 	}
 }
+
+func TestFailedTOCIsRetriedWhenTheBookIsExpanded(t *testing.T) {
+	be := newFake(t)
+	a := bootWith(t, be, "bg/2/13") // every fetch fails: the fake has no TOCs
+	count := func() int {
+		n := 0
+		for _, c := range be.tocCalled() {
+			if c == "lcfl" {
+				n++
+			}
+		}
+		return n
+	}
+	if count() != 1 {
+		t.Fatalf("lcfl fetched %d times at boot", count())
+	}
+	a.focusTree = true
+	a.tree.Reveal(a.lib.Find("lcfl"))
+	drive(a, key("l"))
+	if count() != 2 {
+		t.Fatalf("lcfl fetched %d times after expanding, want 2", count())
+	}
+}
+
+func TestTOCKeepsTitlesLearnedForRefsItDoesNotTitle(t *testing.T) {
+	be := newFake(t)
+	a := bootWith(t, be, "bg/2/13")
+	a.learn.titles["bg/2"] = "learned chapter"
+	a.learn.titles["bg/2/13"] = "learned verse"
+	drive(a, tocMsg{code: "bg", lang: "en", toc: smallBG(true)})
+	if _, ok := a.learn.titles["bg/2"]; ok {
+		t.Error("learned title kept for a ref the TOC titles")
+	}
+	if a.learn.titles["bg/2/13"] != "learned verse" {
+		t.Errorf("flat-book title dropped: %v", a.learn.titles)
+	}
+}

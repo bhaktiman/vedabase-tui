@@ -101,24 +101,44 @@ func (a *App) nextTOC() tea.Cmd {
 
 // bumpTOC moves an expanded book whose contents are not loaded to the front.
 func (a *App) bumpTOC(n *library.Node) {
-	if !isBookRoot(n) || !a.tocPending[n.Ref] {
+	if !isBookRoot(n) {
+		return
+	}
+	if a.tocFailed[n.Ref] { // the user is asking for it again: one more try
+		delete(a.tocFailed, n.Ref)
+		a.tocPending[n.Ref] = true
+	}
+	if !a.tocPending[n.Ref] {
 		return
 	}
 	a.tocFront = append([]string{n.Ref}, slices.DeleteFunc(a.tocFront, func(c string) bool { return c == n.Ref })...)
 }
 
+// dropTitled forgets the learned title of every ref the TOC titles itself;
+// refs it leaves untitled keep what the item translations taught.
+func dropTitled(learned map[string]string, nodes []api.TOCNode) {
+	for _, n := range nodes {
+		if n.Title != "" {
+			delete(learned, n.Ref)
+		}
+		dropTitled(learned, n.Children)
+	}
+}
+
 func (a *App) onTOC(m tocMsg) tea.Cmd {
 	a.tocBusy = false
-	delete(a.tocPending, m.code) // no retry loop: a failure waits for the next launch
+	delete(a.tocPending, m.code) // no retry loop: a failure waits until the reader expands the book
+	if m.lang == a.lang && m.err != nil {
+		a.tocFailed[m.code] = true
+	}
 	a.tocFront = slices.DeleteFunc(a.tocFront, func(c string) bool { return c == m.code })
 	if m.lang == a.lang && m.err == nil && a.lib != nil && a.lib.ApplyTOC(m.code, m.toc) {
 		a.tocs[m.code] = m.toc
 		// the TOC's titles win over anything scraped for this book
-		for r := range a.learn.titles {
-			if r == m.code || strings.HasPrefix(r, m.code+"/") {
-				delete(a.learn.titles, r)
-			}
+		if m.toc.Title != "" {
+			delete(a.learn.titles, m.code)
 		}
+		dropTitled(a.learn.titles, m.toc.Children)
 		a.applyLearned()
 		a.refindNode()
 	}

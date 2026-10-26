@@ -140,6 +140,7 @@ type App struct {
 	learn        learned
 	tocs         map[string]api.TOC // contents known for a.lang, by book code
 	tocPending   map[string]bool    // books still to fetch this session
+	tocFailed    map[string]bool    // books whose last fetch failed
 	tocFront     []string           // books the reader expanded, newest first
 	tocBusy      bool               // a fetch is running
 	toasts       toaster
@@ -158,7 +159,7 @@ func New(o Options) *App {
 		pal: render.Default, rend: render.NewRenderer(render.Default),
 		w: 80, h: 24, parts: o.State.Parts, startup: o.Toasts,
 		version: versionLabel(o.Version), upd: o.Updater, installDir: o.InstallDir,
-		prefetched: map[string]bool{}, learn: newLearned(), tocs: map[string]api.TOC{}, tocPending: map[string]bool{}, nowFn: o.Now,
+		prefetched: map[string]bool{}, learn: newLearned(), tocs: map[string]api.TOC{}, tocPending: map[string]bool{}, tocFailed: map[string]bool{}, nowFn: o.Now,
 		tick: func(d time.Duration, msg tea.Msg) tea.Cmd {
 			return tea.Tick(d, func(time.Time) tea.Msg { return msg })
 		},
@@ -354,9 +355,8 @@ func (a *App) onLibrary(m libraryMsg) tea.Cmd {
 		cmds = append(cmds, a.openStart(), a.nextTOC())
 	} else {
 		a.reapplyTOCs()
-		a.tree.SetLibrary(m.lib)
+		a.applyLearned() // sets the library on the tree; the new one has none of the learned titles or year groups
 		a.refindNode()   // nodes are new objects in the new library
-		a.applyLearned() // the new tree has none of the learned titles
 	}
 	return tea.Batch(cmds...)
 }
@@ -414,6 +414,16 @@ func (a *App) refindNode() {
 		if n := a.lib.CollectionItem(name, a.ref); n != nil {
 			a.node = n
 			return
+		}
+	}
+	if a.node != nil && a.node.Parent != nil && strings.HasPrefix(a.node.Parent.Ref, yearRefPfx) {
+		if g := a.lib.Find(a.node.Parent.Ref); g != nil {
+			for _, c := range g.Children {
+				if c.Ref == a.ref {
+					a.node = c
+					return
+				}
+			}
 		}
 	}
 	a.node = a.lib.Find(a.ref)

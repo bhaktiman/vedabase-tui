@@ -281,6 +281,19 @@ func (s *Search) toResults() {
 	s.input.Blur()
 }
 
+// rerunnable reports whether the box still holds the query that produced the
+// results on screen, so a scope change can repeat it.
+func (s *Search) rerunnable() bool {
+	return s.live && strings.TrimSpace(s.input.Value()) == s.q
+}
+
+func (s *Search) rerunIf(again bool) tea.Cmd {
+	if !again {
+		return nil
+	}
+	return s.run()
+}
+
 func (s *Search) onKey(kp tea.KeyPressMsg) tea.Cmd {
 	k := kp.String()
 	wasG := s.pendingG
@@ -291,14 +304,16 @@ func (s *Search) onKey(kp tea.KeyPressMsg) tea.Cmd {
 		s.input.Blur()
 		return nil
 	case "tab":
+		again := s.rerunnable()
 		s.cycleScope()
-		return s.run()
+		return s.rerunIf(again)
 	case "shift+tab":
+		again := s.rerunnable()
 		s.scope = (s.scope + 3) % 4
 		if s.scope == 1 && s.bookCode == "" {
 			s.scope = 0
 		}
-		return s.run()
+		return s.rerunIf(again)
 	case "enter":
 		if s.focusInput {
 			if s.live && len(s.results) > 0 && strings.TrimSpace(s.input.Value()) == s.q && s.scopeBook() == s.book {

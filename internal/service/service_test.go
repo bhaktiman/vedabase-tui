@@ -279,3 +279,21 @@ func TestBooksStaleFallback(t *testing.T) {
 		t.Fatalf("books=%d err=%v", len(books), err)
 	}
 }
+
+func TestOldCacheServedOnServerErrors(t *testing.T) {
+	for _, code := range []int{503, 429} {
+		e := newEnv(t)
+		oldItem(t, e, "bg/2/13")
+		e.srv.Close()
+		e.srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(code)
+		}))
+		defer e.srv.Close()
+		e.svc.Client = api.NewClient(e.srv.URL, "test", nil)
+		e.svc.Client.RetryDelay = time.Millisecond
+		it, cached, err := e.svc.Item(context.Background(), "bg/2/13", "en")
+		if err != nil || !cached || it.Translation != "OLD" {
+			t.Errorf("%d: it=%q cached=%v err=%v", code, it.Translation, cached, err)
+		}
+	}
+}

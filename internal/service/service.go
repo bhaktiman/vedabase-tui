@@ -76,7 +76,7 @@ func (s *Service) Item(ctx context.Context, ref, lang string) (api.Item, bool, e
 	}
 	raw, it, err := s.Client.VerseRaw(ctx, ref, lang)
 	if err != nil {
-		if lang == "en" && errors.Is(err, api.ErrOffline) {
+		if lang == "en" && ctx.Err() == nil && !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) && !api.IsNotFound(err) {
 			if old, ok := s.Items.GetOld(ref); ok {
 				old.Ref = ref
 				return api.Clean(old), true, nil

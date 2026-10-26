@@ -42,16 +42,16 @@ func TestSearchRunsOnEnterOnly(t *testing.T) {
 
 func TestSearchScope(t *testing.T) {
 	a, be := searchApp(t)
-	drive(a, key("tab"))
+	drive(a, key("enter"), key("/"), key("tab"))
 	if v := plain(a); !strings.Contains(v, "This book (Bhagavad-gītā As It Is)") {
 		t.Fatalf("scope line missing book:\n%s", v)
 	}
-	if got := be.searches(); len(got) != 1 || got[0].book != "bg" {
+	if got := be.searches(); len(got) != 2 || got[1].book != "bg" {
 		t.Fatalf("book = %+v", got) // tab re-runs the query in the new scope
 	}
 	// "/" reopens with the query kept; this->letters->lectures
 	drive(a, key("/"), key("tab"), key("tab"))
-	if got := be.searches(); len(got) != 3 || got[2].book != "transcripts" {
+	if got := be.searches(); len(got) != 4 || got[3].book != "transcripts" {
 		t.Fatalf("calls = %+v", got)
 	}
 	drive(a, key("/"), key("tab"), key("tab")) // lectures -> all -> this book
@@ -188,8 +188,8 @@ func TestSearchNWithoutSearch(t *testing.T) {
 
 func TestSearchScopeLetters(t *testing.T) {
 	a, be := searchApp(t)
-	drive(a, key("tab"), key("tab"))
-	if got := be.searches(); len(got) != 2 || got[1].book != "letters" {
+	drive(a, key("enter"), key("/"), key("tab"), key("tab"))
+	if got := be.searches(); len(got) != 3 || got[2].book != "letters" {
 		t.Fatalf("calls = %+v", got)
 	}
 }
@@ -412,5 +412,22 @@ func TestSearchTabWithoutQueryDoesNotSearch(t *testing.T) {
 	drive(a, key("/"), key("tab"))
 	if n := len(be.searches()); n != 0 {
 		t.Fatalf("searched %d times", n)
+	}
+}
+
+func TestSearchTabWithUnsubmittedTextOnlyChangesScope(t *testing.T) {
+	a, be := searchApp(t)
+	drive(a, key("enter"), key("/"))
+	typeKeys(a, "x") // "soulx": typed, not submitted
+	n := len(be.searches())
+	drive(a, key("tab"))
+	if got := len(be.searches()); got != n {
+		t.Fatalf("tab searched the unsubmitted text: %+v", be.searches())
+	}
+	if !a.search.focusInput {
+		t.Error("tab took focus out of the input")
+	}
+	if a.search.scope != 1 {
+		t.Errorf("scope %d", a.search.scope)
 	}
 }
