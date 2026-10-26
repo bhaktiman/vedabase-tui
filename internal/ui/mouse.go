@@ -89,7 +89,7 @@ func (a *App) onMouse(m tea.Mouse, click bool) tea.Cmd {
 	if a.overlayOpen() {
 		return a.overlayMouse(m, click, d)
 	}
-	if a.state.Zen { // only the text: the wheel scrolls it, clicks do nothing
+	if a.state.Zen { // only the text: the wheel scrolls it, a click follows a link
 		if !click {
 			a.reader.offset += d
 			a.reader.clamp()
@@ -150,10 +150,35 @@ func (a *App) textOrigin() (x, y int) {
 	return r.x + a.bw() + a.colIndent(), r.y + a.bw()
 }
 
+// toastRect is where the visible toast is drawn over the reader: the right end
+// of its last row. Its slide-in is ignored, so the rect is the settled one.
+func (a *App) toastRect() (rect, bool) {
+	x0, y, w := a.reader0()
+	t := a.toastView(w)
+	if t == "" {
+		return rect{}, false
+	}
+	tw := lipgloss.Width(t)
+	return rect{x0 + max(w-tw-1, 0), y, tw + 1, 1}, true
+}
+
+// reader0 is the left edge, last text row and width of the line placeToast
+// puts the toast on.
+func (a *App) reader0() (x, y, w int) {
+	if a.state.Zen {
+		return 0, min(a.h, a.bodyH()+2) - 1, a.w
+	}
+	_, r := a.paneRects()
+	return r.x + a.bw(), a.bodyH() - a.bw(), a.readerW()
+}
+
 // linkClick follows the link under a click on the reader.
 func (a *App) linkClick(m tea.Mouse) tea.Cmd {
 	if !a.settings.Mouse || !a.hasItem {
 		return nil
+	}
+	if r, ok := a.toastRect(); ok && r.has(m.X, m.Y) {
+		return nil // the toast is drawn over the text
 	}
 	x0, y0 := a.textOrigin()
 	if l, ok := a.reader.LinkAt(m.Y-y0, m.X-x0); ok {

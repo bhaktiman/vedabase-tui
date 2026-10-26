@@ -14,7 +14,7 @@ import (
 // langNames are the supported text languages, in the picker's order, with the
 // name each is shown by.
 var langNames = []struct{ code, name string }{
-	{"en", "English"}, {"es", "Español"}, {"pt", "Português"}, {"hi", "हिन्दी"}, {"ru", "Русский"},
+	{"en", "English"}, {"es", "Español"}, {"pt", "Português"}, {"hi", "Hindī"}, {"ru", "Русский"},
 }
 
 func validLang(code string) bool {
@@ -85,6 +85,11 @@ func (a *App) onBooks(m booksMsg) {
 	a.bookLangs = make(map[string][]string, len(m.books))
 	for _, b := range m.books {
 		a.bookLangs[b.Code] = b.Languages
+	}
+	for code := range a.tocPending { // books this language lacks have no contents to fetch
+		if !a.available(code) {
+			delete(a.tocPending, code)
+		}
 	}
 }
 

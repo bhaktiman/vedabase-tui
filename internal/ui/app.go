@@ -473,6 +473,15 @@ func (a *App) keepsRow(n *library.Node) bool {
 // Open makes ref the current item and loads it.
 func (a *App) Open(ref string) tea.Cmd { return a.open(ref, nil) }
 
+// reopen loads the current item again after a failure, leaving the history as
+// it is.
+func (a *App) reopen() tea.Cmd {
+	fwd := a.fwd
+	cmd := a.Open(a.ref)
+	a.fwd = fwd
+	return cmd
+}
+
 // open is Open for an item reached through from, a collection item or a
 // By-year letter: the reader then belongs to that group (breadcrumb, h/l
 // order, tree cursor).
@@ -864,7 +873,7 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 		return a.step(1)
 	case "r":
 		if a.ref != "" && !a.hasItem && a.status != loadingStatus {
-			return a.Open(a.ref)
+			return a.reopen()
 		}
 	default:
 		a.reader.Key(k)

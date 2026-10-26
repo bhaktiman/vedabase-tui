@@ -31,6 +31,18 @@ func DisplayLinked(it api.Item, p api.Parts) (md string, refs []string) {
 
 func displayMarkdown(it api.Item, p api.Parts, link bool) (string, []string) {
 	var refs []string
+	// a stray sentinel in any field would throw off every link after it
+	it.Devanagari = sentinelStripper.Replace(it.Devanagari)
+	it.VerseText = sentinelStripper.Replace(it.VerseText)
+	it.Synonyms = sentinelStripper.Replace(it.Synonyms)
+	it.Translation = sentinelStripper.Replace(it.Translation)
+	it.Purport = sentinelStripper.Replace(it.Purport)
+	if it.Document != nil {
+		d := *it.Document // the caller's copy stays as it is
+		d.Date = sentinelStripper.Replace(d.Date)
+		d.Location = sentinelStripper.Replace(d.Location)
+		it.Document = &d
+	}
 	// shown fields are marked exactly when they are placed in the output, so
 	// refs follows the order of appearance and hidden parts contribute none.
 	field := func(name, text string) string {

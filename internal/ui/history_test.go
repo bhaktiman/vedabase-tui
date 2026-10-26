@@ -276,3 +276,51 @@ func TestHelpMentionsHistory(t *testing.T) {
 		t.Errorf("single-column help is %d rows", h)
 	}
 }
+
+func TestClickOnToastDoesNotFollowLinkUnderIt(t *testing.T) {
+	st := store.State{TreeHidden: true, Parts: api.Parts{Translation: true}}
+	var a *App
+	var x, y int
+	for h := 6; h < 30 && a == nil; h++ {
+		b := linkApp(t, 45, h, st, 40)
+		if !strings.Contains(plain(b), "Bg. 4.7") {
+			continue
+		}
+		lx, ly := cellOf(t, b, "Bg. 4.7")
+		b.Toast(strings.Repeat("x", 38), false)
+		drive(b)
+		if r, ok := b.toastRect(); ok && r.has(lx+3, ly) {
+			a, x, y = b, lx, ly
+		}
+	}
+	if a == nil {
+		t.Fatal("no height puts the toast over the link")
+	}
+	if !strings.Contains(plain(a), "xxxx") {
+		t.Fatal("no toast drawn")
+	}
+	drive(a, click(x+3, y))
+	if a.ref != "bg/2/13" {
+		t.Fatalf("click on the toast followed the link: %q", a.ref)
+	}
+}
+
+func TestRetryAndCountdownKeepForwardHistory(t *testing.T) {
+	a := linkApp(t, 120, 40, store.State{}, 60)
+	drive(a, a.follow("bg/4/7"))
+	drive(a, key("["))
+	if len(a.fwd) != 1 {
+		t.Fatalf("fwd = %d", len(a.fwd))
+	}
+	a.hasItem = false // as after a failed load
+	drive(a, key("r"))
+	if len(a.fwd) != 1 {
+		t.Fatalf("r cleared forward: %d", len(a.fwd))
+	}
+	a.hasItem = false
+	a.cd = &countdown{kind: cdReader, ref: a.ref, left: time.Millisecond}
+	drive(a, a.cdAdvance(time.Second))
+	if len(a.fwd) != 1 {
+		t.Fatalf("countdown re-open cleared forward: %d", len(a.fwd))
+	}
+}

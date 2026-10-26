@@ -227,7 +227,7 @@ func (a *App) cdAdvance(d time.Duration) tea.Cmd {
 	switch c.kind {
 	case cdReader:
 		if c.ref == a.ref && !a.hasItem {
-			return a.Open(c.ref)
+			return a.reopen()
 		}
 	case cdSearch:
 		return a.search.Retry(c.gen)

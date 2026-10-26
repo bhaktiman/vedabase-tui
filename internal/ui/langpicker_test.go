@@ -15,7 +15,7 @@ func TestLKeyOpensPickerAndPicksSpanish(t *testing.T) {
 		t.Fatal("L did not open the picker")
 	}
 	v := plain(a)
-	for _, n := range []string{"English", "Español", "Português", "हिन्दी", "Русский", "current"} {
+	for _, n := range []string{"English", "Español", "Português", "Hindī", "Русский", "current"} {
 		if !strings.Contains(v, n) {
 			t.Fatalf("picker lacks %q:\n%s", n, v)
 		}

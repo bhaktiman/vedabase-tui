@@ -41,7 +41,7 @@ func (a *App) loadCachedTOCs(lib *library.Library) {
 		} else {
 			fresh = false
 		}
-		if !fresh {
+		if !fresh && a.available(r.Ref) {
 			a.tocPending[r.Ref] = true
 		}
 	}
@@ -58,16 +58,16 @@ func (a *App) reapplyTOCs() {
 // current item's book, the expanded books, then the rest in library order.
 func (a *App) nextTOCCode() string {
 	for _, c := range a.tocFront {
-		if a.tocPending[c] {
+		if a.tocPending[c] && a.available(c) {
 			return c
 		}
 	}
-	if a.node != nil && a.tocPending[a.node.Book] {
+	if a.node != nil && a.tocPending[a.node.Book] && a.available(a.node.Book) {
 		return a.node.Book
 	}
 	rest := ""
 	for _, r := range a.lib.Roots {
-		if !isBookRoot(r) || !a.tocPending[r.Ref] {
+		if !isBookRoot(r) || !a.tocPending[r.Ref] || !a.available(r.Ref) {
 			continue
 		}
 		if a.tree.expanded[r.Ref] {

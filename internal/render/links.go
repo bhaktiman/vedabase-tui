@@ -133,7 +133,9 @@ func applyLinks(out string, refs []string, accent color.Color) (string, []Link) 
 		col := 0
 		started := false // the underline is on for the current piece
 		start, end := 0, 0
-		var pend strings.Builder // spaces (and styling) after the last visible char of the piece
+		var pend strings.Builder    // spaces (and styling) after the last visible char of the piece
+		var pendSp strings.Builder  // just the spaces of pend
+		var pendSty strings.Builder // just the styling of pend
 		pendSGR := false
 		closePiece := func() {
 			if !started {
@@ -142,6 +144,8 @@ func applyLinks(out string, refs []string, accent color.Color) (string, []Link) 
 			b.WriteString("\x1b[0m" + strings.Join(active, ""))
 			b.WriteString(pend.String())
 			pend.Reset()
+			pendSp.Reset()
+			pendSty.Reset()
 			pendSGR = false
 			started = false
 			if ref != "" {
@@ -169,12 +173,14 @@ func applyLinks(out string, refs []string, accent color.Color) (string, []Link) 
 							}
 							if started {
 								pend.WriteString(seq)
+								pendSty.WriteString(seq)
 								pendSGR = true
 								continue
 							}
 						}
 						if started {
 							pend.WriteString(seq)
+							pendSty.WriteString(seq)
 						} else {
 							b.WriteString(seq)
 						}
@@ -183,6 +189,7 @@ func applyLinks(out string, refs []string, accent color.Color) (string, []Link) 
 					if open && strings.TrimSpace(seq) == "" {
 						if started {
 							pend.WriteString(seq)
+							pendSp.WriteString(seq)
 						} else {
 							b.WriteString(seq)
 						}
@@ -194,11 +201,18 @@ func applyLinks(out string, refs []string, accent color.Color) (string, []Link) 
 						started, start = true, col
 					}
 					if started {
-						b.WriteString(pend.String())
+						// interior spaces belong to the link: underline them, then
+						// let any styling in between take effect for the next word
+						if pendSp.Len() > 0 {
+							b.WriteString(linkSGR + pendSp.String())
+						}
+						b.WriteString(pendSty.String())
 						if pendSGR {
 							b.WriteString(linkSGR) // an SGR in between may have changed the look
 						}
 						pend.Reset()
+						pendSp.Reset()
+						pendSty.Reset()
 						pendSGR = false
 						end = col + w
 					}

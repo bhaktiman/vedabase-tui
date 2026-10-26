@@ -259,3 +259,25 @@ func TestTOCKeepsTitlesLearnedForRefsItDoesNotTitle(t *testing.T) {
 		t.Errorf("flat-book title dropped: %v", a.learn.titles)
 	}
 }
+
+func TestTOCNotQueuedForBooksTheLanguageLacks(t *testing.T) {
+	be := langFake(t)
+	a, _ := boot(t, be, store.State{LastRef: "bg/2/13"})
+	be.lib = sampleLibrary(t)
+	before := len(be.tocCalled())
+	setLang(a, "es")
+	for _, c := range be.tocCalled()[before:] {
+		if c == "sb" {
+			t.Fatalf("fetched the contents of sb, which es lacks: %v", be.tocCalled()[before:])
+		}
+	}
+	if a.tocPending["sb"] || a.nextTOCCode() == "sb" {
+		t.Fatal("sb still queued")
+	}
+	// the books list arriving after the queue was built drops its entries
+	a.tocPending["sb"] = true
+	a.onBooks(booksMsg{books: be.books})
+	if a.tocPending["sb"] {
+		t.Fatal("onBooks left sb pending")
+	}
+}

@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/charmbracelet/x/ansi"
 
@@ -196,5 +197,77 @@ func TestLinksOnLongLecture(t *testing.T) {
 	}
 	if linked > 2*plain {
 		t.Fatalf("linked %v > 2x plain %v", linked, plain)
+	}
+}
+
+func TestInteriorSpaceStaysInOnePiece(t *testing.T) {
+	g := "\x1b[38;5;252m"
+	accent := Default.Accent
+	for name, in := range map[string]string{
+		"per-word SGR":   g + "(" + linkStart + "Bg.\x1b[0m" + g + " " + g + "4.7" + linkEnd + g + ")\x1b[0m",
+		"reset in space": g + "(" + linkStart + "Bg.\x1b[0m " + g + "4.7" + linkEnd + ")\x1b[0m",
+		"sgr only":       "(" + linkStart + g + "Bg." + g + " " + g + "4.7\x1b[0m" + linkEnd + ")",
+	} {
+		out, links := applyLinks(in, []string{"bg/4/7"}, accent)
+		if len(links) != 1 {
+			t.Fatalf("%s: want one link, got %+v\n%q", name, links, out)
+		}
+		if got := cells(out, links[0]); got != "Bg. 4.7" {
+			t.Fatalf("%s: link covers %q", name, got)
+		}
+		ul := underlined(out)
+		for c := links[0].Start; c < links[0].End; c++ {
+			if !ul[c] {
+				t.Fatalf("%s: cell %d not underlined: %q", name, c, out)
+			}
+		}
+		if ul[links[0].End] {
+			t.Fatalf("%s: underline runs past the link: %q", name, out)
+		}
+	}
+}
+
+// underlined reports, per visible cell of s, whether the SGR state has
+// underline on (a parameter 4 outside colour arguments is enough here).
+func underlined(s string) []bool {
+	var res []bool
+	on := false
+	for i := 0; i < len(s); {
+		if strings.HasPrefix(s[i:], "\x1b[") {
+			e := strings.IndexByte(s[i:], 'm')
+			params := s[i+2 : i+e]
+			if params == "" || params == "0" {
+				on = false
+			}
+			for _, p := range strings.Split(params, ";") {
+				if p == "4" {
+					on = true
+				}
+			}
+			i += e + 1
+			continue
+		}
+		_, n := utf8.DecodeRuneInString(s[i:])
+		res = append(res, on)
+		i += n
+	}
+	return append(res, false)
+}
+
+func TestStraySentinelsInOtherFieldsDoNotShiftLinks(t *testing.T) {
+	it := linkedItem("See Bg. 4.7 now.", api.Reference{Text: "Bg. 4.7", Ref: "bg/4/7", Field: "purport"})
+	it.Synonyms = "mark" + linkStart + " word"
+	it.VerseText = "a" + linkEnd + "b"
+	it.Devanagari = linkStart + "x"
+	it.Document = &api.Document{Date: "1968" + linkStart, Location: linkEnd + "LA"}
+	md, refs := DisplayLinked(it, api.AllParts())
+	if len(refs) != 1 || strings.Count(md, linkStart) != 1 || strings.Count(md, linkEnd) != 1 {
+		t.Fatalf("refs=%v md=%q", refs, md)
+	}
+	if plain := DisplayMarkdown(it, api.AllParts()); strings.ContainsAny(plain, linkStart+linkEnd) {
+		t.Fatalf("DisplayMarkdown kept a sentinel: %q", plain)
+	}
+	if it.Document.Date != "1968"+linkStart {
+		t.Fatal("the caller's document was modified")
 	}
 }
