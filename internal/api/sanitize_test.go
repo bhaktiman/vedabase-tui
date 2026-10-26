@@ -83,7 +83,7 @@ func TestStatusErrorSanitized(t *testing.T) {
 	defer srv.Close()
 	c := NewClient(srv.URL, "vedabase-tui/test", srv.Client())
 	c.RetryDelay = time.Millisecond
-	_, err := c.Verse(context.Background(), "bg/1/1")
+	_, err := c.Verse(context.Background(), "bg/1/1", "en")
 	if err == nil || strings.Contains(err.Error(), "\x1b") {
 		t.Errorf("err = %q", err)
 	}

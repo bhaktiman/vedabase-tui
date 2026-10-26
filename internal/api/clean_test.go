@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -41,7 +42,7 @@ func TestCleanLetterPlace(t *testing.T) {
 
 func TestCleanLetterNoStampUnchanged(t *testing.T) {
 	it := Item{Book: "letters", Purport: "Dear Friend,Hello.There"}
-	if got := Clean(it); got != it {
+	if got := Clean(it); !reflect.DeepEqual(got, it) {
 		t.Errorf("changed: %q", got.Purport)
 	}
 }
@@ -62,10 +63,10 @@ func TestCleanTranscriptAnchors(t *testing.T) {
 
 func TestCleanLeavesOthersUnchanged(t *testing.T) {
 	book := Item{Book: "bg", Purport: "Text.Another [#x] sentence.Here"}
-	if got := Clean(book); got != book {
+	if got := Clean(book); !reflect.DeepEqual(got, book) {
 		t.Error("book changed")
 	}
-	letter := Item{Book: "letters", Purport: "Letter\n70-07-14DetroitMy Dear X,Hi.There"}
+	letter := Item{Book: "letters", Purport: "Letter to: X\n70-07-14DetroitMy Dear X,Hi.There"}
 	// The header goes, but the glued-text rules do not run on text with newlines.
 	if got := Clean(letter).Purport; got != "DetroitMy Dear X,Hi.There" {
 		t.Errorf("letter with newlines: %q", got)

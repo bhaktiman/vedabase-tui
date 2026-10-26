@@ -7,6 +7,7 @@ import (
 
 type itemLoadedMsg struct {
 	ref  string
+	lang string
 	item api.Item
 	err  error
 }

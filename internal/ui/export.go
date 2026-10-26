@@ -72,7 +72,7 @@ func (a *App) exportItem(r string) tea.Cmd {
 	if a.settings.ExportDir == "" {
 		return a.Toast("No export directory set", true)
 	}
-	be, dir, parts, today, meta := a.be, a.settings.ExportDir, a.parts, a.now(), a.metaFor(r)
+	be, lang, dir, parts, today, meta := a.be, a.lang, a.settings.ExportDir, a.parts, a.now(), a.metaFor(r)
 	var have *api.Item
 	if r == a.ref && a.hasItem {
 		it := a.item
@@ -83,7 +83,7 @@ func (a *App) exportItem(r string) tea.Cmd {
 		if it == nil {
 			ctx, cancel := context.WithTimeout(context.Background(), exportFetchTimeout)
 			defer cancel()
-			got, _, err := be.Item(ctx, r)
+			got, _, err := be.Item(ctx, r, lang)
 			if err != nil {
 				return exportDoneMsg{err: err}
 			}
@@ -116,11 +116,11 @@ func (a *App) exportCollection(name string) tea.Cmd {
 	a.exporting, a.exportName, a.exportDone, a.exportTotal = true, name, 0, len(col.Items)
 	ch := make(chan tea.Msg, len(col.Items)+2) // the job never blocks on a slow UI
 	a.exportCh = ch
-	go runCollectionExport(a.be, a.settings.ExportDir, name, col.Items, metas, a.parts, a.now(), ch)
+	go runCollectionExport(a.be, a.lang, a.settings.ExportDir, name, col.Items, metas, a.parts, a.now(), ch)
 	return listenExport(ch)
 }
 
-func runCollectionExport(be Backend, dir, name string, items []collections.Item, metas []export.Meta,
+func runCollectionExport(be Backend, lang, dir, name string, items []collections.Item, metas []export.Meta,
 	parts api.Parts, today time.Time, ch chan<- tea.Msg) {
 	defer close(ch)
 	entries := make([]export.Entry, len(items))
@@ -128,7 +128,7 @@ func runCollectionExport(be Backend, dir, name string, items []collections.Item,
 	for i, ci := range items {
 		entries[i] = export.Entry{Ref: ci.Ref, Meta: metas[i]}
 		ctx, cancel := context.WithTimeout(context.Background(), exportFetchTimeout)
-		it, _, err := be.Item(ctx, ci.Ref)
+		it, _, err := be.Item(ctx, ci.Ref, lang)
 		cancel()
 		if err != nil {
 			missing++

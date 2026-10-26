@@ -66,7 +66,7 @@ func run() error {
 
 	svc := &service.Service{
 		Client: api.NewClient(service.DefaultBase, "vedabase-tui/"+version, nil),
-		Items:  store.ItemCache{Dir: filepath.Join(paths.Cache, "items")},
+		Items:  store.ItemCache{Dir: filepath.Join(paths.Cache, "items-v2"), OldDir: filepath.Join(paths.Cache, "items")},
 		Blobs:  store.BlobCache{Dir: paths.Cache},
 	}
 	app := ui.New(ui.Options{

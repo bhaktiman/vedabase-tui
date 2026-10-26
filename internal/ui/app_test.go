@@ -71,7 +71,7 @@ func (b *fakeBackend) item(ref string) api.Item {
 		Translation: "**Translation of " + ref + "**", Purport: "Purport of " + ref}
 }
 
-func (b *fakeBackend) Item(ctx context.Context, ref string) (api.Item, bool, error) {
+func (b *fakeBackend) Item(ctx context.Context, ref, lang string) (api.Item, bool, error) {
 	b.mu.Lock()
 	b.itemCall = append(b.itemCall, ref)
 	ch, err := b.block[ref], b.itemErr[ref]
@@ -89,7 +89,7 @@ func (b *fakeBackend) Item(ctx context.Context, ref string) (api.Item, bool, err
 	return b.item(ref), was, nil
 }
 
-func (b *fakeBackend) Cached(ref string) bool {
+func (b *fakeBackend) Cached(ref, lang string) bool {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	return b.cached[ref]
@@ -114,7 +114,7 @@ func (b *fakeBackend) RefreshLibrary(ctx context.Context) (*library.Library, err
 
 // Search serves a two-page result set: page 1 has bg/2/13 and bg/2/14, page 2
 // has bg/2/15.
-func (b *fakeBackend) Search(ctx context.Context, q, book string, page int) (api.SearchPage, error) {
+func (b *fakeBackend) Search(ctx context.Context, q, book string, page int, lang string) (api.SearchPage, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	b.searchCalls = append(b.searchCalls, searchCall{q, book, page})
@@ -313,7 +313,7 @@ func TestStaleResponseDropped(t *testing.T) {
 	a, _ := boot(t, be, store.State{LastRef: "bg/2/13"})
 	_ = a.Open("bg/1/19")        // slow A; its command is never run
 	drive(a, a.Open("bg/2/1")()) // fast B
-	drive(a, itemLoadedMsg{ref: "bg/1/19", item: be.item("bg/1/19")})
+	drive(a, itemLoadedMsg{ref: "bg/1/19", lang: "en", item: be.item("bg/1/19")})
 	v := plain(a)
 	if !strings.Contains(v, "Translation of bg/2/1") || strings.Contains(v, "Translation of bg/1/19") {
 		t.Fatalf("reader:\n%s", v)
@@ -465,5 +465,15 @@ func TestStaleLibraryRefreshes(t *testing.T) {
 	boot(t, be, store.State{LastRef: "bg/2/13"})
 	if be.refresh != 1 {
 		t.Fatalf("refresh calls = %d", be.refresh)
+	}
+}
+
+func TestItemOfOtherLanguageDropped(t *testing.T) {
+	be := newFake(t)
+	a, _ := boot(t, be, store.State{LastRef: "bg/2/13"})
+	drive(a, a.Open("bg/2/1")())
+	drive(a, itemLoadedMsg{ref: "bg/2/1", lang: "es", item: api.Item{Ref: "bg/2/1", Book: "bg", Translation: "OTHERLANG"}})
+	if v := plain(a); strings.Contains(v, "OTHERLANG") {
+		t.Fatalf("item of another language shown:\n%s", v)
 	}
 }

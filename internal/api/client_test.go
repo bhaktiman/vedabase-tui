@@ -49,14 +49,14 @@ func TestVerseDecodes(t *testing.T) {
 		"/api/v1/verse/bg/2/13": "verse-bg-2-13.json",
 		"/api/v1/verse/lcfl/1":  "verse-lcfl-1.json",
 	})
-	it, err := c.Verse(context.Background(), "bg/2/13")
+	it, err := c.Verse(context.Background(), "bg/2/13", "en")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !strings.HasPrefix(it.Translation, "**As the embodied soul") || it.Document != nil {
 		t.Errorf("bg/2/13: translation %q document %v", it.Translation, it.Document)
 	}
-	it, err = c.Verse(context.Background(), "lcfl/1")
+	it, err = c.Verse(context.Background(), "lcfl/1", "en")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,7 +67,7 @@ func TestVerseDecodes(t *testing.T) {
 
 func TestDocumentDecodes(t *testing.T) {
 	c := serveJSON(t, map[string]string{"/api/v1/verse/letters/letter-to-aatie": "verse-letter-aatie.json"})
-	it, err := c.Verse(context.Background(), "letters/letter-to-aatie")
+	it, err := c.Verse(context.Background(), "letters/letter-to-aatie", "en")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +78,7 @@ func TestDocumentDecodes(t *testing.T) {
 
 func TestBooks(t *testing.T) {
 	c := serveJSON(t, map[string]string{"/api/v1/books": "books.json"})
-	bs, err := c.Books(context.Background())
+	bs, err := c.Books(context.Background(), "en")
 	if err != nil || len(bs) != 24 || bs[0].Code != "bg" {
 		t.Fatalf("books = %d, %v", len(bs), err)
 	}
@@ -90,7 +90,7 @@ func TestUnknownFieldsAndNulls(t *testing.T) {
 	}))
 	defer srv.Close()
 	c := NewClient(srv.URL, "ua", srv.Client())
-	it, err := c.Verse(context.Background(), "x/1")
+	it, err := c.Verse(context.Background(), "x/1", "en")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -120,10 +120,10 @@ func TestRequestShape(t *testing.T) {
 	}))
 	defer srv.Close()
 	c := NewClient(srv.URL, "vedabase-tui/test", srv.Client())
-	if _, err := c.Verse(context.Background(), "bg/2/13"); err != nil {
+	if _, err := c.Verse(context.Background(), "bg/2/13", "en"); err != nil {
 		t.Fatal(err)
 	}
-	sp, err := c.Search(context.Background(), "soul body", "bg", 2)
+	sp, err := c.Search(context.Background(), "soul body", "bg", 2, "en")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -137,7 +137,7 @@ func TestRequestShape(t *testing.T) {
 
 func TestNotFound(t *testing.T) {
 	c := serveJSON(t, nil)
-	_, err := c.Verse(context.Background(), "bg/99/1")
+	_, err := c.Verse(context.Background(), "bg/99/1", "en")
 	if !IsNotFound(err) || !strings.Contains(err.Error(), "No text for bg/99/1") {
 		t.Errorf("err = %v", err)
 	}
@@ -153,7 +153,7 @@ func TestRateLimited(t *testing.T) {
 	defer srv.Close()
 	c := NewClient(srv.URL, "ua", srv.Client())
 	c.RetryDelay = time.Millisecond
-	_, err := c.Verse(context.Background(), "bg/1/1")
+	_, err := c.Verse(context.Background(), "bg/1/1", "en")
 	var rl *RateLimitedError
 	if !errors.As(err, &rl) || rl.RetryAfter != 7*time.Second || n.Load() != 1 {
 		t.Errorf("err = %v, requests = %d", err, n.Load())
@@ -175,13 +175,13 @@ func TestRetryOnceOn5xx(t *testing.T) {
 	defer srv.Close()
 	c := NewClient(srv.URL, "ua", srv.Client())
 	c.RetryDelay = time.Millisecond
-	if _, err := c.Verse(context.Background(), "bg/2/13"); err != nil || n.Load() != 2 {
+	if _, err := c.Verse(context.Background(), "bg/2/13", "en"); err != nil || n.Load() != 2 {
 		t.Fatalf("err = %v, requests = %d", err, n.Load())
 	}
 
 	n.Store(0)
 	failFirst = false
-	_, err := c.Verse(context.Background(), "bg/2/13")
+	_, err := c.Verse(context.Background(), "bg/2/13", "en")
 	var ae *APIError
 	if !errors.As(err, &ae) || ae.Status != 500 || ae.Code != "lookup_failed" || n.Load() != 2 {
 		t.Errorf("err = %v, requests = %d", err, n.Load())
@@ -193,7 +193,7 @@ func TestOffline(t *testing.T) {
 	u := srv.URL
 	srv.Close()
 	c := NewClient(u, "ua", nil)
-	_, err := c.Verse(context.Background(), "bg/1/1")
+	_, err := c.Verse(context.Background(), "bg/1/1", "en")
 	if !errors.Is(err, ErrOffline) {
 		t.Errorf("err = %v", err)
 	}
@@ -224,14 +224,14 @@ func TestFetchProgress(t *testing.T) {
 func TestLimiterBlocks(t *testing.T) {
 	c := serveJSON(t, map[string]string{"/api/v1/search": "search-soul-body.json"})
 	for i := 0; i < 5; i++ {
-		if _, err := c.Search(context.Background(), "soul", "", 1); err != nil {
+		if _, err := c.Search(context.Background(), "soul", "", 1, "en"); err != nil {
 			t.Fatalf("call %d: %v", i+1, err)
 		}
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
 	start := time.Now()
-	_, err := c.Search(ctx, "soul", "", 1)
+	_, err := c.Search(ctx, "soul", "", 1, "en")
 	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Errorf("err = %v", err)
 	}
@@ -264,5 +264,24 @@ func TestFetchGzipProgress(t *testing.T) {
 	}
 	if n := int64(zb.Len()); lastDone != n || lastTotal != n {
 		t.Errorf("last (%d,%d), want (%d,%d)", lastDone, lastTotal, n, n)
+	}
+}
+
+func TestVerseSendsLang(t *testing.T) {
+	var got atomic.Value
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		got.Store(r.URL.Query().Get("lang"))
+		w.Write([]byte(`{"ref":"bg/2/13"}`))
+	}))
+	defer srv.Close()
+	c := NewClient(srv.URL, "ua", srv.Client())
+	if _, err := c.Verse(context.Background(), "bg/2/13", "es"); err != nil || got.Load() != "es" {
+		t.Fatalf("verse lang = %v err=%v", got.Load(), err)
+	}
+	if _, err := c.Books(context.Background(), "pt"); err != nil || got.Load() != "pt" {
+		t.Fatalf("books lang = %v err=%v", got.Load(), err)
+	}
+	if _, err := c.Search(context.Background(), "q", "", 1, "ru"); err != nil || got.Load() != "ru" {
+		t.Fatalf("search lang = %v err=%v", got.Load(), err)
 	}
 }

@@ -10,26 +10,41 @@ import (
 
 // Item is one readable text. Missing parts arrive as JSON null and decode to "".
 type Item struct {
-	Ref         string    `json:"ref"`
-	Lang        string    `json:"lang"`
-	Book        string    `json:"book"`
-	URL         string    `json:"url"`
-	Devanagari  string    `json:"devanagari"`
-	VerseText   string    `json:"verse_text"`
-	Synonyms    string    `json:"synonyms"`
-	Translation string    `json:"translation"`
-	Purport     string    `json:"purport"`
-	Format      string    `json:"format"`
-	Document    *Document `json:"document"`
+	Ref         string      `json:"ref"`
+	Lang        string      `json:"lang"`
+	Book        string      `json:"book"`
+	URL         string      `json:"url"`
+	Devanagari  string      `json:"devanagari"`
+	VerseText   string      `json:"verse_text"`
+	Synonyms    string      `json:"synonyms"`
+	Translation string      `json:"translation"`
+	Purport     string      `json:"purport"`
+	Format      string      `json:"format"`
+	Prev        string      `json:"prev"`
+	Next        string      `json:"next"`
+	References  []Reference `json:"references"`
+	Document    *Document   `json:"document"`
+}
+
+// Reference is one citation found in a text. Text is the exact string as it
+// appears in Field; Ref is empty when the work is not on the site.
+type Reference struct {
+	Text  string `json:"text"`
+	Ref   string `json:"ref"`
+	Field string `json:"field"`
 }
 
 // Document is the extra metadata carried by letters and transcripts.
 type Document struct {
-	Type     string          `json:"type"`
-	Date     string          `json:"date"`
-	Year     int             `json:"year"` // null decodes to 0
-	Location string          `json:"location"`
-	Covers   json.RawMessage `json:"covers"`
+	Type       string          `json:"type"`
+	Date       string          `json:"date"`
+	IsoDate    string          `json:"iso_date"` // 1968-03-17, 1968-03 or 1966
+	Year       int             `json:"year"`     // null decodes to 0
+	Location   string          `json:"location"`
+	Recipients []string        `json:"recipients"`
+	AudioURL   string          `json:"audio_url"`
+	Address    string          `json:"address"`
+	Covers     json.RawMessage `json:"covers"`
 }
 
 type Book struct {

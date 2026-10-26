@@ -191,7 +191,7 @@ func TestSpinnerOnlyAfterDelay(t *testing.T) {
 		t.Fatalf("loader missing:\n%s", plain(a))
 	}
 	// Arrival ends it.
-	drive(a, itemLoadedMsg{ref: "bg/1/19", item: be.item("bg/1/19")})
+	drive(a, itemLoadedMsg{ref: "bg/1/19", lang: "en", item: be.item("bg/1/19")})
 	if a.fx.Live(Spinner) {
 		t.Fatal("sparkle outlived the load")
 	}

@@ -379,3 +379,14 @@ func TestSearchRowNoDuplicateTranslation(t *testing.T) {
 		t.Errorf("purport-only match: %q", got)
 	}
 }
+
+func TestSearchResultsOfOtherLanguageDropped(t *testing.T) {
+	a, _ := searchApp(t)
+	drive(a, key("enter"))
+	n := len(a.search.results)
+	drive(a, searchResultsMsg{q: "soul", gen: a.search.gen, req: 2, lang: "es",
+		page: api.SearchPage{Results: []api.SearchResult{{Ref: "bg/9/9", Book: "bg"}}}})
+	if len(a.search.results) != n {
+		t.Fatalf("results grew from %d to %d", n, len(a.search.results))
+	}
+}

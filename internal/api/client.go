@@ -48,23 +48,30 @@ func NewClient(base, userAgent string, hc *http.Client) *Client {
 	}
 }
 
-func (c *Client) Verse(ctx context.Context, ref string) (Item, error) {
-	var it Item
-	err := c.getJSON(ctx, c.verse, c.base+"/api/v1/verse/"+ref+"?lang=en", &it)
+func (c *Client) Verse(ctx context.Context, ref, lang string) (Item, error) {
+	_, it, err := c.VerseRaw(ctx, ref, lang)
 	return it, err
 }
 
-func (c *Client) Books(ctx context.Context) ([]Book, error) {
+// VerseRaw also returns the response bytes as the server sent them, so a
+// cache can keep fields this version does not know yet.
+func (c *Client) VerseRaw(ctx context.Context, ref, lang string) ([]byte, Item, error) {
+	var it Item
+	raw, err := c.getRaw(ctx, c.verse, c.base+"/api/v1/verse/"+ref+"?lang="+url.QueryEscape(lang), &it)
+	return raw, it, err
+}
+
+func (c *Client) Books(ctx context.Context, lang string) ([]Book, error) {
 	var out struct {
 		Books []Book `json:"books"`
 	}
-	if err := c.getJSON(ctx, c.verse, c.base+"/api/v1/books?lang=en", &out); err != nil {
+	if err := c.getJSON(ctx, c.verse, c.base+"/api/v1/books?lang="+url.QueryEscape(lang), &out); err != nil {
 		return nil, err
 	}
 	return out.Books, nil
 }
 
-func (c *Client) Search(ctx context.Context, q, book string, page int) (SearchPage, error) {
+func (c *Client) Search(ctx context.Context, q, book string, page int, lang string) (SearchPage, error) {
 	v := url.Values{}
 	v.Set("q", q)
 	if book != "" {
@@ -72,7 +79,7 @@ func (c *Client) Search(ctx context.Context, q, book string, page int) (SearchPa
 	}
 	v.Set("page", strconv.Itoa(page))
 	v.Set("per_page", strconv.Itoa(perPage))
-	v.Set("lang", "en")
+	v.Set("lang", lang)
 	var sp SearchPage
 	err := c.getJSON(ctx, c.search, c.base+"/api/v1/search?"+v.Encode(), &sp)
 	return sp, err
@@ -120,15 +127,27 @@ func (c *Client) Fetch(ctx context.Context, u string, progress func(done, total 
 }
 
 func (c *Client) getJSON(ctx context.Context, lim *rate.Limiter, u string, out any) error {
+	_, err := c.getRaw(ctx, lim, u, out)
+	return err
+}
+
+// getRaw decodes the body into out and also returns the bytes.
+func (c *Client) getRaw(ctx context.Context, lim *rate.Limiter, u string, out any) ([]byte, error) {
 	resp, err := c.do(ctx, lim, u)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer resp.Body.Close()
-	if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
-		return c.transportErr(ctx, fmt.Errorf("decode response: %w", err))
+	raw, err := io.ReadAll(resp.Body)
+	if err == nil {
+		if err = json.Unmarshal(raw, out); err != nil {
+			err = fmt.Errorf("decode response: %w", err)
+		}
 	}
-	return nil
+	if err != nil {
+		return nil, c.transportErr(ctx, err)
+	}
+	return raw, nil
 }
 
 // do issues the GET, retries a 5xx once, and returns only 2xx responses.

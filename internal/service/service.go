@@ -52,36 +52,57 @@ func (s *Service) sitemapURL() string {
 	return strings.TrimRight(b, "/") + "/" + sitemapBlob
 }
 
-// Item returns the cleaned item, from the cache when present, else fetched
-// and stored raw (Clean runs on every read so its rules can change).
-func (s *Service) Item(ctx context.Context, ref string) (api.Item, bool, error) {
-	if it, ok := s.Items.Get(ref); ok {
-		return api.Clean(it), true, nil
+// langFor is the language a ref is read in: letters and transcripts exist in
+// English only, whatever the reader asked for.
+func langFor(ref, lang string) string {
+	if strings.HasPrefix(ref, "letters/") || strings.HasPrefix(ref, "transcripts/") {
+		return "en"
 	}
-	it, err := s.Client.Verse(ctx, ref)
+	return lang
+}
+
+// Item returns the cleaned item, from the cache when present, else fetched
+// and stored as the raw response (Clean runs on every read so its rules can
+// change). A failed fetch while offline falls back to the English cache of
+// earlier versions.
+func (s *Service) Item(ctx context.Context, ref, lang string) (api.Item, bool, error) {
+	lang = langFor(ref, lang)
+	if raw, ok := s.Items.GetRaw(lang, ref); ok {
+		var it api.Item
+		if json.Unmarshal(raw, &it) == nil {
+			// Cached under the requested ref: the API may answer with a
+			// canonical form, and Cached looks the item up by the requested one.
+			it.Ref = ref
+			return api.Clean(it), true, nil
+		}
+	}
+	raw, it, err := s.Client.VerseRaw(ctx, ref, lang)
 	if err != nil {
+		if lang == "en" && errors.Is(err, api.ErrOffline) {
+			if old, ok := s.Items.GetOld(ref); ok {
+				old.Ref = ref
+				return api.Clean(old), true, nil
+			}
+		}
 		return api.Item{}, false, err
 	}
 	// A failed cache write must not hide an item we already have.
-	// Store under the ref we asked for: the API may answer with a canonical
-	// form, and Get/Cached look the item up by the requested one.
-	stored := it
-	stored.Ref = ref
-	_ = s.Items.Put(stored)
+	_ = s.Items.PutRaw(lang, ref, raw)
 	return api.Clean(it), false, nil
 }
 
-func (s *Service) Cached(ref string) bool { return s.Items.Has(ref) }
+func (s *Service) Cached(ref, lang string) bool { return s.Items.Has(langFor(ref, lang), ref) }
 
 // Books is cached for a week; on a refresh error the stale copy is used.
-func (s *Service) Books(ctx context.Context) ([]api.Book, error) {
-	data, saved, ok := s.Blobs.Get(booksBlob)
+func (s *Service) Books(ctx context.Context, lang string) ([]api.Book, error) {
+	blob := booksBlobFor(lang)
+	data, saved, ok := s.Blobs.Get(blob)
 	if ok && s.now().Sub(saved) < weekly {
 		if books, err := decodeBooks(data); err == nil {
 			return books, nil
 		}
 	}
-	books, err := s.Client.Books(ctx)
+	books, err := s.Client.Books(ctx, lang)
 	if err != nil {
 		if ok {
 			if old, derr := decodeBooks(data); derr == nil {
@@ -93,9 +114,17 @@ func (s *Service) Books(ctx context.Context) ([]api.Book, error) {
 	if raw, merr := json.Marshal(struct {
 		Books []api.Book `json:"books"`
 	}{books}); merr == nil {
-		_ = s.Blobs.Put(booksBlob, raw)
+		_ = s.Blobs.Put(blob, raw)
 	}
 	return books, nil
+}
+
+// booksBlobFor keeps English at the name earlier versions used.
+func booksBlobFor(lang string) string {
+	if lang == "en" || lang == "" {
+		return booksBlob
+	}
+	return "books-" + unsafeChars.ReplaceAllString(lang, "-") + ".json"
 }
 
 func decodeBooks(data []byte) ([]api.Book, error) {
@@ -116,7 +145,7 @@ func (s *Service) libraryBooks(ctx context.Context) ([]api.Book, error) {
 			return books, nil
 		}
 	}
-	return s.Books(ctx)
+	return s.Books(ctx, "en")
 }
 
 // Library returns the tree. A cached sitemap is used at once (stale reports
@@ -162,8 +191,8 @@ func (s *Service) RefreshLibrary(ctx context.Context) (*library.Library, error) 
 }
 
 // Search is never cached.
-func (s *Service) Search(ctx context.Context, q, book string, page int) (api.SearchPage, error) {
-	return s.Client.Search(ctx, q, book, page)
+func (s *Service) Search(ctx context.Context, q, book string, page int, lang string) (api.SearchPage, error) {
+	return s.Client.Search(ctx, q, book, page, lang)
 }
 
 // Page returns scraped HTML, refetched after 30 days; if the refetch fails

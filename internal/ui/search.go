@@ -26,6 +26,7 @@ type searchResultsMsg struct {
 	page     api.SearchPage
 	err      error
 	gen, req int
+	lang     string
 }
 
 // searchOpenMsg asks the App to open a result in the reader.
@@ -44,6 +45,7 @@ const (
 type Search struct {
 	pal  render.Palette
 	be   Backend
+	lang func() string // current text language
 	hl   lipgloss.Style
 	w, h int
 
@@ -80,7 +82,7 @@ func NewSearch(pal render.Palette) Search {
 	st := in.Styles()
 	st.Cursor.Blink = false // a steady cursor: no timers, nothing to wake the app
 	in.SetStyles(st)
-	return Search{pal: pal, input: in, hl: lipgloss.NewStyle().Foreground(pal.Gold).Bold(true)}
+	return Search{lang: func() string { return "en" }, pal: pal, input: in, hl: lipgloss.NewStyle().Foreground(pal.Gold).Bold(true)}
 }
 
 // setPalette recolours the overlay, including the match highlight built once
@@ -131,12 +133,12 @@ func (s *Search) cycleScope() {
 
 func (s *Search) fetch(page int) tea.Cmd {
 	s.loading = true
-	be, q, book, gen := s.be, s.q, s.book, s.gen
+	be, q, book, gen, lang := s.be, s.q, s.book, s.gen, s.lang()
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), searchTimeout)
 		defer cancel()
-		p, err := be.Search(ctx, q, book, page)
-		return searchResultsMsg{q: q, scope: book, page: p, err: err, gen: gen, req: page}
+		p, err := be.Search(ctx, q, book, page, lang)
+		return searchResultsMsg{q: q, scope: book, page: p, err: err, gen: gen, req: page, lang: lang}
 	}
 }
 

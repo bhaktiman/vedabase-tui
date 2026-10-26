@@ -25,9 +25,24 @@ func Clean(it Item) Item {
 		&it.Synonyms, &it.Translation, &it.Purport, &it.Format} {
 		*f = SanitizeText(*f)
 	}
+	it.Prev, it.Next = SanitizeText(it.Prev), SanitizeText(it.Next)
+	if it.References != nil {
+		refs := make([]Reference, len(it.References)) // do not mutate the caller's copy
+		for i, r := range it.References {
+			refs[i] = Reference{Text: SanitizeText(r.Text), Ref: SanitizeText(r.Ref), Field: SanitizeText(r.Field)}
+		}
+		it.References = refs
+	}
 	if it.Document != nil {
-		d := *it.Document // do not mutate the caller's copy
+		d := *it.Document
 		d.Type, d.Date, d.Location = SanitizeText(d.Type), SanitizeText(d.Date), SanitizeText(d.Location)
+		d.IsoDate, d.AudioURL, d.Address = SanitizeText(d.IsoDate), SanitizeText(d.AudioURL), SanitizeText(d.Address)
+		if d.Recipients != nil {
+			d.Recipients = make([]string, len(it.Document.Recipients))
+			for i, r := range it.Document.Recipients {
+				d.Recipients[i] = SanitizeText(r)
+			}
+		}
 		it.Document = &d
 	}
 	switch it.Book {
@@ -52,6 +67,9 @@ func cleanLetter(s string) string {
 	if len(window) > headerWindow {
 		window = window[:headerWindow]
 	}
+	if !oldHeader(s, window) {
+		return s
+	}
 	loc := dateStamp.FindStringIndex(window)
 	if loc == nil {
 		return s
@@ -70,4 +88,20 @@ func cleanLetter(s string) string {
 	body = greetComma.ReplaceAllString(body, "$1\n\n$2")
 	body = lostBreak.ReplaceAllString(body, ",\n$1")
 	return sentenceGlue.ReplaceAllString(body, "$1\n\n$2")
+}
+
+// oldHeader reports whether a letter still has the pre-2026 header: the text
+// starts with "Letter to:", or the dd-dd-dd stamp follows a "Letter to:" or
+// "Dated:" label inside the header window. Newer letters begin at the
+// salutation and may mention such a date in the body.
+func oldHeader(s, window string) bool {
+	if strings.HasPrefix(s, "Letter to:") {
+		return true
+	}
+	loc := dateStamp.FindStringIndex(window)
+	if loc == nil {
+		return false
+	}
+	before := window[:loc[0]]
+	return strings.Contains(before, "Letter to:") || strings.Contains(before, "Dated:")
 }

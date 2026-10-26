@@ -22,17 +22,17 @@ func TestItemCachedUnderRequestedRef(t *testing.T) {
 	defer srv.Close()
 	svc := &Service{
 		Client: api.NewClient(srv.URL, "test", nil),
-		Items:  store.ItemCache{Dir: filepath.Join(t.TempDir(), "items")},
+		Items:  store.ItemCache{Dir: filepath.Join(t.TempDir(), "items-v2")},
 		Base:   srv.URL,
 	}
 	ctx := context.Background()
-	if _, _, err := svc.Item(ctx, "bg/2/13-14"); err != nil {
+	if _, _, err := svc.Item(ctx, "bg/2/13-14", "en"); err != nil {
 		t.Fatal(err)
 	}
-	if !svc.Cached("bg/2/13-14") {
+	if !svc.Cached("bg/2/13-14", "en") {
 		t.Fatal("not cached under the requested ref")
 	}
-	_, cached, err := svc.Item(ctx, "bg/2/13-14")
+	_, cached, err := svc.Item(ctx, "bg/2/13-14", "en")
 	if err != nil || !cached || hits != 1 {
 		t.Fatalf("second: cached=%v err=%v hits=%d", cached, err, hits)
 	}

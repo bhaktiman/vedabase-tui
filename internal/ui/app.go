@@ -22,11 +22,11 @@ import (
 )
 
 type Backend interface {
-	Item(ctx context.Context, ref string) (api.Item, bool, error)
-	Cached(ref string) bool
+	Item(ctx context.Context, ref, lang string) (api.Item, bool, error)
+	Cached(ref, lang string) bool
 	Library(ctx context.Context, progress func(done, total int64)) (*library.Library, bool, error)
 	RefreshLibrary(ctx context.Context) (*library.Library, error)
-	Search(ctx context.Context, q, book string, page int) (api.SearchPage, error)
+	Search(ctx context.Context, q, book string, page int, lang string) (api.SearchPage, error)
 	Page(ctx context.Context, url string) ([]byte, error)
 }
 
@@ -67,6 +67,7 @@ const (
 // App is the root model.
 type App struct {
 	be       Backend
+	lang     string // text language; results made with another one are dropped
 	cols     *collections.Store
 	settings store.Settings
 	state    store.State
@@ -144,7 +145,7 @@ type App struct {
 
 func New(o Options) *App {
 	a := &App{
-		be: o.Backend, cols: o.Collections, settings: o.Settings, state: o.State, save: o.SaveState,
+		be: o.Backend, lang: "en", cols: o.Collections, settings: o.Settings, state: o.State, save: o.SaveState,
 		pal: render.Default, rend: render.NewRenderer(render.Default),
 		w: 80, h: 24, parts: o.State.Parts, startup: o.Toasts,
 		version: versionLabel(o.Version), upd: o.Updater, installDir: o.InstallDir,
@@ -163,6 +164,7 @@ func New(o Options) *App {
 	}
 	a.search = NewSearch(a.pal)
 	a.search.be = o.Backend
+	a.search.lang = func() string { return a.lang }
 	a.picker = NewPicker(a.pal)
 	a.picker.now = a.now
 	a.colview = NewCollectionsView(a.pal)
@@ -253,6 +255,9 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			delete(a.prefetched, m.ref) // let a later display try again
 		}
 	case searchResultsMsg:
+		if m.lang != a.lang {
+			return a, nil
+		}
 		cmd := a.search.Update(m)
 		if d, gen := a.search.takeRateLimit(); d > 0 {
 			cmd = tea.Batch(cmd, a.startCountdown(countdown{kind: cdSearch, gen: gen, total: d}))
@@ -446,7 +451,7 @@ func (a *App) open(ref string, from *library.Node) tea.Cmd {
 		a.fx.Stop(Countdown)
 	}
 	var delay tea.Cmd
-	if !a.be.Cached(ref) {
+	if !a.be.Cached(ref, a.lang) {
 		a.status = loadingStatus
 		if a.fx.enabled {
 			delay = a.tick(spinnerDelay, spinnerDelayMsg{ref})
@@ -454,15 +459,15 @@ func (a *App) open(ref string, from *library.Node) tea.Cmd {
 	} else {
 		a.status = ""
 	}
-	be := a.be
+	be, lang := a.be, a.lang
 	return tea.Batch(delay, a.ancestorTitlesCmd(a.node), func() tea.Msg {
-		it, _, err := be.Item(context.Background(), ref)
-		return itemLoadedMsg{ref: ref, item: it, err: err}
+		it, _, err := be.Item(context.Background(), ref, lang)
+		return itemLoadedMsg{ref: ref, lang: lang, item: it, err: err}
 	})
 }
 
 func (a *App) onItem(m itemLoadedMsg) tea.Cmd {
-	if m.ref != a.ref {
+	if m.ref != a.ref || m.lang != a.lang {
 		return nil
 	}
 	a.fx.Stop(Spinner)
@@ -528,15 +533,15 @@ func (a *App) prefetch() tea.Cmd {
 		return nil
 	}
 	next := a.lib.Next(a.node)
-	if next == nil || a.prefetched[next.Ref] || a.be.Cached(next.Ref) {
+	if next == nil || a.prefetched[next.Ref] || a.be.Cached(next.Ref, a.lang) {
 		return nil
 	}
 	a.prefetched[next.Ref] = true
-	be, ref := a.be, next.Ref
+	be, ref, lang := a.be, next.Ref, a.lang
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
-		_, _, err := be.Item(ctx, ref)
+		_, _, err := be.Item(ctx, ref, lang)
 		return prefetchMsg{ref: ref, err: err}
 	}
 }
@@ -803,8 +808,8 @@ func (a *App) openPicker() tea.Cmd {
 	switch {
 	case r == a.ref && a.hasItem:
 		it, ok = a.item, true
-	case a.be.Cached(r):
-		if got, _, err := a.be.Item(context.Background(), r); err == nil {
+	case a.be.Cached(r, a.lang):
+		if got, _, err := a.be.Item(context.Background(), r, a.lang); err == nil {
 			it, ok = got, true
 		}
 	}

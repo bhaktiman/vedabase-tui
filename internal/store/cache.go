@@ -20,22 +20,50 @@ func safeName(name string) bool {
 		!strings.ContainsRune(name, 0)
 }
 
-// ItemCache stores one JSON file per ref at <Dir>/<ref>.json.
-type ItemCache struct{ Dir string }
+// ItemCache keeps the raw API response of each item at <Dir>/<lang>/<ref>.json,
+// so fields the client does not know yet are never lost. OldDir is the
+// read-only English cache of earlier versions, used only as an offline fallback.
+type ItemCache struct{ Dir, OldDir string }
 
-func (c ItemCache) path(ref string) (string, bool) {
-	if !safeName(ref) {
+func (c ItemCache) path(lang, ref string) (string, bool) {
+	if !safeName(lang) || !safeName(ref) || strings.Contains(lang, "/") {
 		return "", false
 	}
-	return filepath.Join(c.Dir, filepath.FromSlash(ref)+".json"), true
+	return filepath.Join(c.Dir, lang, filepath.FromSlash(ref)+".json"), true
 }
 
-func (c ItemCache) Get(ref string) (api.Item, bool) {
-	p, ok := c.path(ref)
+func (c ItemCache) GetRaw(lang, ref string) ([]byte, bool) {
+	p, ok := c.path(lang, ref)
 	if !ok {
-		return api.Item{}, false
+		return nil, false
 	}
 	b, err := os.ReadFile(p)
+	return b, err == nil
+}
+
+func (c ItemCache) Has(lang, ref string) bool {
+	p, ok := c.path(lang, ref)
+	if !ok {
+		return false
+	}
+	st, err := os.Stat(p)
+	return err == nil && st.Mode().IsRegular()
+}
+
+func (c ItemCache) PutRaw(lang, ref string, raw []byte) error {
+	p, ok := c.path(lang, ref)
+	if !ok {
+		return errBadName
+	}
+	return WriteFileAtomic(p, raw)
+}
+
+// GetOld reads the item as an earlier version stored it (English only).
+func (c ItemCache) GetOld(ref string) (api.Item, bool) {
+	if c.OldDir == "" || !safeName(ref) {
+		return api.Item{}, false
+	}
+	b, err := os.ReadFile(filepath.Join(c.OldDir, filepath.FromSlash(ref)+".json"))
 	if err != nil {
 		return api.Item{}, false
 	}
@@ -44,27 +72,6 @@ func (c ItemCache) Get(ref string) (api.Item, bool) {
 		return api.Item{}, false
 	}
 	return it, true
-}
-
-func (c ItemCache) Has(ref string) bool {
-	p, ok := c.path(ref)
-	if !ok {
-		return false
-	}
-	st, err := os.Stat(p)
-	return err == nil && st.Mode().IsRegular()
-}
-
-func (c ItemCache) Put(it api.Item) error {
-	p, ok := c.path(it.Ref)
-	if !ok {
-		return errBadName
-	}
-	b, err := json.Marshal(it)
-	if err != nil {
-		return err
-	}
-	return WriteFileAtomic(p, b)
 }
 
 // BlobCache stores raw bytes under a name that may contain "/"; the file's
