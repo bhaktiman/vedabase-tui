@@ -92,8 +92,9 @@ func (a *App) onMouse(m tea.Mouse, click bool) tea.Cmd {
 		if !click {
 			a.reader.offset += d
 			a.reader.clamp()
+			return nil
 		}
-		return nil
+		return a.linkClick(m)
 	}
 	if click && a.onTreeEdge(m) {
 		now := a.now()
@@ -129,8 +130,30 @@ func (a *App) onMouse(m tea.Mouse, click bool) tea.Cmd {
 		if a.webButtonOn() && a.webButtonRect().has(m.X, m.Y) {
 			return a.openItemWeb()
 		}
+		return a.linkClick(m)
 	case click && m.Y == a.h-1:
 		return a.barClick(m.X)
+	}
+	return nil
+}
+
+// textOrigin is the screen cell of the reader text's top-left corner: inside
+// the pane's border and past the centring margin. Distraction-free reading has
+// no frame, and its blank first row puts the text on row 1 like the top bar.
+func (a *App) textOrigin() (x, y int) {
+	_, r := a.paneRects()
+	return r.x + a.bw() + a.colIndent(), r.y + a.bw()
+}
+
+// linkClick follows the link under a click on the reader.
+func (a *App) linkClick(m tea.Mouse) tea.Cmd {
+	if !a.settings.Mouse || !a.hasItem {
+		return nil
+	}
+	x0, y0 := a.textOrigin()
+	if l, ok := a.reader.LinkAt(m.Y-y0, m.X-x0); ok {
+		a.focusTree = false
+		return a.follow(l.Ref)
 	}
 	return nil
 }

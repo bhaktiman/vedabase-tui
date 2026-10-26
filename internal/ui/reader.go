@@ -12,7 +12,7 @@ import (
 // (in a background Cmd); this only slices lines.
 type Reader struct {
 	lines  []string
-	links  []render.Link // Line indexes lines; kept for T5b's clicks and hints
+	links  []render.Link // Line indexes lines
 	offset int
 	w, h   int
 }
@@ -91,3 +91,35 @@ func (r *Reader) Lines() []string {
 // Total is the number of lines in the document; Offset the first one shown.
 func (r *Reader) Total() int  { return len(r.lines) }
 func (r *Reader) Offset() int { return r.offset }
+
+// LinkAt is the link under the cell at col of visible row (0 is the first row
+// shown), if any. Cells past the reader's width are cut off, so are not links.
+func (r *Reader) LinkAt(row, col int) (render.Link, bool) {
+	if row < 0 || row >= r.h || col < 0 || col >= r.w {
+		return render.Link{}, false
+	}
+	line := r.offset + row
+	for _, l := range r.links {
+		if l.Line == line && col >= l.Start && col < l.End {
+			return l, true
+		}
+	}
+	return render.Link{}, false
+}
+
+// VisibleLinks are the links on the rows shown, in reading order, their
+// columns clipped to the width. Line is still the index into the document;
+// the row on screen is Line - Offset().
+func (r *Reader) VisibleLinks() []render.Link {
+	var out []render.Link
+	for _, l := range r.links {
+		if l.Line < r.offset || l.Line >= r.offset+r.h || l.Start >= r.w {
+			continue
+		}
+		l.End = min(l.End, r.w)
+		if l.End > l.Start {
+			out = append(out, l)
+		}
+	}
+	return out
+}

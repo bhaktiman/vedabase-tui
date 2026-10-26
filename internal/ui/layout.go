@@ -414,15 +414,23 @@ func (a *App) hintLine(room int) string {
 		width = "w centred"
 	}
 	// Most important first; dropping takes from the end.
-	keep := []string{"? help", "/ search", "s save", "e export", width, "t sidebar", "T theme",
-		"o web", ": go to", "h/l prev/next", "tab focus"}
-	// Display order, as indexes into keep.
-	order := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 0}
+	keep := []string{"? help"}
+	if len(a.back) > 0 {
+		keep = append(keep, "⌫ back")
+	}
+	keep = append(keep, "/ search", "s save", "e export", width, "t sidebar", "T theme",
+		"o web", ": go to", "h/l prev/next", "tab focus")
+	// Display order.
+	order := []string{"⌫ back", "/ search", "s save", "e export", width, "t sidebar", "T theme",
+		"o web", ": go to", "h/l prev/next", "tab focus", "? help"}
 	for n := len(keep); n > 0; n-- {
 		var out []string
-		for _, i := range order {
-			if i < n {
-				out = append(out, keep[i])
+		for _, h := range order {
+			for _, k := range keep[:n] {
+				if h == k {
+					out = append(out, h)
+					break
+				}
 			}
 		}
 		if s := strings.Join(out, " · "); lipgloss.Width(s) <= room {

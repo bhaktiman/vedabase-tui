@@ -210,6 +210,8 @@ Press `?` in the app for the same list.
 | `gg` / `G` | Top / bottom (first / last in the tree) |
 | `1` – `5` | Toggle Devanagari, verse, synonyms, translation, purport |
 | `o` | Open the current item on vedabase.cc |
+| `Backspace` / `[` | Back to where you were before following a link (scroll restored) |
+| `]` | Forward again |
 | `Enter` | Open item / expand (tree) |
 | `f` | Filter the tree |
 | `z` | Collapse all in the tree |
@@ -223,7 +225,7 @@ Press `?` in the app for the same list.
 | `U` | Check for a new version; when one is out, `U` installs it |
 | `?` | Help |
 | `q` / `Esc` | Close overlay; quit |
-| Mouse | Drag the line between the sidebar and the reader to resize the sidebar. Click a pane to focus it, a tree row to select or open it, a part label to toggle it, `↗ vedabase.cc` (reader) or the `vedabase.cc` tag (sidebar) to open the website; the wheel scrolls |
+| Mouse | Drag the line between the sidebar and the reader to resize the sidebar. Click a pane to focus it, a tree row to select or open it, a part label to toggle it, a reference in the text to follow it, `↗ vedabase.cc` (reader) or the `vedabase.cc` tag (sidebar) to open the website; the wheel scrolls |
 
 While mouse mode is on, selecting text in most terminals (Windows Terminal,
 iTerm2, GNOME Terminal) needs Shift+drag, or set `mouse = false`.

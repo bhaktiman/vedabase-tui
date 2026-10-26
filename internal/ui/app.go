@@ -114,7 +114,8 @@ type App struct {
 	parts      api.Parts
 	restoreRef string // first render of this ref scrolls to restore
 	restore    int
-	savedRef   string // the ref state.json was last written for on open
+	savedRef   string  // the ref state.json was last written for on open
+	back, fwd  []place // history of followed links; per session
 
 	search      Search
 	picker      Picker
@@ -452,6 +453,7 @@ func (a *App) Open(ref string) tea.Cmd { return a.open(ref, nil) }
 // By-year letter: the reader then belongs to that group (breadcrumb, h/l
 // order, tree cursor).
 func (a *App) open(ref string, from *library.Node) tea.Cmd {
+	a.fwd = nil // back and forward put theirs back after opening
 	a.ref, a.hasItem = ref, false
 	a.reader.Clear()
 	if a.restoreRef != ref {
@@ -789,6 +791,10 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 		return nil
 	case "o":
 		return a.openItemWeb()
+	case "backspace", "[":
+		return a.goBack()
+	case "]":
+		return a.goForward()
 	case "n":
 		return a.search.Next(1)
 	case "N":
