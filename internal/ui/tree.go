@@ -44,8 +44,9 @@ type Tree struct {
 	starred  func(string) bool
 	pal      render.Palette
 	seq      keySeq
-	focused  bool            // the tree pane has focus: the cursor row is bright, else dim
-	opened   map[string]bool // Refs that were opened by default once; a later collapse sticks
+	focused  bool                       // the tree pane has focus: the cursor row is bright, else dim
+	opened   map[string]bool            // Refs that were opened by default once; a later collapse sticks
+	note     func(*library.Node) string // text after a row's label that dims the row, or ""
 }
 
 func NewTree(lib *library.Library, starred func(ref string) bool, pal render.Palette) Tree {
@@ -407,6 +408,10 @@ func (t Tree) View() string {
 		}
 		indent := strings.Repeat("  ", r.depth)
 		label := r.node.Label()
+		note := ""
+		if t.note != nil {
+			note = t.note(r.node)
+		}
 		count := ""
 		if p := r.node.Parent; p != nil && p.Ref == library.CollectionsRef {
 			count = fmt.Sprintf("  %d", len(r.node.Children))
@@ -414,15 +419,15 @@ func (t Tree) View() string {
 
 		if idx == t.cursor && !t.focused {
 			// A quiet cursor: dim text and a › in the left margin.
-			s := truncate("›"+indent+marker+star+label+count, t.w)
+			s := truncate("›"+indent+marker+star+label+note+count, t.w)
 			if r.depth > 0 {
-				s = truncate(indent[:len(indent)-1]+"›"+marker+star+label+count, t.w)
+				s = truncate(indent[:len(indent)-1]+"›"+marker+star+label+note+count, t.w)
 			}
 			lines[i] = dim.Render(s)
 			continue
 		}
 		if idx == t.cursor {
-			s := truncate(indent+marker+star+label+count, t.w)
+			s := truncate(indent+marker+star+label+note+count, t.w)
 			lines[i] = cur.Render(s + strings.Repeat(" ", t.w-lipgloss.Width(s)))
 			continue
 		}
@@ -439,11 +444,12 @@ func (t Tree) View() string {
 		put(indent, normal)
 		put(marker, dim)
 		put(star, gold)
-		if isHint(r.node) {
+		if isHint(r.node) || note != "" {
 			put(label, dim)
 		} else {
 			put(label, normal)
 		}
+		put(note, dim)
 		put(count, dim)
 		lines[i] = b.String()
 	}

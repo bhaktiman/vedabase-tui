@@ -192,6 +192,14 @@ remembers it, Esc goes back. Themes set the terminal's background while the app
 runs and restore it on exit; a terminal without that support keeps its own
 background. `Terminal` has the same warm colours but keeps your own background.
 
+## Languages
+
+Books can be read in English, Español, Português, हिन्दी and Русский (as far as
+vedabase.cc has them). Press `L`, or click the `EN ▾` tag in the sidebar's top
+edge, to pick one; the choice is remembered. Books the site doesn't have in the
+language are dimmed in the sidebar (`· not in HI`). Letters and lectures exist
+in English only and stay English under any language.
+
 ## Keys
 
 Press `?` in the app for the same list.
@@ -223,6 +231,7 @@ Press `?` in the app for the same list.
 | `'` | Open collections |
 | `e` | Export the current item (or the selected collection) |
 | `T` | Choose a colour theme |
+| `L` | Choose the language |
 | `U` | Check for a new version; when one is out, `U` installs it |
 | `?` | Help |
 | `q` / `Esc` | Close overlay; quit |

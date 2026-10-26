@@ -125,6 +125,7 @@ type App struct {
 	picker      Picker
 	colview     CollectionsView
 	themes      themePicker
+	langs       langPicker
 	gotoBar     Goto
 	filtering   bool // the tree filter line is being edited
 	filterIn    textinput.Model
@@ -363,6 +364,7 @@ func (a *App) onLibrary(m libraryMsg) tea.Cmd {
 	if first {
 		a.loadCachedTOCs(m.lib) // before the first frame
 		a.tree = NewTree(m.lib, a.starred, a.pal)
+		a.tree.note = a.treeNote
 		a.layout()
 		cmds = append(cmds, a.openStart(), a.nextTOC())
 	} else {
@@ -731,6 +733,8 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 			return a.colview.Update(kp)
 		case a.themes.visible:
 			return a.themeKey(kp)
+		case a.langs.visible:
+			return a.langKey(kp)
 		}
 	}
 	k := a.seq.Resolve(kp)
@@ -789,6 +793,9 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 		return nil
 	case "T":
 		a.openThemes()
+		return nil
+	case "L":
+		a.openLangs()
 		return nil
 	case "U":
 		if a.avail == "" {

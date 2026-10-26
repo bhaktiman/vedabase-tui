@@ -100,14 +100,17 @@ func (a *App) webButtonOn() bool {
 	if !a.framed() || !a.hasItem || !webURLOK(a.item.URL) {
 		return false
 	}
-	_, ok := titleRoom(a.readerOuterW(), lipgloss.Width(a.readerTitle()))
+	_, ok := titleRoom(a.readerOuterW(), lipgloss.Width(a.readerTitle())+lipgloss.Width(a.readerTag()))
 	return ok
 }
 
 // titleRoom is how many cells the title may use when the button is drawn, and
 // whether the pane is wide enough to draw it at all.
-func titleRoom(ow, titleW int) (int, bool) {
-	room := ow - 3 - 1 - 1 - btnSpan
+func titleRoom(ow, titleW int) (int, bool) { return titleRoomFor(ow, titleW, btnSpan) }
+
+// titleRoomFor is titleRoom for a button taking span cells (see btnSpanOf).
+func titleRoomFor(ow, titleW, span int) (int, bool) {
+	room := ow - 3 - 1 - 1 - span
 	if room < min(titleW, minTitle) {
 		return 0, false
 	}
@@ -119,7 +122,9 @@ const (
 )
 
 // btnSpan is the button with the space before it and " ─╮" after.
-var btnSpan = lipgloss.Width(webBtnLabel) + 1 + 3
+var btnSpan = btnSpanOf(lipgloss.Width(webBtnLabel))
+
+func btnSpanOf(labelW int) int { return labelW + 1 + 3 }
 
 // webButtonRect is where the button sits on the screen.
 func (a *App) webButtonRect() rect {

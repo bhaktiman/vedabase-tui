@@ -57,7 +57,7 @@ func (a *App) overlayRect(box string) rect {
 }
 
 func (a *App) overlayOpen() bool {
-	return a.help || a.search.visible || a.picker.visible || a.colview.visible || a.themes.visible
+	return a.help || a.search.visible || a.picker.visible || a.colview.visible || a.themes.visible || a.langs.visible
 }
 
 func (a *App) onMouse(m tea.Mouse, click bool) tea.Cmd {
@@ -117,6 +117,10 @@ func (a *App) onMouse(m tea.Mouse, click bool) tea.Cmd {
 			return nil
 		}
 		a.focusTree = true
+		if tag, ok := a.langTagRect(); ok && tag.has(m.X, m.Y) {
+			a.openLangs()
+			return nil
+		}
 		if tag, ok := a.siteTagRect(); ok && tag.has(m.X, m.Y) {
 			return a.openWeb(webHome)
 		}
@@ -253,6 +257,8 @@ func (a *App) overlayMouse(m tea.Mouse, click bool, wheel int) tea.Cmd {
 				a.picker.close()
 			case a.themes.visible:
 				return a.themeCancel()
+			case a.langs.visible:
+				a.langs.visible = false
 			default:
 				a.colview.close()
 			}
@@ -276,6 +282,11 @@ func (a *App) overlayMouse(m tea.Mouse, click bool, wheel int) tea.Cmd {
 			return a.themeClick(x, y)
 		}
 		return a.themeMove(a.themes.cursor + wheel)
+	case a.langs.visible:
+		if click {
+			return a.langClick(x, y)
+		}
+		a.langs.cursor = max(min(a.langs.cursor+wheel, len(langNames)-1), 0)
 	default:
 		if click {
 			return a.colview.Click(x, y)

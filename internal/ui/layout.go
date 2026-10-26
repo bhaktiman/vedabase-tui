@@ -157,6 +157,8 @@ func (a *App) overlayBox() string {
 		return a.colview.View()
 	case a.themes.visible:
 		return a.themeView()
+	case a.langs.visible:
+		return a.langView()
 	}
 	return ""
 }
@@ -205,9 +207,13 @@ func (a *App) baseView(toast bool) string {
 		if t, ok := a.readerThumb(); ok {
 			th = append(th, t)
 		}
-		rows := a.box(body, a.readerOuterW(), a.bodyH(), a.readerTitle(), !a.focusTree, btn, "", th...)
+		rows := a.boxTitled(body, a.readerOuterW(), a.bodyH(), a.readerTitle(), a.readerTag(), !a.focusTree, btn, "", th...)
 		if a.treeVisible() {
-			left := a.box(tl, a.treeW(), a.bodyH(), "Contents", a.focusTree, "", a.siteTagView(a.treeW()-2))
+			lbtn := ""
+			if a.langTagOn() {
+				lbtn = a.langTagLabel()
+			}
+			left := a.box(tl, a.treeW(), a.bodyH(), "Contents", a.focusTree, lbtn, a.siteTagView(a.treeW()-2))
 			for i := range rows {
 				rows[i] = left[i] + rows[i]
 			}
@@ -260,6 +266,11 @@ func (a *App) readerTitle() string {
 // btn, if set, sits right-aligned in the top edge; tag is centred in the
 // bottom edge (already styled). th, if given, marks a run of the right edge as a scroll thumb.
 func (a *App) box(lines []string, ow, oh int, title string, focused bool, btn, tag string, th ...thumb) []string {
+	return a.boxTitled(lines, ow, oh, title, "", focused, btn, tag, th...)
+}
+
+// boxTitled is box with sfx, a small dim tag, right after the title.
+func (a *App) boxTitled(lines []string, ow, oh int, title, sfx string, focused bool, btn, tag string, th ...thumb) []string {
 	col, tst := a.pal.Dim, lipgloss.NewStyle().Foreground(a.pal.Dim)
 	if focused {
 		col = a.pal.Accent
@@ -267,20 +278,23 @@ func (a *App) box(lines []string, ow, oh int, title string, focused bool, btn, t
 	}
 	edge := lipgloss.NewStyle().Foreground(col)
 	iw := max(ow-2, 0)
+	sfxW := lipgloss.Width(sfx)
 	room := max(iw-3, 0)
 	if btn != "" {
-		room, _ = titleRoom(ow, lipgloss.Width(title))
+		room, _ = titleRoomFor(ow, lipgloss.Width(title)+sfxW, btnSpanOf(lipgloss.Width(btn)))
 	}
-	title = truncate(title, room)
-	fill := max(iw-lipgloss.Width(title)-3, 0)
-	top := edge.Render("╭─ ") + tst.Render(title) + edge.Render(" "+strings.Repeat("─", fill)+"╮")
+	title = truncate(title, max(room-sfxW, 0))
+	shown := tst.Render(title) + lipgloss.NewStyle().Foreground(a.pal.Dim).Render(sfx)
+	tw := lipgloss.Width(title) + sfxW
+	fill := max(iw-tw-3, 0)
+	top := edge.Render("╭─ ") + shown + edge.Render(" "+strings.Repeat("─", fill)+"╮")
 	if btn != "" {
 		label := lipgloss.NewStyle().Foreground(a.pal.Dim).Render(btn)
 		if focused {
 			label = gradientText(btn, stops(a.pal)...)
 		}
-		fill = max(ow-3-lipgloss.Width(title)-1-btnSpan, 0)
-		top = edge.Render("╭─ ") + tst.Render(title) + edge.Render(" "+strings.Repeat("─", fill)+" ") +
+		fill = max(ow-3-tw-1-btnSpanOf(lipgloss.Width(btn)), 0)
+		top = edge.Render("╭─ ") + shown + edge.Render(" "+strings.Repeat("─", fill)+" ") +
 			label + edge.Render(" ─╮")
 	}
 	if title == "" {
