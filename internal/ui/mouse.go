@@ -61,6 +61,7 @@ func (a *App) overlayOpen() bool {
 }
 
 func (a *App) onMouse(m tea.Mouse, click bool) tea.Cmd {
+	a.hints = hintState{} // the click is handled as usual; scrolling moves the labelled links
 	if a.lib == nil {
 		return nil
 	}

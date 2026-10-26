@@ -101,6 +101,7 @@ func (a *App) relayout() tea.Cmd {
 // resize re-renders after the window has been quiet for a moment.
 func (a *App) resize(w, h int) tea.Cmd {
 	a.w, a.h = w, h
+	a.hints = hintState{}
 	a.focusTree = a.focusTree && a.treeVisible()
 	a.layout()
 	if a.hasItem && a.renderedW != a.textW() {
@@ -164,6 +165,9 @@ func (a *App) overlayBox() string {
 // which shows the toast on the bottom row instead.
 func (a *App) baseView(toast bool) string {
 	body := a.reader.Lines()
+	if a.hints.active {
+		a.drawHints(body)
+	}
 	pad := strings.Repeat(" ", a.colIndent())
 	for i, l := range body {
 		if l != "" {
@@ -392,6 +396,9 @@ type partHit struct {
 func (a *App) bottomBar() string {
 	if a.updCmd != "" { // until the next key, so it can be copied
 		return lipgloss.NewStyle().Foreground(a.pal.Gold).MaxWidth(max(a.w, 1)).Render(a.updCmd)
+	}
+	if a.hints.active {
+		return hintsBar(a.w, lipgloss.NewStyle().Foreground(a.pal.Dim))
 	}
 	line, _ := a.bottomLayout()
 	return line

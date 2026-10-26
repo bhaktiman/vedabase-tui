@@ -116,6 +116,7 @@ type App struct {
 	restore    int
 	savedRef   string  // the ref state.json was last written for on open
 	back, fwd  []place // history of followed links; per session
+	hints      hintState
 
 	search      Search
 	picker      Picker
@@ -548,6 +549,7 @@ func (a *App) onRendered(m renderedMsg) tea.Cmd {
 		return nil
 	}
 	fresh := a.reader.Empty()
+	a.hints = hintState{}
 	a.reader.SetContent(m.out, m.links, !fresh)
 	a.renderedW = m.width
 	if a.restoreRef == a.ref {
@@ -682,6 +684,12 @@ func (a *App) openSearch(withInput bool) tea.Cmd {
 func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 	a.fx.FinishAll()
 	a.updCmd = ""
+	if a.hints.active {
+		if kp.String() != "ctrl+c" {
+			return a.hintKey(kp)
+		}
+		a.hints = hintState{}
+	}
 	if a.lib != nil && kp.String() != "ctrl+c" {
 		switch {
 		case a.help:
@@ -771,6 +779,9 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 	case "f":
 		if a.focusTree && a.treeVisible() {
 			return a.startFilter()
+		}
+		if a.hasItem {
+			return a.startHints()
 		}
 		return nil
 	case "s":

@@ -212,8 +212,9 @@ Press `?` in the app for the same list.
 | `o` | Open the current item on vedabase.cc |
 | `Backspace` / `[` | Back to where you were before following a link (scroll restored) |
 | `]` | Forward again |
+| `f` (reader) | Show key labels on the links on screen; type one to follow it, `Esc` cancels |
 | `Enter` | Open item / expand (tree) |
-| `f` | Filter the tree |
+| `f` (tree) | Filter the tree |
 | `z` | Collapse all in the tree |
 | `/` | Full-text search (`Ctrl-n` / `Ctrl-p` or arrows from the box into the results) |
 | `n` / `N` | Next / previous search result |

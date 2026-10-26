@@ -99,6 +99,11 @@ func (c *Client) Search(ctx context.Context, q, book string, page int, lang stri
 	return sp, err
 }
 
+// SetTOCLimit replaces the TOC limiter, for tests that cannot wait on it.
+func (c *Client) SetTOCLimit(every time.Duration, burst int) {
+	c.toc = rate.NewLimiter(rate.Every(every), burst)
+}
+
 // TOC fetches a book's table of contents. The server allows about 10 of these
 // a minute, so they have a limiter of their own.
 func (c *Client) TOC(ctx context.Context, code, lang string) (TOC, error) {

@@ -22,6 +22,7 @@ var helpGroups = []struct {
 		{"Ctrl-d / Ctrl-u", "Half page"}, {"gg / G", "Top / bottom"},
 		{"1 – 5", "Toggle parts"}, {"o", "Open on vedabase.cc"},
 		{"Backspace / [", "Back after following a link"}, {"]", "Forward"},
+		{"f", "Key labels on links"},
 	}},
 	{"Tree", []helpRow{
 		{"j / k", "Move down / up"}, {"h / l", "Collapse / expand"},

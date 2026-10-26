@@ -60,6 +60,7 @@ func newTOCEnv(t *testing.T) *tocEnv {
 	dir := t.TempDir()
 	c := api.NewClient(e.srv.URL, "test", nil)
 	c.RetryDelay = time.Millisecond
+	c.SetTOCLimit(time.Millisecond, 1)
 	e.svc = &Service{
 		Client: c,
 		Items:  store.ItemCache{Dir: filepath.Join(dir, "items-v2")},
