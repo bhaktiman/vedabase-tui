@@ -520,8 +520,16 @@ func (a *App) bottomLayout() (string, []partHit) {
 			t += fmt.Sprintf(" %d%%", a.updDone.Load()*100/total)
 		}
 		lead = lipgloss.NewStyle().Foreground(a.pal.Accent).Render(t)
-	case a.avail != "" && !a.sideShowsUpdate():
-		lead = lipgloss.NewStyle().Foreground(a.pal.Accent).Render("U update to " + a.avail)
+	case a.avail != "":
+		// The toast that announces a release is gone in seconds; this stays
+		// until U installs it. The long form first, the short one if cramped.
+		acc := lipgloss.NewStyle().Foreground(a.pal.Accent)
+		for _, t := range []string{"vedabase " + a.avail + " is available — press U to update", "U update to " + a.avail} {
+			if lipgloss.Width(t) <= room {
+				lead = acc.Render(t)
+				break
+			}
+		}
 	}
 	if lead != "" {
 		leadW = lipgloss.Width(lead)

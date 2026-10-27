@@ -72,8 +72,8 @@ func TestUpdateFound(t *testing.T) {
 	if row := tagRow(a); !strings.Contains(row, "vedabase.cc · v0.2.0 available · U") {
 		t.Fatalf("tag row %q", row)
 	}
-	if strings.Contains(plain(a), "U update to") {
-		t.Fatal("bar hint shown with the sidebar tag on screen")
+	if !strings.Contains(plain(a), "press U to update") {
+		t.Fatal("bar offer missing: the toast alone is gone in seconds")
 	}
 	// the sidebar tops out at 40 cells: at 120 columns the version and U still fit
 	b, _ := bootUpd(t, &fakeUpdater{tag: "v0.2.0"}, 120)
@@ -272,12 +272,12 @@ func TestUpdateHintWithSidebarHidden(t *testing.T) {
 	a, _ := bootUpd(t, &fakeUpdater{tag: "v0.2.0"}, 120)
 	drive(a, key("t"))
 	lines := strings.Split(plain(a), "\n")
-	if bar := lines[len(lines)-1]; !strings.Contains(bar, "U update to v0.2.0") {
+	if bar := lines[len(lines)-1]; !strings.Contains(bar, "vedabase v0.2.0 is available — press U to update") {
 		t.Fatalf("bar %q", bar)
 	}
 	drive(a, key("H")) // hints hidden: the offer stays
 	lines = strings.Split(plain(a), "\n")
-	if bar := lines[len(lines)-1]; !strings.Contains(bar, "U update to v0.2.0") || strings.Contains(bar, "/ search") {
+	if bar := lines[len(lines)-1]; !strings.Contains(bar, "press U to update") || strings.Contains(bar, "/ search") {
 		t.Fatalf("bar %q", bar)
 	}
 	drive(a, key("F")) // distraction-free: nothing extra
@@ -368,8 +368,19 @@ func TestSidebarTagNarrowFallback(t *testing.T) {
 	// unframed (no sidebar tag at all): the bottom bar carries the offer
 	a.h = 8
 	a.layout()
-	if a.sideShowsUpdate() || !strings.Contains(a.bottomBar(), "U update to v0.2.0") {
+	if a.sideShowsUpdate() || !strings.Contains(a.bottomBar(), "press U to update") {
 		t.Fatal("offer not in the bottom bar")
+	}
+	// the sidebar tag does not replace it: the bottom bar always carries it
+	a.h = 30
+	a.layout()
+	if !a.sideShowsUpdate() || !strings.Contains(a.bottomBar(), "press U to update") {
+		t.Fatal("offer missing from the bottom bar beside the sidebar tag")
+	}
+	// too narrow for the sentence: the short form
+	drive(a, tea_size(72, 30))
+	if bar := a.bottomBar(); strings.Contains(bar, "press U") || !strings.Contains(bar, "U update to v0.2.0") {
+		t.Fatalf("narrow bar %q", ansiRe.ReplaceAllString(bar, ""))
 	}
 }
 
