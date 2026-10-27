@@ -11,6 +11,8 @@ type itemLoadedMsg struct {
 	lang string
 	item api.Item
 	err  error
+	// revalidate marks an expired stored copy: show it, then ask the API.
+	revalidate bool
 }
 
 type itemRefreshedMsg struct {
@@ -19,6 +21,7 @@ type itemRefreshedMsg struct {
 	item    api.Item
 	changed bool
 	err     error
+	quiet   bool // a background check: only a changed text says anything
 }
 
 type renderedMsg struct {

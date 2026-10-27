@@ -62,3 +62,32 @@ func TestRWithoutItemDoesNothing(t *testing.T) {
 		t.Fatal("refreshed with nothing open")
 	}
 }
+
+// An expired copy shows at once; the API is asked behind it, and only a
+// changed text says anything.
+func TestExpiredItemShownThenRevalidated(t *testing.T) {
+	f := newFake(t)
+	f.expired = map[string]bool{"bg/2/13": true}
+	newer := f.item("bg/2/13")
+	newer.Translation = "**Corrected translation**"
+	f.refreshItem = &newer
+	a, _ := boot(t, f, store.State{LastRef: "bg/2/13"})
+	if len(f.refreshCalls) != 1 || f.refreshCalls[0] != "bg/2/13" {
+		t.Fatalf("refresh calls %v", f.refreshCalls)
+	}
+	if a.item.Translation != "**Corrected translation**" || toastText(a) != "Updated from vedabase.cc" {
+		t.Fatalf("translation %q toast %q", a.item.Translation, toastText(a))
+	}
+}
+
+func TestRevalidateQuietWhenUnchangedOrFailed(t *testing.T) {
+	for name, err := range map[string]error{"unchanged": nil, "offline": api.ErrOffline} {
+		f := newFake(t)
+		f.expired = map[string]bool{"bg/2/13": true}
+		f.refreshErr = err
+		a, _ := boot(t, f, store.State{LastRef: "bg/2/13"})
+		if len(f.refreshCalls) != 1 || toastText(a) != "" || !a.hasItem {
+			t.Fatalf("%s: calls %v toast %q", name, f.refreshCalls, toastText(a))
+		}
+	}
+}

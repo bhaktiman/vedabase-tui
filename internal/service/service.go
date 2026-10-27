@@ -104,6 +104,23 @@ func (s *Service) Item(ctx context.Context, ref, lang string) (api.Item, bool, e
 	return api.Clean(it), false, nil
 }
 
+// Expired returns the stored copy, cleaned, only when it is older than
+// itemFresh: the reader shows it at once and asks the API behind it.
+func (s *Service) Expired(ref, lang string) (api.Item, bool) {
+	lang = langFor(ref, lang)
+	saved, ok := s.Items.Saved(lang, ref)
+	if !ok || s.now().Sub(saved) < itemFresh {
+		return api.Item{}, false
+	}
+	raw, ok := s.Items.GetRaw(lang, ref)
+	var it api.Item
+	if !ok || json.Unmarshal(raw, &it) != nil {
+		return api.Item{}, false
+	}
+	it.Ref = ref
+	return api.Clean(it), true
+}
+
 // Refresh asks the API for the item whatever the cache says and stores the
 // answer. On any error the stored copy is left alone. changed reports whether
 // the text differs from what was stored (true when nothing was).

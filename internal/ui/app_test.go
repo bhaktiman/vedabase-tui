@@ -40,6 +40,7 @@ type fakeBackend struct {
 	refreshCalls []string  // Refresh(ref)
 	refreshItem  *api.Item // what Refresh returns; nil: the unchanged item
 	refreshErr   error
+	expired      map[string]bool // Expired(ref) serves the item for these
 
 	yearList  []api.YearCount // LetterYears serves these
 	yearsErr  error
@@ -116,6 +117,15 @@ func (b *fakeBackend) Refresh(ctx context.Context, ref, lang string) (api.Item, 
 		return *b.refreshItem, true, nil
 	}
 	return b.item(ref), false, nil
+}
+
+func (b *fakeBackend) Expired(ref, lang string) (api.Item, bool) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if !b.expired[ref] {
+		return api.Item{}, false
+	}
+	return b.item(ref), true
 }
 
 func (b *fakeBackend) Cached(ref, lang string) bool {

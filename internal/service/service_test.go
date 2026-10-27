@@ -371,3 +371,20 @@ func TestRefreshFetchesAndKeepsCopyOnError(t *testing.T) {
 		t.Error("copy lost after a failed refresh")
 	}
 }
+
+func TestExpiredOnlyAfterItemFresh(t *testing.T) {
+	e := newEnv(t)
+	ctx := context.Background()
+	e.svc.Item(ctx, "bg/2/13", "en")
+	if _, ok := e.svc.Expired("bg/2/13", "en"); ok {
+		t.Fatal("fresh copy reported expired")
+	}
+	*e.now = e.now.Add(31 * 24 * time.Hour)
+	it, ok := e.svc.Expired("bg/2/13", "en")
+	if !ok || it.Ref != "bg/2/13" || e.hits.Load() != 1 {
+		t.Fatalf("ok=%v ref=%q hits=%d", ok, it.Ref, e.hits.Load())
+	}
+	if _, ok := e.svc.Expired("bg/9/9", "en"); ok {
+		t.Fatal("missing copy reported expired")
+	}
+}

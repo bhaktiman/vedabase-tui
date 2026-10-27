@@ -24,6 +24,8 @@ import (
 type Backend interface {
 	Item(ctx context.Context, ref, lang string) (api.Item, bool, error)
 	Cached(ref, lang string) bool
+	// Expired is the stored copy when it is old enough to be asked about again.
+	Expired(ref, lang string) (api.Item, bool)
 	// Refresh fetches the item again whatever is stored; changed says whether
 	// the text differs from the stored copy.
 	Refresh(ctx context.Context, ref, lang string) (it api.Item, changed bool, err error)
@@ -527,6 +529,10 @@ func (a *App) open(ref string, from *library.Node) tea.Cmd {
 	be, lang := a.be, a.lang
 	reqLang := requestLang(ref, lang)
 	return tea.Batch(delay, func() tea.Msg {
+		// An expired copy is shown now and checked against the API behind it.
+		if it, ok := be.Expired(ref, reqLang); ok {
+			return itemLoadedMsg{ref: ref, lang: lang, item: it, revalidate: true}
+		}
 		it, _, err := be.Item(context.Background(), ref, reqLang)
 		return itemLoadedMsg{ref: ref, lang: lang, item: it, err: err}
 	})
@@ -542,7 +548,22 @@ func (a *App) onItem(m itemLoadedMsg) tea.Cmd {
 	}
 	a.item, a.hasItem, a.status = m.item, true, ""
 	a.setItemTitle(a.node, m.item)
+	if m.revalidate {
+		return tea.Batch(a.renderCmd(), a.revalidate(m.ref, m.lang))
+	}
 	return a.renderCmd()
+}
+
+// revalidate asks the API about the shown, expired item without a word unless
+// the text changed.
+func (a *App) revalidate(ref, lang string) tea.Cmd {
+	be, reqLang := a.be, requestLang(ref, lang)
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		it, changed, err := be.Refresh(ctx, ref, reqLang)
+		return itemRefreshedMsg{ref: ref, lang: lang, item: it, changed: changed, err: err, quiet: true}
+	}
 }
 
 const checkingToast = "Checking vedabase.cc…"
@@ -564,7 +585,13 @@ func (a *App) refreshItem() tea.Cmd {
 }
 
 func (a *App) onRefreshed(m itemRefreshedMsg) tea.Cmd {
-	a.refreshing = false
+	if m.quiet {
+		if m.err != nil || !m.changed || m.ref != a.ref || m.lang != a.lang {
+			return nil
+		}
+	} else {
+		a.refreshing = false
+	}
 	if c := a.toasts.cur; c != nil && c.text == checkingToast {
 		a.toasts.cur = nil // the answer replaces it at once
 	}
