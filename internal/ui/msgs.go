@@ -13,6 +13,14 @@ type itemLoadedMsg struct {
 	err  error
 }
 
+type itemRefreshedMsg struct {
+	ref     string
+	lang    string
+	item    api.Item
+	changed bool
+	err     error
+}
+
 type renderedMsg struct {
 	ref   string
 	lang  string

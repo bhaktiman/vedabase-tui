@@ -37,6 +37,10 @@ type fakeBackend struct {
 	libCalls int
 	refresh  int
 
+	refreshCalls []string  // Refresh(ref)
+	refreshItem  *api.Item // what Refresh returns; nil: the unchanged item
+	refreshErr   error
+
 	yearList  []api.YearCount // LetterYears serves these
 	yearsErr  error
 	yearPages map[[2]int]api.Listing // LetterYearPage(year, page); a missing page fails
@@ -99,6 +103,19 @@ func (b *fakeBackend) Item(ctx context.Context, ref, lang string) (api.Item, boo
 	was := b.cached[ref]
 	b.cached[ref] = true
 	return b.item(ref), was, nil
+}
+
+func (b *fakeBackend) Refresh(ctx context.Context, ref, lang string) (api.Item, bool, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.refreshCalls = append(b.refreshCalls, ref)
+	if b.refreshErr != nil {
+		return api.Item{}, false, b.refreshErr
+	}
+	if b.refreshItem != nil {
+		return *b.refreshItem, true, nil
+	}
+	return b.item(ref), false, nil
 }
 
 func (b *fakeBackend) Cached(ref, lang string) bool {

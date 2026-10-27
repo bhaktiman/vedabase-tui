@@ -24,6 +24,9 @@ import (
 type Backend interface {
 	Item(ctx context.Context, ref, lang string) (api.Item, bool, error)
 	Cached(ref, lang string) bool
+	// Refresh fetches the item again whatever is stored; changed says whether
+	// the text differs from the stored copy.
+	Refresh(ctx context.Context, ref, lang string) (it api.Item, changed bool, err error)
 	Library(ctx context.Context, progress func(done, total int64)) (*library.Library, bool, error)
 	RefreshLibrary(ctx context.Context) (*library.Library, error)
 	Search(ctx context.Context, q, book string, page int, lang string) (api.SearchPage, error)
@@ -142,6 +145,7 @@ type App struct {
 	seq          keySeq
 	resizeSeq    int
 	prefetched   map[string]bool
+	refreshing   bool // a u refresh is in flight
 	learn        learned
 	tocs         map[string]api.TOC // contents known for a.lang, by book code
 	tocPending   map[string]bool    // books still to fetch this session
@@ -267,6 +271,8 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case itemLoadedMsg:
 		return a, a.onItem(m)
+	case itemRefreshedMsg:
+		return a, a.onRefreshed(m)
 	case renderedMsg:
 		return a, a.onRendered(m)
 	case resizeTickMsg:
@@ -537,6 +543,51 @@ func (a *App) onItem(m itemLoadedMsg) tea.Cmd {
 	a.item, a.hasItem, a.status = m.item, true, ""
 	a.setItemTitle(a.node, m.item)
 	return a.renderCmd()
+}
+
+const checkingToast = "Checking vedabase.cc…"
+
+// refreshItem pulls a fresh copy of the shown item from the API.
+func (a *App) refreshItem() tea.Cmd {
+	if !a.hasItem || a.refreshing {
+		return nil
+	}
+	a.refreshing = true
+	be, ref, lang := a.be, a.ref, a.lang
+	reqLang := requestLang(ref, lang)
+	return tea.Batch(a.Toast(checkingToast, false), func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		it, changed, err := be.Refresh(ctx, ref, reqLang)
+		return itemRefreshedMsg{ref: ref, lang: lang, item: it, changed: changed, err: err}
+	})
+}
+
+func (a *App) onRefreshed(m itemRefreshedMsg) tea.Cmd {
+	a.refreshing = false
+	if c := a.toasts.cur; c != nil && c.text == checkingToast {
+		a.toasts.cur = nil // the answer replaces it at once
+	}
+	if m.err != nil {
+		var rl *api.RateLimitedError
+		switch {
+		case errors.Is(m.err, api.ErrOffline):
+			return a.Toast("Offline: kept the saved copy", true)
+		case errors.As(m.err, &rl):
+			return a.Toast(fmt.Sprintf("vedabase.cc asked us to wait %ds", int(math.Ceil(rl.RetryAfter.Seconds()))), true)
+		}
+		return a.Toast("Refresh failed: "+m.err.Error(), true)
+	}
+	if m.ref != a.ref || m.lang != a.lang {
+		return nil
+	}
+	if !m.changed {
+		return a.Toast("Already up to date", false)
+	}
+	m.item.Ref = m.ref
+	a.item = m.item
+	a.setItemTitle(a.node, m.item)
+	return tea.Batch(a.renderCmd(), a.Toast("Updated from vedabase.cc", false))
 }
 
 func (a *App) itemFailed(err error) tea.Cmd {
@@ -847,6 +898,8 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 		return nil
 	case "o":
 		return a.openItemWeb()
+	case "R":
+		return a.refreshItem()
 	case "backspace", "[":
 		return a.goBack()
 	case "]":

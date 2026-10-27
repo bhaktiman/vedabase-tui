@@ -230,6 +230,7 @@ Press `?` in the app for the same list.
 | `:` | Go to a reference |
 | `s` | Add the current item to a collection |
 | `'` | Open collections |
+| `R` | Re-fetch the item you're reading from vedabase.cc |
 | `e` | Export the current item (or the selected collection) |
 | `T` | Choose a colour theme |
 | `L` | Choose the language |
@@ -247,7 +248,7 @@ Paths follow the XDG variables when they are set.
 
 | What | Where |
 |---|---|
-| Downloaded items | `~/.cache/vedabase-tui/items/` (safe to delete) |
+| Downloaded items | `~/.cache/vedabase-tui/items-v2/` (safe to delete; re-fetched after 30 days, or at once with `R`) |
 | Sitemap, index pages, year lists | `~/.cache/vedabase-tui/` |
 | Collections | `~/.local/share/vedabase-tui/collections.json` |
 | Settings | `~/.config/vedabase-tui/config.toml` |

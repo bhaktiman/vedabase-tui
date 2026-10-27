@@ -326,3 +326,48 @@ func TestOldCacheServedOnServerErrors(t *testing.T) {
 		}
 	}
 }
+
+func TestItemExpiresAndRefetches(t *testing.T) {
+	e := newEnv(t)
+	ctx := context.Background()
+	e.svc.Item(ctx, "bg/2/13", "en")
+	*e.now = e.now.Add(29 * 24 * time.Hour)
+	if _, cached, _ := e.svc.Item(ctx, "bg/2/13", "en"); !cached || e.hits.Load() != 1 {
+		t.Fatalf("fresh copy refetched: cached=%v hits=%d", cached, e.hits.Load())
+	}
+	*e.now = e.now.Add(2 * 24 * time.Hour)
+	if _, cached, err := e.svc.Item(ctx, "bg/2/13", "en"); err != nil || cached || e.hits.Load() != 2 {
+		t.Fatalf("expired: cached=%v err=%v hits=%d", cached, err, e.hits.Load())
+	}
+}
+
+func TestExpiredItemServedWhenOffline(t *testing.T) {
+	e := newEnv(t)
+	ctx := context.Background()
+	e.svc.Item(ctx, "bg/2/13", "en")
+	e.srv.Close()
+	*e.now = e.now.Add(31 * 24 * time.Hour)
+	it, cached, err := e.svc.Item(ctx, "bg/2/13", "en")
+	if err != nil || !cached || it.Ref != "bg/2/13" {
+		t.Fatalf("it=%+v cached=%v err=%v", it, cached, err)
+	}
+}
+
+func TestRefreshFetchesAndKeepsCopyOnError(t *testing.T) {
+	e := newEnv(t)
+	ctx := context.Background()
+	e.svc.Item(ctx, "bg/2/13", "en")
+	if _, changed, err := e.svc.Refresh(ctx, "bg/2/13", "en"); err != nil || changed || e.hits.Load() != 2 {
+		t.Fatalf("same text: changed=%v err=%v hits=%d", changed, err, e.hits.Load())
+	}
+	if _, changed, err := e.svc.Refresh(ctx, "letters/letter-to-lokanatha-2", "en"); err != nil || !changed {
+		t.Fatalf("new: changed=%v err=%v", changed, err)
+	}
+	e.srv.Close()
+	if _, _, err := e.svc.Refresh(ctx, "bg/2/13", "en"); err == nil {
+		t.Fatal("offline refresh succeeded")
+	}
+	if !e.svc.Cached("bg/2/13", "en") {
+		t.Error("copy lost after a failed refresh")
+	}
+}

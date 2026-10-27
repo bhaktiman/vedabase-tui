@@ -27,6 +27,10 @@ const (
 	DefaultBase = "https://vedabase.cc"
 
 	weekly = 7 * 24 * time.Hour
+	// itemFresh is how long a stored verse is trusted before the next read
+	// asks the API again (the site corrects translations and purports now and
+	// then). R in the reader asks at once.
+	itemFresh = 30 * 24 * time.Hour
 )
 
 type Service struct {
@@ -62,23 +66,31 @@ func langFor(ref, lang string) string {
 	return lang
 }
 
-// Item returns the cleaned item, from the cache when present, else fetched
-// and stored as the raw response (Clean runs on every read so its rules can
-// change). A failed fetch while offline falls back to the English cache of
-// earlier versions.
+// Item returns the cleaned item, from the cache while it is younger than
+// itemFresh, else fetched and stored as the raw response (Clean runs on every
+// read so its rules can change). When the fetch fails, an expired copy is
+// served rather than an error, and offline an English copy of earlier versions
+// is the last resort.
 func (s *Service) Item(ctx context.Context, ref, lang string) (api.Item, bool, error) {
 	lang = langFor(ref, lang)
+	var stale *api.Item
 	if raw, ok := s.Items.GetRaw(lang, ref); ok {
 		var it api.Item
 		if json.Unmarshal(raw, &it) == nil {
 			// Cached under the requested ref: the API may answer with a
 			// canonical form, and Cached looks the item up by the requested one.
 			it.Ref = ref
-			return api.Clean(it), true, nil
+			if saved, ok := s.Items.Saved(lang, ref); !ok || s.now().Sub(saved) < itemFresh {
+				return api.Clean(it), true, nil
+			}
+			stale = &it
 		}
 	}
 	raw, it, err := s.Client.VerseRaw(ctx, ref, lang)
 	if err != nil {
+		if stale != nil && ctx.Err() == nil && !api.IsNotFound(err) {
+			return api.Clean(*stale), true, nil
+		}
 		if lang == "en" && ctx.Err() == nil && !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) && !api.IsNotFound(err) {
 			if old, ok := s.Items.GetOld(ref); ok {
 				old.Ref = ref
@@ -90,6 +102,20 @@ func (s *Service) Item(ctx context.Context, ref, lang string) (api.Item, bool, e
 	// A failed cache write must not hide an item we already have.
 	_ = s.Items.PutRaw(lang, ref, raw)
 	return api.Clean(it), false, nil
+}
+
+// Refresh asks the API for the item whatever the cache says and stores the
+// answer. On any error the stored copy is left alone. changed reports whether
+// the text differs from what was stored (true when nothing was).
+func (s *Service) Refresh(ctx context.Context, ref, lang string) (it api.Item, changed bool, err error) {
+	lang = langFor(ref, lang)
+	raw, got, err := s.Client.VerseRaw(ctx, ref, lang)
+	if err != nil {
+		return api.Item{}, false, err
+	}
+	old, had := s.Items.GetRaw(lang, ref)
+	_ = s.Items.PutRaw(lang, ref, raw)
+	return api.Clean(got), !had || !bytes.Equal(old, raw), nil
 }
 
 func (s *Service) Cached(ref, lang string) bool { return s.Items.Has(langFor(ref, lang), ref) }

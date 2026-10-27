@@ -41,6 +41,19 @@ func (c ItemCache) GetRaw(lang, ref string) ([]byte, bool) {
 	return b, err == nil
 }
 
+// Saved is when the item was stored (its file's modification time).
+func (c ItemCache) Saved(lang, ref string) (time.Time, bool) {
+	p, ok := c.path(lang, ref)
+	if !ok {
+		return time.Time{}, false
+	}
+	st, err := os.Stat(p)
+	if err != nil || !st.Mode().IsRegular() {
+		return time.Time{}, false
+	}
+	return st.ModTime(), true
+}
+
 func (c ItemCache) Has(lang, ref string) bool {
 	p, ok := c.path(lang, ref)
 	if !ok {
