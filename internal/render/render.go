@@ -97,6 +97,15 @@ var wikiLink = regexp.MustCompile(`\[\[([^\[\]|]*)(?:\|([^\[\]]*))?\]\]`)
 
 // inlineLinks shows the site's [[ref|label]] links as their label, or the ref
 // when there is none.
+// PlainText is s as the reader shows it, without Markdown: [[ref|label]]
+// links become their labels and ** bold markers go. It is what copying puts
+// on the clipboard.
+func PlainText(s string) string { return strings.ReplaceAll(inlineLinks(s), "**", "") }
+
+// InlineLinks turns [[ref|label]] links into their labels and keeps the
+// rest of the Markdown.
+func InlineLinks(s string) string { return inlineLinks(s) }
+
 func inlineLinks(s string) string {
 	if !strings.Contains(s, "[[") {
 		return s

@@ -10,6 +10,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"vedabase-tui/internal/api"
+	"vedabase-tui/internal/render"
 	"vedabase-tui/internal/store"
 )
 
@@ -81,7 +82,7 @@ func TestCopyNumberCopiesAtOnce(t *testing.T) {
 	if a.copyMenu.visible {
 		t.Fatal("menu still open")
 	}
-	if len(*calls) != 1 || (*calls)[0].name != "wl-copy" || string((*calls)[0].input) != strings.TrimSpace(a.item.Translation) {
+	if len(*calls) != 1 || (*calls)[0].name != "wl-copy" || string((*calls)[0].input) != strings.TrimSpace(render.PlainText(a.item.Translation)) {
 		t.Fatalf("calls = %+v", *calls)
 	}
 	if !strings.Contains(plain(a), "Copied translation") {
@@ -106,7 +107,7 @@ func TestCopyJKEnter(t *testing.T) {
 	a := copyApp(t)
 	calls := stubClip(a, "darwin", nil, "pbcopy")
 	drive(a, key("y"), key("j"), key("enter"))
-	if len(*calls) != 1 || string((*calls)[0].input) != strings.TrimSpace(a.item.Translation) {
+	if len(*calls) != 1 || string((*calls)[0].input) != strings.TrimSpace(render.PlainText(a.item.Translation)) {
 		t.Fatalf("calls = %+v", *calls)
 	}
 }
@@ -245,3 +246,25 @@ func TestHelpMentionsCopy(t *testing.T) {
 }
 
 func typeName(m tea.Msg) string { return fmt.Sprintf("%T", m) }
+
+// Copied text is plain: the site's [[ref|label]] links become their labels
+// and ** bold markers go.
+func TestCopyStripsMarkup(t *testing.T) {
+	a := copyApp(t)
+	calls := stubClip(a, "linux", map[string]string{"DISPLAY": ":0"}, "xclip")
+	a.item = api.Item{Ref: "bg/2/13", Translation: "As **Kṛṣṇa** says in [[bg/2/12|Bg 2.12]] and [[sb/1/1/1]]."}
+	drive(a, key("y"), key("2"))
+	if len(*calls) != 1 {
+		t.Fatalf("calls = %+v", *calls)
+	}
+	if got, want := string((*calls)[0].input), "As Kṛṣṇa says in Bg 2.12 and sb/1/1/1."; got != want {
+		t.Fatalf("copied %q, want %q", got, want)
+	}
+}
+
+// Tests never start a real clipboard tool, whatever constructor they use.
+func TestDefaultClipEnvInertUnderTest(t *testing.T) {
+	if defaultClipEnv().run != nil {
+		t.Fatal("defaultClipEnv would run real processes under go test")
+	}
+}

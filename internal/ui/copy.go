@@ -7,12 +7,14 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
+	"testing"
 	"unicode/utf16"
 
 	tea "charm.land/bubbletea/v2"
 
 	"vedabase-tui/internal/export"
 	"vedabase-tui/internal/ref"
+	"vedabase-tui/internal/render"
 )
 
 // copyRow is one choice of the `y` menu: what it is called, what is copied,
@@ -35,8 +37,10 @@ type clipEnv struct {
 	run      func(name string, args []string, input []byte) error
 }
 
+// defaultClipEnv is the real platform. Under go test it cannot run anything,
+// so no test, whichever constructor it uses, starts a clipboard tool.
 func defaultClipEnv() clipEnv {
-	return clipEnv{
+	e := clipEnv{
 		goos: runtime.GOOS, getenv: os.Getenv, readFile: os.ReadFile, lookPath: exec.LookPath,
 		run: func(name string, args []string, input []byte) error {
 			c := exec.Command(name, args...)
@@ -44,6 +48,10 @@ func defaultClipEnv() clipEnv {
 			return c.Run()
 		},
 	}
+	if testing.Testing() {
+		e.run = nil
+	}
+	return e
 }
 
 func (e clipEnv) wsl() bool {
@@ -126,19 +134,19 @@ func (a *App) openCopyMenu() tea.Cmd {
 		head += " — " + it.URL
 	}
 	rows := []copyRow{{"Reference + link", "reference", head}}
-	if s := strings.TrimSpace(it.Translation); s != "" {
+	if s := strings.TrimSpace(render.PlainText(it.Translation)); s != "" {
 		rows = append(rows, copyRow{"Translation", "translation", s})
 	}
 	var verse []string
 	for _, s := range []string{it.Devanagari, it.VerseText} {
-		if s = strings.TrimSpace(s); s != "" {
+		if s = strings.TrimSpace(render.PlainText(s)); s != "" {
 			verse = append(verse, s)
 		}
 	}
 	if len(verse) > 0 {
 		rows = append(rows, copyRow{"Verse", "verse", strings.Join(verse, "\n\n")})
 	}
-	rows = append(rows, copyRow{"Everything", "text", export.ItemText(it, a.metaFor(r), a.state.Parts)})
+	rows = append(rows, copyRow{"Everything", "text", render.InlineLinks(export.ItemText(it, a.metaFor(r), a.state.Parts))})
 	a.copyMenu = copyMenu{visible: true, rows: rows}
 	return nil
 }
