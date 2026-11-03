@@ -171,6 +171,16 @@ func (t *Tree) Reveal(n *library.Node) {
 	t.scroll()
 }
 
+// ExpandNode opens n (a no-op for a leaf) without moving the cursor.
+func (t *Tree) ExpandNode(n *library.Node) {
+	if n == nil || n.Leaf {
+		return
+	}
+	t.expanded[n.Ref] = true
+	t.rebuild()
+	t.scroll()
+}
+
 // SetFilter shows only nodes whose label contains s (case and diacritics
 // ignored), plus their ancestors, which are expanded. "" clears the filter.
 func (t *Tree) SetFilter(s string) {

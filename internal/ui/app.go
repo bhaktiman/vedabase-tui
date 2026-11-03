@@ -302,6 +302,9 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return a, a.onYears(m)
 	case yearPageMsg:
 		return a, a.onYearPage(m)
+	case jumpCollectionMsg:
+		a.jumpToCollection(m.name)
+		return a, nil
 	case searchOpenMsg:
 		a.focusTree = false
 		return a, a.Open(m.ref)
@@ -905,6 +908,14 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 		}
 		a.colview.Show(a.cols)
 		return nil
+	case "c":
+		if a.cols == nil {
+			return a.Toast("Collections are unavailable", true)
+		}
+		if len(a.cols.List()) == 0 {
+			return a.Toast("No collections yet — press s while reading", false)
+		}
+		return a.picker.ShowJump(a.cols)
 	case "z":
 		if a.state.Zen {
 			return nil
@@ -1026,4 +1037,31 @@ func (a *App) toggleZen() tea.Cmd {
 	}
 	a.persist()
 	return a.relayout()
+}
+
+// jumpToCollection shows a collection: in the sidebar, opened with the cursor
+// on its row, or, when the sidebar is hidden, in the `'` overlay.
+func (a *App) jumpToCollection(name string) {
+	if a.cols == nil {
+		return
+	}
+	a.syncCollections()
+	if a.treeVisible() {
+		for _, r := range a.lib.Roots {
+			if r.Ref != library.CollectionsRef {
+				continue
+			}
+			for _, n := range r.Children {
+				if n.Seg == name {
+					a.tree.Reveal(n)
+					a.tree.ExpandNode(n)
+					a.tree.Reveal(n) // the cursor back on the collection row
+					a.focusTree = true
+					a.layout()
+					return
+				}
+			}
+		}
+	}
+	a.colview.ShowIn(a.cols, name)
 }

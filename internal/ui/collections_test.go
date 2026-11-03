@@ -10,9 +10,11 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 
 	"vedabase-tui/internal/api"
 	"vedabase-tui/internal/collections"
+	"vedabase-tui/internal/library"
 	"vedabase-tui/internal/store"
 )
 
@@ -233,5 +235,163 @@ func TestPickerOrder(t *testing.T) {
 	drive(a, key("tab"), key("esc"), key("s"), key("enter")) // recent again; Enter adds to the most recent
 	if c, _ := cs.Get("Beta"); len(c.Items) != 2 {
 		t.Fatalf("Beta has %d items", len(c.Items))
+	}
+}
+
+func jumpApp(t *testing.T, st store.State) (*App, *collections.Store) {
+	t.Helper()
+	a, cs, _ := colApp(t, newFake(t), st)
+	day := func(d int) time.Time { return time.Date(2026, 10, d, 0, 0, 0, 0, time.UTC) }
+	for _, c := range []struct {
+		name, ref string
+		d         int
+	}{{"Alpha", "bg/1/1", 1}, {"Beta", "bg/2/13", 5}, {"Beta", "bg/2/1", 6}} {
+		if _, err := cs.Add(c.name, collections.Item{Ref: c.ref, Book: "bg", Label: "L " + c.ref, Added: day(c.d)}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	drive(a, key("l")) // let syncCollections run; harmless
+	return a, cs
+}
+
+func TestJumpPickerListsAndOrders(t *testing.T) {
+	a, _ := jumpApp(t, store.State{LastRef: "bg/2/13"})
+	drive(a, key("c"))
+	v := plain(a)
+	for _, w := range []string{"Go to collection", "Beta  ·  2", "Alpha  ·  1", "enter go", "recent first (tab: A–Z)"} {
+		if !strings.Contains(v, w) {
+			t.Errorf("view lacks %q:\n%s", w, v)
+		}
+	}
+	if strings.Contains(v, newCollectionRow) {
+		t.Error("jump picker has a new-collection row")
+	}
+	if !slices.Equal(a.picker.names, []string{"Beta", "Alpha"}) {
+		t.Fatalf("order %v", a.picker.names)
+	}
+	drive(a, key("tab"))
+	if !slices.Equal(a.picker.names, []string{"Alpha", "Beta"}) {
+		t.Fatalf("A–Z order %v", a.picker.names)
+	}
+	// The cursor stops at the last collection, not on a phantom row.
+	drive(a, key("j"), key("j"), key("j"))
+	if a.picker.cursor != 1 {
+		t.Fatalf("cursor %d", a.picker.cursor)
+	}
+	a.picker.Wheel(5)
+	if a.picker.cursor != 1 {
+		t.Fatalf("wheel cursor %d", a.picker.cursor)
+	}
+	// A normal `s` picker afterwards still has its extra row.
+	drive(a, key("esc"), key("s"))
+	if a.picker.jump || !strings.Contains(plain(a), newCollectionRow) {
+		t.Fatal("s picker lost its new row")
+	}
+}
+
+func TestJumpPickerClick(t *testing.T) {
+	a, _ := jumpApp(t, store.State{LastRef: "bg/2/13"})
+	drive(a, key("c"))
+	a.picker.Click(5, 3) // second row selects
+	if a.picker.cursor != 1 {
+		t.Fatalf("cursor %d", a.picker.cursor)
+	}
+	if cmd := a.picker.Click(5, 4); cmd != nil { // below the last row
+		t.Fatal("clicked a phantom row")
+	}
+	drive(a, a.picker.Click(5, 3))
+	if a.picker.visible {
+		t.Fatal("click on the selected row did not choose")
+	}
+}
+
+func TestJumpToastsWhenEmptyOrUnavailable(t *testing.T) {
+	a, _, _ := colApp(t, newFake(t), store.State{LastRef: "bg/2/13"})
+	drive(a, key("c"))
+	if got := toastText(a); got != "No collections yet — press s while reading" || a.picker.visible {
+		t.Fatalf("toast %q visible %v", got, a.picker.visible)
+	}
+	b, _ := boot(t, newFake(t), store.State{LastRef: "bg/2/13"})
+	b.cols = nil
+	drive(b, key("c"))
+	if got := toastText(b); got != "Collections are unavailable" {
+		t.Fatalf("toast %q", got)
+	}
+}
+
+func TestJumpRevealsInSidebar(t *testing.T) {
+	a, _ := jumpApp(t, store.State{LastRef: "bg/2/13"})
+	a.focusTree = false
+	drive(a, key("c"), key("j"), key("enter")) // Alpha
+	n := a.tree.Selected()
+	if n == nil || n.Seg != "Alpha" || n.Parent == nil || n.Parent.Ref != library.CollectionsRef {
+		t.Fatalf("selected %+v", n)
+	}
+	if !a.focusTree || a.picker.visible || a.colview.visible {
+		t.Fatalf("focusTree %v picker %v colview %v", a.focusTree, a.picker.visible, a.colview.visible)
+	}
+	if !strings.Contains(plain(a), "L bg/1/1") {
+		t.Fatalf("collection not expanded:\n%s", plain(a))
+	}
+}
+
+func TestJumpClearsHidingFilter(t *testing.T) {
+	a, _ := jumpApp(t, store.State{LastRef: "bg/2/13"})
+	a.tree.SetFilter("zzzz-nothing")
+	drive(a, key("c"), key("enter")) // Beta
+	if n := a.tree.Selected(); n == nil || n.Seg != "Beta" {
+		t.Fatalf("selected %+v", n)
+	}
+}
+
+func TestJumpWithoutSidebarOpensOverlayInside(t *testing.T) {
+	for name, st := range map[string]store.State{
+		"hidden": {LastRef: "bg/2/13", TreeHidden: true},
+		"zen":    {LastRef: "bg/2/13", Zen: true},
+	} {
+		a, _ := jumpApp(t, st)
+		drive(a, key("c"), key("j"), key("enter")) // Alpha
+		if !a.colview.visible || a.colview.in != "Alpha" || a.picker.visible {
+			t.Fatalf("%s: colview %v in %q", name, a.colview.visible, a.colview.in)
+		}
+		if !strings.Contains(plain(a), "L bg/1/1") {
+			t.Fatalf("%s: items not shown", name)
+		}
+		drive(a, key("esc")) // back at the list, on Alpha (index 0 of A–Z list)
+		if a.colview.in != "" || !a.colview.visible || a.colview.cursor != 0 {
+			t.Fatalf("%s: after esc in=%q cursor=%d", name, a.colview.in, a.colview.cursor)
+		}
+	}
+	// Too narrow for a sidebar.
+	a, _ := jumpApp(t, store.State{LastRef: "bg/2/13"})
+	drive(a, tea.WindowSizeMsg{Width: minTreeCols - 1, Height: 40}, key("c"), key("enter"))
+	if !a.colview.visible || a.colview.in != "Beta" {
+		t.Fatalf("narrow: colview %v in %q", a.colview.visible, a.colview.in)
+	}
+}
+
+func TestHelpHasCollectionsGroupInTwoColumns(t *testing.T) {
+	a, _, _ := colApp(t, newFake(t), store.State{LastRef: "bg/2/13"})
+	drive(a, key("?"))
+	v := plain(a)
+	for _, w := range []string{"Collections", "Jump to collection", "Manage collections", "Remove item", "Export collection"} {
+		if !strings.Contains(v, w) {
+			t.Errorf("help lacks %q", w)
+		}
+	}
+	lines := strings.Split(v, "\n")
+	if len(lines) > 40 {
+		t.Errorf("help is %d rows", len(lines))
+	}
+	for _, l := range lines {
+		if w := lipgloss.Width(l); w > 120 {
+			t.Fatalf("line %d wide: %q", w, l)
+		}
+	}
+	if h := lipgloss.Height(a.helpView()); h > 34 {
+		t.Errorf("two-column help is %d rows tall", h)
+	}
+	if strings.Contains(v, "Open collections") {
+		t.Error("stale Overlays rows")
 	}
 }

@@ -21,6 +21,9 @@ const (
 	labelMax         = 60
 )
 
+// jumpCollectionMsg asks the App to show a collection (the `c` picker's Enter).
+type jumpCollectionMsg struct{ name string }
+
 // exportCollectionMsg asks the App to export a collection to one file.
 type exportCollectionMsg struct{ name string }
 
@@ -102,6 +105,7 @@ type Picker struct {
 	w, h  int
 
 	visible  bool
+	jump     bool // the `c` "Go to collection" mode: no new-collection row
 	alpha    bool // A–Z instead of most recently used first; kept while the app runs
 	item     collections.Item
 	names    []string
@@ -119,13 +123,30 @@ func (p *Picker) SetSize(w, h int) { p.w, p.h = w, h }
 
 // Show opens the picker for it (Added is filled in when chosen).
 func (p *Picker) Show(st *collections.Store, it collections.Item) tea.Cmd {
-	p.visible, p.store, p.item = true, st, it
+	p.visible, p.store, p.item, p.jump = true, st, it, false
 	p.sortNames()
 	p.cursor = 0
 	p.typing = false
 	p.input.SetValue("")
 	p.input.Blur()
 	return nil
+}
+
+// ShowJump opens the picker in jump mode: choosing a collection emits
+// jumpCollectionMsg instead of adding an item.
+func (p *Picker) ShowJump(st *collections.Store) tea.Cmd {
+	p.Show(st, collections.Item{})
+	p.jump = true
+	return nil
+}
+
+// rowCount is the number of selectable rows: the names, plus the
+// new-collection row unless jumping.
+func (p *Picker) rowCount() int {
+	if p.jump {
+		return len(p.names)
+	}
+	return len(p.names) + 1
 }
 
 func (p *Picker) close() { p.visible = false; p.typing = false; p.input.Blur() }
@@ -196,7 +217,7 @@ func (p *Picker) Update(kp tea.KeyPressMsg) tea.Cmd {
 	case "esc", "q":
 		p.close()
 	case "j", "down":
-		p.cursor = min(p.cursor+1, len(p.names))
+		p.cursor = min(p.cursor+1, max(p.rowCount()-1, 0))
 	case "k", "up":
 		p.cursor = max(p.cursor-1, 0)
 	case "tab": // the cursor stays on the same collection
@@ -210,6 +231,14 @@ func (p *Picker) Update(kp tea.KeyPressMsg) tea.Cmd {
 			p.cursor = i
 		}
 	case "enter":
+		if p.jump {
+			if p.cursor < len(p.names) {
+				name := p.names[p.cursor]
+				p.close()
+				return func() tea.Msg { return jumpCollectionMsg{name} }
+			}
+			return nil
+		}
 		if p.cursor < len(p.names) {
 			return p.add(p.names[p.cursor])
 		}
@@ -225,7 +254,7 @@ func (p *Picker) Click(x, y int) tea.Cmd {
 	if p.typing {
 		return nil
 	}
-	n := len(p.names) + 1
+	n := p.rowCount()
 	vis, top := listView(p.h, n, p.cursor)
 	i := top + y - 2
 	if y < 2 || y-2 >= vis || i >= n {
@@ -241,7 +270,7 @@ func (p *Picker) Click(x, y int) tea.Cmd {
 // Wheel moves the cursor by d rows.
 func (p *Picker) Wheel(d int) {
 	if !p.typing {
-		p.cursor = min(max(p.cursor+d, 0), len(p.names))
+		p.cursor = min(max(p.cursor+d, 0), max(p.rowCount()-1, 0))
 	}
 }
 
@@ -252,6 +281,17 @@ func (p Picker) View() string {
 		sort = "A–Z (tab: recent first)"
 	}
 	extra, hint := "", "enter choose · j/k move · "+sort+" · esc close"
+	if p.jump {
+		dim := lipgloss.NewStyle().Foreground(p.pal.Dim)
+		fg := lipgloss.NewStyle().Foreground(p.pal.Fg)
+		rows = rows[:0]
+		for _, n := range p.names {
+			col, _ := p.store.Get(n)
+			rows = append(rows, fg.Render(n)+dim.Render(fmt.Sprintf("  ·  %d", len(col.Items))))
+		}
+		hint = "enter go · j/k move · " + sort + " · esc close"
+		return listBox(p.pal, p.w, p.h, "Go to collection", rows, p.cursor, "", hint)
+	}
 	if p.typing {
 		p.input.SetWidth(max(min(p.w-4, 80)-8, 1))
 		rows = p.names
@@ -286,6 +326,18 @@ func (c *CollectionsView) SetSize(w, h int) { c.w, c.h = w, h }
 
 func (c *CollectionsView) Show(st *collections.Store) {
 	c.visible, c.store, c.in, c.cursor, c.confirm, c.rename = true, st, "", 0, "", false
+}
+
+// ShowIn opens the overlay inside the named collection; Esc returns to its
+// place in the list.
+func (c *CollectionsView) ShowIn(st *collections.Store, name string) {
+	c.Show(st)
+	for i, col := range st.List() {
+		if col.Name == name {
+			c.saved = i
+		}
+	}
+	c.in = name
 }
 
 func (c *CollectionsView) close() { c.visible = false; c.input.Blur() }
