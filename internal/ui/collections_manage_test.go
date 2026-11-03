@@ -86,20 +86,41 @@ func TestSidebarRenameCollection(t *testing.T) {
 
 func TestSidebarRemoveItem(t *testing.T) {
 	a, cs := jumpApp(t, store.State{LastRef: "bg/2/13"})
-	selectNode(t, a, func(n *library.Node) bool { return n.Ref == "bg/2/1" && n.Parent.Seg == "Beta" })
-	drive(a, key("d"))
-	if !strings.Contains(plain(a), "Remove ") || a.colview.in != "Beta" {
-		t.Fatalf("no remove confirm:\n%s", plain(a))
+	inBeta := func(r string) func(*library.Node) bool {
+		return func(n *library.Node) bool { return n.Ref == r && n.Parent != nil && n.Parent.Seg == "Beta" }
 	}
-	drive(a, key("y"))
+	// Beta holds bg/2/13 then bg/2/1. Remove the first: no dialog, the
+	// sidebar keeps the focus, and the cursor goes to the next item.
+	selectNode(t, a, inBeta("bg/2/13"))
+	drive(a, key("d"))
+	if a.colview.visible {
+		t.Fatal("remove opened the collections overlay")
+	}
 	col, _ := cs.Get("Beta")
-	if len(col.Items) != 1 || col.Items[0].Ref != "bg/2/13" {
+	if len(col.Items) != 1 || col.Items[0].Ref != "bg/2/1" {
 		t.Fatalf("items %+v", col.Items)
 	}
+	if v := plain(a); !strings.Contains(v, "Removed L bg/2/13 from Beta") {
+		t.Fatalf("no toast:\n%s", v)
+	}
+	if !a.focusTree {
+		t.Fatal("focus left the sidebar")
+	}
+	if n := a.tree.Selected(); n == nil || !inBeta("bg/2/1")(n) {
+		t.Fatalf("cursor on %+v, want Beta's bg/2/1", n)
+	}
 	for _, r := range a.tree.rows {
-		if r.node.Ref == "bg/2/1" && r.node.Parent != nil && r.node.Parent.Seg == "Beta" {
+		if inBeta("bg/2/13")(r.node) {
 			t.Fatal("item still in tree")
 		}
+	}
+	// The last item: the cursor goes to the (now empty) collection row.
+	drive(a, key("d"))
+	if n := a.tree.Selected(); n == nil || n.Seg != "Beta" || n.Parent == nil || n.Parent.Ref != library.CollectionsRef {
+		t.Fatalf("cursor on %+v, want the Beta row", n)
+	}
+	if col, _ := cs.Get("Beta"); len(col.Items) != 0 {
+		t.Fatalf("items %+v", col.Items)
 	}
 }
 
@@ -227,8 +248,7 @@ func TestRemovePromptUsesLabel(t *testing.T) {
 		if _, err := cs.Add("Gamma", collections.Item{Ref: c.ref, Book: "bg", Label: c.label}); err != nil {
 			t.Fatal(err)
 		}
-		drive(a, key("l"))
-		selectNode(t, a, func(n *library.Node) bool { return n.Ref == c.ref && n.Parent.Seg == "Gamma" })
+		a.colview.ShowIn(cs, "Gamma")
 		drive(a, key("d"))
 		if v := plain(a); !strings.Contains(v, c.want) {
 			t.Errorf("label %q: prompt lacks %q:\n%s", c.label, c.want, v)

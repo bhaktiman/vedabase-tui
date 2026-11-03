@@ -949,7 +949,7 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 	case "d":
 		if n := a.sidebarSelected(); n != nil && n.Parent != nil && n.Parent.Parent != nil &&
 			n.Parent.Parent.Ref == library.CollectionsRef && !isHint(n) {
-			a.colview.StartRemove(a.cols, n.Parent.Seg, n.Ref)
+			return a.removeFromSidebar(n.Parent.Seg, n.Ref)
 		}
 		return nil
 	case "backspace", "[":
@@ -1071,6 +1071,54 @@ func (a *App) sidebarCollection() (string, bool) {
 	return n.Seg, true
 }
 
+// collectionNode is the sidebar node of the named collection, or nil.
+func (a *App) collectionNode(name string) *library.Node {
+	if a.lib == nil {
+		return nil
+	}
+	for _, r := range a.lib.Roots {
+		if r.Ref != library.CollectionsRef {
+			continue
+		}
+		for _, n := range r.Children {
+			if n.Seg == name {
+				return n
+			}
+		}
+	}
+	return nil
+}
+
+// removeFromSidebar removes an item from a collection at once (sidebar `d`):
+// no dialog, the sidebar keeps the focus, and the cursor moves to the item
+// that took its place, the one before it, or the emptied collection's row.
+func (a *App) removeFromSidebar(name, r string) tea.Cmd {
+	col, _ := a.cols.Get(name)
+	i := -1
+	for j, it := range col.Items {
+		if it.Ref == r {
+			i = j
+			break
+		}
+	}
+	if i < 0 {
+		return nil
+	}
+	it := col.Items[i]
+	if err := a.cols.Remove(name, r); err != nil {
+		return a.Toast("Couldn't save: "+err.Error(), true)
+	}
+	a.syncCollections()
+	if n := a.collectionNode(name); n != nil {
+		target := n
+		if len(n.Children) > 0 {
+			target = n.Children[min(i, len(n.Children)-1)]
+		}
+		a.tree.Reveal(target)
+	}
+	return a.Toast("Removed "+itemName(it)+" from "+name, false)
+}
+
 // jumpToCollection shows a collection: in the sidebar, opened with the cursor
 // on its row, or, when the sidebar is hidden, in the `'` overlay.
 func (a *App) jumpToCollection(name string) {
@@ -1078,22 +1126,13 @@ func (a *App) jumpToCollection(name string) {
 		return
 	}
 	a.syncCollections()
-	if a.treeVisible() {
-		for _, r := range a.lib.Roots {
-			if r.Ref != library.CollectionsRef {
-				continue
-			}
-			for _, n := range r.Children {
-				if n.Seg == name {
-					a.tree.Reveal(n)
-					a.tree.ExpandNode(n)
-					a.tree.Reveal(n) // the cursor back on the collection row
-					a.focusTree = true
-					a.layout()
-					return
-				}
-			}
-		}
+	if n := a.collectionNode(name); n != nil && a.treeVisible() {
+		a.tree.Reveal(n)
+		a.tree.ExpandNode(n)
+		a.tree.Reveal(n) // the cursor back on the collection row
+		a.focusTree = true
+		a.layout()
+		return
 	}
 	a.colview.ShowIn(a.cols, name)
 }

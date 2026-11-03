@@ -369,19 +369,6 @@ func (c *CollectionsView) StartDelete(st *collections.Store, name string) {
 	}
 }
 
-// StartRemove opens the overlay inside name asking to remove the item ref.
-func (c *CollectionsView) StartRemove(st *collections.Store, name, ref string) {
-	c.ShowIn(st, name)
-	col, _ := st.Get(name)
-	for i, it := range col.Items {
-		if it.Ref == ref {
-			c.cursor = i
-			c.confirm = "d"
-			return
-		}
-	}
-}
-
 // itemName is how a confirm prompt names an item: its label up to the " — "
 // that starts the first line of text, or the reference when it has no label.
 func itemName(it collections.Item) string {
