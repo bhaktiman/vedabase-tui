@@ -120,7 +120,7 @@ func run() error {
 	_, err = p.Run()
 	// A note still open when the program ended any way but a key.
 	if ferr := app.FlushNote(); ferr != nil {
-		keepUnsaved(app, []string{dataDir, paths.Data, os.TempDir()}, ferr)
+		keepUnsaved(app, []string{dataDir, paths.Data, paths.Cache}, ferr)
 	}
 	if err != nil {
 		return err
@@ -134,8 +134,9 @@ func run() error {
 	return nil
 }
 
-// keepUnsaved writes the note text that could not be saved to the first of
-// dirs that takes it (the data folder can be the very place that failed), and
+// keepUnsaved writes the note text that could not be saved to a new file in
+// the first of dirs that takes it (the data folder can be the very place that
+// failed; all are the user's own folders, never the shared temp folder), and
 // says where it went. If none does, the text itself goes to stderr, so closing
 // the program never loses it.
 func keepUnsaved(app *ui.App, dirs []string, cause error) {
@@ -143,17 +144,15 @@ func keepUnsaved(app *ui.App, dirs []string, cause error) {
 	if !ok {
 		return
 	}
-	name := "notes.json.unsaved-" + time.Now().Format("20060102-150405")
+	// CreateTemp: a fresh 0600 file with a random suffix, never an existing
+	// file or a symlink planted under a guessable name.
+	pattern := "notes.json.unsaved-" + time.Now().Format("20060102-150405") + "-*"
 	var errs []string
 	for _, dir := range dirs {
 		if dir == "" {
 			continue
 		}
-		path := filepath.Join(dir, name)
-		err := os.MkdirAll(dir, 0o755)
-		if err == nil {
-			err = os.WriteFile(path, []byte(text), 0o600)
-		}
+		path, err := writeNew(dir, pattern, text)
 		if err == nil {
 			fmt.Fprintf(os.Stderr, "vedabase: could not save your note on %s: %v; kept in %s\n", r, cause, path)
 			return
@@ -162,4 +161,25 @@ func keepUnsaved(app *ui.App, dirs []string, cause error) {
 	}
 	fmt.Fprintf(os.Stderr, "vedabase: could not save your note on %s: %v; and could not keep it in a file (%s). Your note:\n%s\n",
 		r, cause, strings.Join(errs, "; "), text)
+}
+
+func writeNew(dir, pattern, text string) (string, error) {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return "", err
+	}
+	f, err := os.CreateTemp(dir, pattern)
+	if err != nil {
+		return "", err
+	}
+	if _, err = f.WriteString(text); err == nil {
+		err = f.Sync()
+	}
+	if cerr := f.Close(); err == nil {
+		err = cerr
+	}
+	if err != nil {
+		os.Remove(f.Name())
+		return "", err
+	}
+	return f.Name(), nil
 }
