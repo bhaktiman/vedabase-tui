@@ -1,6 +1,6 @@
 # Progress
 
-## Resume here — 2026-10-27 10:57
+## Resume here — 2026-11-03 15:05
 
 **Branch `feat/api-features`** (merged into `feat/vedabase-tui` and `main`): uses the seven new vedabase.cc API features (maintainer's reply 2026-10-26). Race suite green; both Opus reviews approved (phases 0–2 after one fix round; phases 3–4 with minors); tmux smoke run passed.
 
@@ -22,7 +22,9 @@
 - v0.3.0 was tagged and pushed but never released: it predates the bottom-bar fix. v0.3.1 is the release (5 platform archives, checksums, install.sh); `main` and `feat/vedabase-tui` pushed.
 - `./vedabase` is git-ignored and goes stale: `make build` after pulling, or a feature looks missing.
 
-**Next action:** none pending; ask the user what's next (the audio player is the parked idea).
+**Collections management (2026-11-03, unreleased, on `feat/vedabase-tui`, not pushed):** `c` opens "Go to collection" (jump mode of the `s` Picker; sidebar reveal, or the `'` list inside it when the sidebar is hidden). `R` / `D` / `d` on the sidebar's Collections rows open the `'` overlay at rename / delete / remove (it stays open afterwards). Bottom-bar hints change in the Collections section. `?` help has a Collections group; groups reordered so help fits 120×30. Remove prompt names items by label. Ledger: `.superpowers/sdd/2026-11-03-collections-manage/progress.md`.
+
+**Next action:** ask the user: push + release v0.3.2? Close the `'` overlay after a sidebar-started action? Reorder items in a collection? (The audio player is still the parked idea.)
 
 **Out of scope, future:** a terminal audio player for lectures (via mpv) and "Lectures on this verse" (index built from lecture titles; maybe ask the maintainer for a verse → lectures field). Collapse button not wanted.
 
