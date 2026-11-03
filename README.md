@@ -19,8 +19,14 @@ the public [vedabase.cc API](https://vedabase.cc/en/api/).
 - **Contents tree** beside the text, with a live filter.
 - **Full-text search** across everything, one book, the letters or the lectures.
 - **Go to a reference** by typing it: `bg 2.13`, `sb 1.2.6`.
-- **Collections:** save verses, chapters, letters and lectures into named lists.
-- **Markdown export** of one item or a whole collection.
+- **Collections:** save verses, chapters, letters and lectures into named lists;
+  jump to any of them with `c`, rename, delete and reorder them in place.
+- **Notes** on any verse, letter or lecture (`a`), shown at the top of the page.
+- **Find on the page** (`Ctrl-f`), ignoring case and diacritics.
+- **Copy** a reference with its link, the translation or the verse (`y`).
+- **Markdown export** of one item or a whole collection, notes included.
+- **Keep your collections and notes where you like**, for example in a synced
+  folder shared between computers (`data_dir`).
 - **Themes**, a centred reading column and a distraction-free mode.
 - **Offline cache and resume.** It reopens where you stopped, and anything you
   have already read works without a network.
