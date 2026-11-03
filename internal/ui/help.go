@@ -8,6 +8,9 @@ import (
 
 type helpRow struct{ key, what string }
 
+// helpGroups in display order. The first half (rounded up) is the left
+// column; the order keeps the two columns near the same height, so the help
+// fits a 120×30 terminal.
 var helpGroups = []struct {
 	name string
 	rows []helpRow
@@ -16,14 +19,6 @@ var helpGroups = []struct {
 		{"tab", "Switch focus"}, {"t", "Hide / show sidebar"}, {"< / >", "Narrower / wider sidebar"},
 		{"w", "Centred / full width"},
 		{"H", "Hide / show key hints"}, {"F", "Distraction-free reading"},
-	}},
-	{"Reader", []helpRow{
-		{"j / k", "Scroll line"}, {"h / l", "Previous / next item"},
-		{"Ctrl-d / Ctrl-u", "Half page"}, {"gg / G", "Top / bottom"},
-		{"1 – 5", "Toggle parts"}, {"o", "Open on vedabase.cc"},
-		{"R", "Re-fetch this item"},
-		{"Backspace / [", "Back after following a link"}, {"]", "Forward"},
-		{"f", "Key labels on links"},
 	}},
 	{"Tree", []helpRow{
 		{"j / k", "Move down / up"}, {"h / l", "Collapse / expand"},
@@ -35,6 +30,14 @@ var helpGroups = []struct {
 		{"c", "Jump to collection"}, {"R", "Rename (sidebar or ')"},
 		{"D", "Delete collection"}, {"d", "Remove item"},
 		{"e", "Export collection"},
+	}},
+	{"Reader", []helpRow{
+		{"j / k", "Scroll line"}, {"h / l", "Previous / next item"},
+		{"Ctrl-d / Ctrl-u", "Half page"}, {"gg / G", "Top / bottom"},
+		{"1 – 5", "Toggle parts"}, {"o", "Open on vedabase.cc"},
+		{"R", "Re-fetch this item"},
+		{"Backspace / [", "Back after following a link"}, {"]", "Forward"},
+		{"f", "Key labels on links"},
 	}},
 	{"Overlays", []helpRow{
 		{"/", "Search (ctrl-n/p to results)"}, {"n / N", "Next / previous result"},
@@ -61,7 +64,7 @@ func (a *App) helpView() string {
 	var one, left, right []string
 	for i := range helpGroups {
 		one = group(one, i)
-		if i < len(helpGroups)/2 {
+		if i < (len(helpGroups)+1)/2 {
 			left = group(left, i)
 		} else {
 			right = group(right, i)

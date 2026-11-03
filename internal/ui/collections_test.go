@@ -388,7 +388,7 @@ func TestHelpHasCollectionsGroupInTwoColumns(t *testing.T) {
 			t.Fatalf("line %d wide: %q", w, l)
 		}
 	}
-	if h := lipgloss.Height(a.helpView()); h > 34 {
+	if h := lipgloss.Height(a.helpView()); h > 30 { // fits a 120×30 terminal
 		t.Errorf("two-column help is %d rows tall", h)
 	}
 	if strings.Contains(v, "Open collections") {
