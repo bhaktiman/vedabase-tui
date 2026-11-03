@@ -1,6 +1,6 @@
 # Progress
 
-## Resume here — 2026-11-03 15:05
+## Resume here — 2026-11-03 15:58
 
 **Branch `feat/api-features`** (merged into `feat/vedabase-tui` and `main`): uses the seven new vedabase.cc API features (maintainer's reply 2026-10-26). Race suite green; both Opus reviews approved (phases 0–2 after one fix round; phases 3–4 with minors); tmux smoke run passed.
 
@@ -24,7 +24,9 @@
 
 **Collections management (2026-11-03, unreleased, on `feat/vedabase-tui`, not pushed):** `c` opens "Go to collection" (jump mode of the `s` Picker; sidebar reveal, or the `'` list inside it when the sidebar is hidden). `c` also lists each collection's items (Enter opens one inside its collection). `R` / `D` on a sidebar collection row open the `'` overlay at rename / delete (it stays open afterwards); `d` on a sidebar item removes it at once (toast, cursor stays on the next item). Bottom-bar hints change in the Collections section. `?` help has a Collections group; groups reordered so help fits 120×30. Remove prompt names items by label. Ledger: `.superpowers/sdd/2026-11-03-collections-manage/progress.md`.
 
-**Next action:** ask the user: push + release v0.3.2? Close the `'` overlay after sidebar R/D? Type-to-filter in the `c` picker? Reorder items in a collection? (The audio player is still the parked idea.)
+**Study tools (2026-11-03, unreleased, not pushed):** `y` copy menu (OSC 52 + native tool; clip.exe gets UTF-16LE — user to verify a real paste on WSL), `Ctrl-f` find on the page (n/N, Esc), `J`/`K` reorder collection items, `a` notes per verse ref in `notes.json` (internal/notes: Refresh + SetIf compare-and-set; editor saves on Esc/Ctrl-s/Ctrl-c/click-out/SIGHUP; failed save at exit → `notes.json.unsaved-<ts>`), ✎ markers, notes in export/copy. Opus review: changes needed → fixed (c59ec23) → approved. Ledger + deferred minors: `.superpowers/sdd/2026-11-03-study-tools/progress.md`. No Tyson here: its issues would be public on the bhaktiman repo.
+
+**Next action:** ask the user: push + release v0.3.2 (now with collections management and the study tools)? Close the `'` overlay after sidebar R/D? Type-to-filter in `c`?
 
 **Out of scope, future:** a terminal audio player for lectures (via mpv) and "Lectures on this verse" (index built from lecture titles; maybe ask the maintainer for a verse → lectures field). Collapse button not wanted.
 
