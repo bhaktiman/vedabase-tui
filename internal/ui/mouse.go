@@ -47,7 +47,7 @@ func (a *App) treeRows() rect {
 func (a *App) overlayRect(box string) rect {
 	w, h := lipgloss.Width(box), lipgloss.Height(box)
 	r := rect{max(a.w-w, 0) / 2, max(a.h-h, 0) / 2, w, h}
-	if a.themes.visible && !a.help && !a.search.visible && !a.picker.visible && !a.copyMenu.visible && !a.colview.visible {
+	if a.themes.visible && !a.help && !a.search.visible && !a.noteEd.visible && !a.picker.visible && !a.copyMenu.visible && !a.colview.visible {
 		r.x = max(a.w-w-1, 0)
 		if a.treeVisible() {
 			r.x = max(a.treeW()-w, 0) / 2
@@ -57,7 +57,7 @@ func (a *App) overlayRect(box string) rect {
 }
 
 func (a *App) overlayOpen() bool {
-	return a.help || a.search.visible || a.picker.visible || a.copyMenu.visible || a.colview.visible || a.themes.visible || a.langs.visible
+	return a.help || a.search.visible || a.noteEd.visible || a.picker.visible || a.copyMenu.visible || a.colview.visible || a.themes.visible || a.langs.visible
 }
 
 func (a *App) onMouse(m tea.Mouse, click bool) tea.Cmd {
@@ -278,6 +278,8 @@ func (a *App) overlayMouse(m tea.Mouse, click bool, wheel int) tea.Cmd {
 	if !r.has(m.X, m.Y) {
 		if click {
 			switch {
+			case a.noteEd.visible:
+				return a.noteSave() // a click outside never discards the text
 			case a.search.visible:
 				a.search.Close()
 			case a.copyMenu.visible:
@@ -296,6 +298,8 @@ func (a *App) overlayMouse(m tea.Mouse, click bool, wheel int) tea.Cmd {
 	}
 	x, y := m.X-r.x, m.Y-r.y
 	switch {
+	case a.noteEd.visible:
+		return nil // the text area has no mouse yet; clicks inside change nothing
 	case a.search.visible:
 		if click {
 			return a.search.Click(x, y)

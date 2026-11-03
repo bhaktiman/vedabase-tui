@@ -237,6 +237,7 @@ Press `?` in the app for the same list.
 | `z` | Collapse all in the tree |
 | `/` | Full-text search (`Ctrl-n` / `Ctrl-p` or arrows from the box into the results) |
 | `Ctrl-f` | Find on the page: type to highlight every match live (case and diacritics ignored: `krsna` finds `Kṛṣṇa`); the bar shows `3/12`. `Enter` keeps the highlights and `n` / `N` step through them; `Esc` clears. A word split across a line wrap is not found (matches are per displayed line) |
+| `a` | Note on this item (the sidebar's selected item when it has focus): a multi-line box, `Enter` = new line, `Esc` / `Ctrl-s` / `Ctrl-c` save and close, an empty note deletes it. Shown at the top of the page as "Your note" |
 | `n` / `N` | Next / previous search result (find match while a find is active) |
 | `:` | Go to a reference |
 | `s` | Add the current item to a collection |

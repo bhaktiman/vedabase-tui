@@ -151,6 +151,8 @@ func (a *App) overlayBox() string {
 			a.search.cdView = strings.Join(a.countdownLines(a.w/2), " ")
 		}
 		return a.search.View()
+	case a.noteEd.visible:
+		return a.noteView()
 	case a.copyMenu.visible:
 		return a.copyView()
 	case a.picker.visible:

@@ -9,6 +9,7 @@ import (
 
 	"vedabase-tui/internal/api"
 	"vedabase-tui/internal/collections"
+	"vedabase-tui/internal/notes"
 	"vedabase-tui/internal/service"
 	"vedabase-tui/internal/store"
 	"vedabase-tui/internal/ui"
@@ -64,6 +65,15 @@ func run() error {
 		toasts = append(toasts, ui.ToastMsg{Text: warning, Error: true})
 	}
 
+	nts, nwarn, nerr := notes.Open(filepath.Join(paths.Data, "notes.json"))
+	switch {
+	case nerr != nil:
+		nts = nil // run with notes disabled
+		toasts = append(toasts, ui.ToastMsg{Text: "notes disabled: " + nerr.Error(), Error: true})
+	case nwarn != "":
+		toasts = append(toasts, ui.ToastMsg{Text: nwarn, Error: true})
+	}
+
 	svc := &service.Service{
 		Client: api.NewClient(service.DefaultBase, "vedabase-tui/"+version, nil),
 		Items:  store.ItemCache{Dir: filepath.Join(paths.Cache, "items-v2"), OldDir: filepath.Join(paths.Cache, "items")},
@@ -72,6 +82,7 @@ func run() error {
 	app := ui.New(ui.Options{
 		Backend:     svc,
 		Collections: cols,
+		Notes:       nts,
 		Settings:    settings,
 		State:       store.LoadState(statePath),
 		SaveState:   func(s store.State) error { return store.SaveState(statePath, s) },
@@ -80,7 +91,9 @@ func run() error {
 		Updater:     updater,
 		InstallDir:  installDir,
 	})
-	if _, err := tea.NewProgram(app).Run(); err != nil {
+	_, err = tea.NewProgram(app).Run()
+	app.FlushNote() // a note still open when the program ended any way but a key
+	if err != nil {
 		return err
 	}
 	if app.RestartRequested() {

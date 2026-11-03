@@ -2,6 +2,7 @@ package render
 
 import (
 	"container/list"
+	"crypto/sha256"
 	"html"
 	"regexp"
 	"strings"
@@ -148,6 +149,7 @@ type cacheKey struct {
 	lang  string
 	width int
 	parts api.Parts
+	md    [sha256.Size]byte // the page itself: a note (or a refreshed item) changes it
 }
 
 type cacheEntry struct {
@@ -186,7 +188,7 @@ func (r *Renderer) SetPalette(p Palette) {
 // are stripped, the spans underlined, and their positions returned. The links
 // are shared with the cache and must not be modified.
 func (r *Renderer) Render(ref, lang, md string, refs []string, width int, p api.Parts) (string, []Link, error) {
-	key := cacheKey{ref, lang, width, p}
+	key := cacheKey{ref, lang, width, p, sha256.Sum256([]byte(md))}
 	r.mu.Lock()
 	if e, ok := r.entries[key]; ok {
 		r.lru.MoveToFront(e)

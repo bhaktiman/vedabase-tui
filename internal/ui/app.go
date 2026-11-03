@@ -17,6 +17,7 @@ import (
 	"vedabase-tui/internal/api"
 	"vedabase-tui/internal/collections"
 	"vedabase-tui/internal/library"
+	"vedabase-tui/internal/notes"
 	"vedabase-tui/internal/render"
 	"vedabase-tui/internal/store"
 )
@@ -44,6 +45,7 @@ type Backend interface {
 type Options struct {
 	Backend     Backend
 	Collections *collections.Store // may be nil: no stars, no collections
+	Notes       *notes.Store       // may be nil: no notes
 	Settings    store.Settings
 	State       store.State
 	SaveState   func(store.State) error
@@ -81,6 +83,9 @@ type App struct {
 	lang      string              // text language; results made with another one are dropped
 	bookLangs map[string][]string // languages of each book, once the books list is in
 	cols      *collections.Store
+	notes     *notes.Store
+	noteEd    noteEditor
+	noteRev   int // bumps when a note changes, so a render made before it is dropped
 	settings  store.Settings
 	state     store.State
 	save      func(store.State) error
@@ -169,7 +174,7 @@ type App struct {
 
 func New(o Options) *App {
 	a := &App{
-		be: o.Backend, lang: "en", cols: o.Collections, settings: o.Settings, state: o.State, save: o.SaveState,
+		be: o.Backend, lang: "en", cols: o.Collections, notes: o.Notes, settings: o.Settings, state: o.State, save: o.SaveState,
 		pal: render.Default, rend: render.NewRenderer(render.Default),
 		w: 80, h: 24, parts: o.State.Parts, startup: o.Toasts,
 		version: versionLabel(o.Version), upd: o.Updater, installDir: o.InstallDir,
@@ -256,6 +261,10 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmd := a.onKey(m)
 		a.syncCollections()
 		return a, cmd
+	case tea.PasteMsg:
+		if a.noteEd.visible {
+			return a, a.notePaste(m)
+		}
 	case tea.MouseClickMsg:
 		cmd := a.onMouse(tea.Mouse(m), true)
 		a.syncCollections()
@@ -655,18 +664,20 @@ func (a *App) renderCmd() tea.Cmd {
 		return nil
 	}
 	ref, lang, parts, item, rend, pal := a.ref, a.lang, a.parts, a.item, a.rend, a.pal.Name
+	note, rev := a.noteOf(ref), a.noteRev
 	return func() tea.Msg {
 		md, refs := render.DisplayLinked(item, parts)
+		md = render.WithNote(md, note)
 		out, links, err := rend.Render(ref, lang, md, refs, w, parts)
 		if err != nil {
 			out, links = render.DisplayMarkdown(item, parts), nil
 		}
-		return renderedMsg{ref: ref, lang: lang, width: w, parts: parts, pal: pal, out: out, links: links}
+		return renderedMsg{ref: ref, lang: lang, width: w, parts: parts, pal: pal, noteRev: rev, out: out, links: links}
 	}
 }
 
 func (a *App) onRendered(m renderedMsg) tea.Cmd {
-	if m.ref != a.ref || m.lang != a.lang || m.width != a.textW() || m.parts != a.parts || m.pal != a.pal.Name {
+	if m.ref != a.ref || m.lang != a.lang || m.width != a.textW() || m.parts != a.parts || m.pal != a.pal.Name || m.noteRev != a.noteRev {
 		return nil
 	}
 	fresh := a.reader.Empty()
@@ -811,6 +822,9 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 		}
 		a.hints = hintState{}
 	}
+	if a.lib != nil && a.noteEd.visible { // before the ctrl+c checks: it saves, never quits
+		return a.noteKey(kp)
+	}
 	if a.lib != nil && kp.String() != "ctrl+c" {
 		switch {
 		case a.help:
@@ -918,6 +932,8 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 		return nil
 	case "s":
 		return a.openPicker()
+	case "a":
+		return a.openNote()
 	case "'":
 		if a.cols == nil {
 			return a.Toast("Collections are unavailable", true)

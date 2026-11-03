@@ -25,13 +25,14 @@ type itemRefreshedMsg struct {
 }
 
 type renderedMsg struct {
-	ref   string
-	lang  string
-	width int
-	parts api.Parts
-	pal   string // palette name the render started with
-	out   string
-	links []render.Link
+	ref     string
+	lang    string
+	width   int
+	parts   api.Parts
+	pal     string // palette name the render started with
+	noteRev int    // the note revision it started with
+	out     string
+	links   []render.Link
 }
 
 type libraryMsg struct {
