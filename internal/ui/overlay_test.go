@@ -15,7 +15,7 @@ func plainLines(a *App) []string { return strings.Split(plain(a), "\n") }
 
 // An overlay is drawn over the app, which stays visible around it.
 func TestOverlayKeepsScreenAround(t *testing.T) {
-	for _, k := range []string{"s", "'", "/", "?"} {
+	for _, k := range []string{"s", "/", "?"} {
 		a, _, _ := colApp(t, newFake(t), store.State{LastRef: "bg/2/13"})
 		before := plainLines(a)
 		drive(a, key(k))

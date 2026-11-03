@@ -22,7 +22,7 @@ func TestOverlayClickBelowVisibleRowsIgnored(t *testing.T) {
 	}
 	vis, _ := listView(a.h, 31, 0)
 
-	drive(a, key("'"))
+	openColView(a)
 	if cmd := a.colview.Click(5, 2+vis); cmd != nil || a.colview.cursor != 0 || !a.colview.visible {
 		t.Errorf("collections: cursor=%d visible=%v", a.colview.cursor, a.colview.visible)
 	}

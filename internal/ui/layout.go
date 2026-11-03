@@ -482,7 +482,7 @@ func (a *App) collectionsHints() ([]string, bool) {
 	}
 	switch {
 	case n.Ref == library.CollectionsRef || isHint(n):
-		return []string{"c jump", "' manage", "? help"}, true
+		return []string{"c jump", "s add", "? help"}, true
 	case n.Parent != nil && n.Parent.Ref == library.CollectionsRef:
 		return []string{"R rename", "D delete", "e export", "c jump", "? help"}, true
 	}

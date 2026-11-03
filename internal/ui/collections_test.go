@@ -89,7 +89,7 @@ func seeded(t *testing.T) (*App, *collections.Store, *fakeBackend, string) {
 
 func TestCollectionsViewOpenItem(t *testing.T) {
 	a, _, _, _ := seeded(t)
-	drive(a, key("'"))
+	openColView(a)
 	if v := plain(a); !strings.Contains(v, "Soul") || !strings.Contains(v, "2") {
 		t.Fatalf("view:\n%s", v)
 	}
@@ -101,7 +101,8 @@ func TestCollectionsViewOpenItem(t *testing.T) {
 
 func TestRemoveRenameDelete(t *testing.T) {
 	a, cs, _, _ := seeded(t)
-	drive(a, key("'"), key("enter"), key("d"), key("y"))
+	openColView(a)
+	drive(a, key("enter"), key("d"), key("y"))
 	if col, _ := cs.Get("Soul"); len(col.Items) != 1 || col.Items[0].Ref != "bg/2/1" {
 		t.Fatalf("items = %+v", col.Items)
 	}
@@ -157,7 +158,8 @@ func TestExportCollectionFetchesMissing(t *testing.T) {
 	be.cached["bg/2/13"] = true
 	be.itemErr["sb/1/1/1"] = os.ErrNotExist
 	be.itemCall = nil
-	drive(a, key("'"), key("e"))
+	openColView(a)
+	drive(a, key("e"))
 	if !be.called("bg/2/1") || !be.called("sb/1/1/1") {
 		t.Fatalf("calls = %v", be.itemCall)
 	}
@@ -375,7 +377,7 @@ func TestHelpHasCollectionsGroupInTwoColumns(t *testing.T) {
 	a, _, _ := colApp(t, newFake(t), store.State{LastRef: "bg/2/13"})
 	drive(a, key("?"))
 	v := plain(a)
-	for _, w := range []string{"Collections", "Jump to collection / item", "Manage collections", "remove item", "Move item down / up", "Export collection"} {
+	for _, w := range []string{"Collections", "Jump to collection / item", "Rename collection", "remove item", "Move item down / up", "Export collection"} {
 		if !strings.Contains(v, w) {
 			t.Errorf("help lacks %q", w)
 		}
@@ -430,5 +432,19 @@ func TestJumpPickerListsAndOpensItems(t *testing.T) {
 	drive(b, key("c"), key("j"), key("enter"))
 	if b.ref != "bg/2/13" || b.colview.visible || b.picker.visible {
 		t.Fatalf("zen: ref %q colview %v", b.ref, b.colview.visible)
+	}
+}
+
+// openColView opens the collections overlay the way R / D and c (sidebar
+// hidden) do; it has no key of its own.
+func openColView(a *App) { a.colview.Show(a.cols) }
+
+// ' no longer opens anything: c covers jumping, the sidebar covers managing.
+func TestApostropheOpensNothing(t *testing.T) {
+	a, _ := boot(t, newFake(t), store.State{LastRef: "bg/2/13"})
+	before := plain(a)
+	drive(a, key("'"))
+	if a.colview.visible || a.picker.visible || plain(a) != before {
+		t.Fatal("' still does something")
 	}
 }

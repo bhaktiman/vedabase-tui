@@ -74,7 +74,9 @@ func TestMarkerInJumpPickerAndList(t *testing.T) {
 	if strings.Count(v, "✎  ·  bg") != 1 || strings.Count(v, "✎") != 2 {
 		t.Fatalf("jump picker markers:\n%s", v)
 	}
-	drive(a, key("esc"), key("'"), key("enter"))
+	drive(a, key("esc"))
+	openColView(a)
+	drive(a, key("enter"))
 	v = plain(a)
 	if strings.Count(v, "three modes ✎") != 1 || strings.Count(v, "✎") != 2 {
 		t.Fatalf("collection list markers:\n%s", v)

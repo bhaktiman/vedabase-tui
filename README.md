@@ -157,20 +157,17 @@ A collection is a named list of verses, chapters, letters or lectures.
 - `s` adds the current item. Choose an existing collection, or choose "+ New
   collection…" and type a name. Adding the same item twice is ignored. The
   collection you last added to comes first; `Tab` switches the list to A–Z.
-- `'` opens the collections list. `Enter` on a collection shows its items;
-  `Enter` on an item opens it. `Esc` goes back.
 - `c` jumps to a collection or anything in one: a picker (recent first, `Tab`
   for A–Z) lists each collection with its item count and its items beneath it.
   `Enter` on an item opens it; `Enter` on a collection opens it in the sidebar
-  and moves focus there (if the sidebar is hidden, the `'` list opens inside it).
-- Inside the list: `d` removes the selected item, `R` renames a collection,
-  `D` deletes it (both `d` and `D` ask for `y` to confirm), and `e` exports it.
-  The same keys work on the sidebar's Collections rows: on a collection, `R`
-  renames and `D` deletes (after `y`); on an item inside one, `d` removes it at
-  once, without asking, and the cursor stays in the sidebar. `J` / `K` move the
-  selected item down / up within its collection (in the sidebar and in the
-  list); export, `c` and `h` / `l` follow the new order.
-- The same collections also appear in the tree under Collections.
+  and moves focus there. If the sidebar is hidden, the collection opens in a
+  list instead (`Esc` goes back to all collections).
+- Your collections are in the sidebar under Collections. On a collection, `R`
+  renames it, `D` deletes it (after `y`) and `e` exports it. On an item inside
+  one, `d` removes it at once, without asking, and the cursor stays in the
+  sidebar; `J` / `K` move it down / up within its collection. Export, `c` and
+  `h` / `l` follow the new order.
+- In the list (sidebar hidden) the same keys work; there `d` asks for `y` too.
 
 Collections work offline. They are saved in `collections.json` (see below); the file is written
 atomically, and one that cannot be parsed is set aside, never overwritten.
@@ -185,8 +182,8 @@ A note is some text of your own on a verse, chapter, letter or lecture.
 - A note belongs to the verse, not to a collection: the same note shows wherever
   the item is read or listed.
 - The note is shown at the top of the page, in a "Your note" block.
-- A `✎` after an item in the sidebar's collections, in the `c` picker and in
-  the `'` list marks the items that have a note.
+- A `✎` after an item in the sidebar's collections and in the `c` picker marks
+  the items that have a note.
 - Notes are included in exports (a quoted "Note" block right after the heading)
   and in "Everything" in the copy menu.
 
@@ -265,7 +262,6 @@ Press `?` in the app for the same list.
 | `n` / `N` | Next / previous search result (find match while a find is active) |
 | `:` | Go to a reference |
 | `s` | Add the current item to a collection |
-| `'` | Open collections |
 | `c` | Jump to a collection or an item in one |
 | `R` | Re-fetch the item you're reading from vedabase.cc (on a collection in the sidebar: rename it) |
 | `D` | Delete the collection under the sidebar cursor (asks `y`) |

@@ -339,7 +339,8 @@ func (p Picker) View() string {
 	return listBox(p.pal, p.w, p.h, "Add to collection", rows, p.cursor, extra, hint)
 }
 
-// CollectionsView is the `'` overlay: browse, open, remove, rename, delete,
+// CollectionsView is the collections overlay (opened by c with the sidebar
+// hidden, and by R / D on a sidebar collection): browse, open, remove, rename, delete,
 // export.
 type CollectionsView struct {
 	pal   render.Palette

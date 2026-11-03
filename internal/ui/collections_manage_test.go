@@ -206,11 +206,11 @@ func TestBottomBarCollectionsHints(t *testing.T) {
 			a.tree.Reveal(r)
 		}
 	}
-	if l := line(); !strings.Contains(l, "c jump · ' manage · ? help") {
+	if l := line(); !strings.Contains(l, "c jump · s add · ? help") {
 		t.Fatalf("root: %q", l)
 	}
 	a.focusTree = false
-	if l := line(); strings.Contains(l, "' manage") || !strings.Contains(l, "/ search") {
+	if l := line(); strings.Contains(l, "c jump") || !strings.Contains(l, "/ search") {
 		t.Fatalf("reader focus: %q", l)
 	}
 	a.focusTree = true

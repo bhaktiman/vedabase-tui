@@ -26,8 +26,8 @@ var helpGroups = []struct {
 		{"f", "Filter the tree"}, {"z", "Collapse all"},
 	}},
 	{"Collections", []helpRow{
-		{"s", "Add to collection"}, {"'", "Manage collections"},
-		{"c", "Jump to collection / item"}, {"R", "Rename (sidebar or ')"},
+		{"s", "Add to collection"}, {"c", "Jump to collection / item"},
+		{"R", "Rename collection (sidebar)"},
 		{"D / d", "Delete collection / remove item"},
 		{"J / K", "Move item down / up"}, {"e", "Export collection"},
 	}},

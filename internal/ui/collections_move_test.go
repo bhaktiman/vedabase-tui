@@ -167,7 +167,8 @@ func TestSidebarMoveItemRemovedElsewhere(t *testing.T) {
 
 func TestOverlayMoveItemRemovedElsewhere(t *testing.T) {
 	a, other := twoWindowCols(t)
-	drive(a, key("'"), key("enter"), key("j"))
+	openColView(a)
+	drive(a, key("enter"), key("j"))
 	if err := other.Remove("Beta", "bg/2/1"); err != nil {
 		t.Fatal(err)
 	}

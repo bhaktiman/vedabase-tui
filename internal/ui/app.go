@@ -939,12 +939,6 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 		return a.openPicker()
 	case "a":
 		return a.openNote()
-	case "'":
-		if a.cols == nil {
-			return a.Toast("Collections are unavailable", true)
-		}
-		a.colview.Show(a.cols)
-		return nil
 	case "c":
 		if a.cols == nil {
 			return a.Toast("Collections are unavailable", true)
@@ -1208,7 +1202,7 @@ func (a *App) openCollectionItem(name, ref string) tea.Cmd {
 }
 
 // jumpToCollection shows a collection: in the sidebar, opened with the cursor
-// on its row, or, when the sidebar is hidden, in the `'` overlay.
+// on its row, or, when the sidebar is hidden, in the collections overlay.
 func (a *App) jumpToCollection(name string) {
 	if a.cols == nil {
 		return

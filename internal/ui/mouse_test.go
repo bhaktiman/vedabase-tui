@@ -220,7 +220,7 @@ func TestClickClosesPromptFirst(t *testing.T) {
 
 func TestClickCollectionsRows(t *testing.T) {
 	a, _, _, _ := seeded(t)
-	drive(a, key("'"))
+	openColView(a)
 	r := a.overlayRect(a.colview.View())
 	row := func(i int) tea.Msg { return click(r.x+4, r.y+2+i) }
 	drive(a, row(0)) // the selected collection: enter it
