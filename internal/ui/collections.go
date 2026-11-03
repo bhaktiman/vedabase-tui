@@ -119,6 +119,7 @@ type Picker struct {
 	typing   bool
 	input    textinput.Model
 	feedback string
+	hasNote  func(string) bool // set by the App: whether a ref has a note
 }
 
 func NewPicker(pal render.Palette) Picker {
@@ -319,7 +320,7 @@ func (p Picker) View() string {
 			}
 			for _, it := range col.Items {
 				if it.Ref == r.ref {
-					rows = append(rows, "  "+fg.Render(it.Label)+dim.Render("  ·  "+it.Book))
+					rows = append(rows, "  "+fg.Render(it.Label)+dim.Render(noteMark(p.hasNote, it.Ref)+"  ·  "+it.Book))
 					break
 				}
 			}
@@ -351,6 +352,7 @@ type CollectionsView struct {
 	confirm string // "d" or "D" while waiting for y
 	rename  bool
 	input   textinput.Model
+	hasNote func(string) bool // set by the App: whether a ref has a note
 }
 
 func NewCollectionsView(pal render.Palette) CollectionsView {
@@ -607,7 +609,7 @@ func (c CollectionsView) View() string {
 		hint = "enter open · J/K move · d remove · e export · esc back"
 		col, _ := c.store.Get(c.in)
 		for _, it := range col.Items {
-			rows = append(rows, fg.Render(it.Label)+dim.Render("  ·  "+it.Book))
+			rows = append(rows, fg.Render(it.Label)+dim.Render(noteMark(c.hasNote, it.Ref)+"  ·  "+it.Book))
 		}
 		if len(rows) == 0 {
 			rows = []string{dim.Render("Empty")}
@@ -626,4 +628,12 @@ func (c CollectionsView) View() string {
 		extra = lipgloss.NewStyle().Foreground(c.pal.Rose).Render("Delete " + name + "? y/n")
 	}
 	return listBox(c.pal, c.w, c.h, title, rows, c.cursor, extra, hint)
+}
+
+// noteMark is " ✎" after an item that has a note, else "".
+func noteMark(has func(string) bool, ref string) string {
+	if has != nil && has(ref) {
+		return " ✎"
+	}
+	return ""
 }

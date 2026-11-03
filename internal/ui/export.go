@@ -28,10 +28,11 @@ type exportProgressMsg struct{ done, total int }
 
 const exportFetchTimeout = 60 * time.Second
 
-// metaFor is the book title and chapter for ref, from the library.
+// metaFor is the book title, chapter and note for ref (read on the UI goroutine).
 func (a *App) metaFor(r string) export.Meta {
 	m := a.metaIn(r)
 	m.Lang = requestLang(r, a.lang)
+	m.Note = a.noteOf(r) // read here, on the UI goroutine; the export jobs only see the copy
 	return m
 }
 

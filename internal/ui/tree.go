@@ -42,6 +42,7 @@ type Tree struct {
 	filter   string
 	shown    map[*library.Node]bool // filter mode: matches plus ancestors; nil otherwise
 	starred  func(string) bool
+	noted    func(string) bool // whether a ref has a note; nil means none do
 	pal      render.Palette
 	seq      keySeq
 	focused  bool                       // the tree pane has focus: the cursor row is bright, else dim
@@ -418,6 +419,10 @@ func (t Tree) View() string {
 		}
 		indent := strings.Repeat("  ", r.depth)
 		label := r.node.Label()
+		mark := ""
+		if r.node.Leaf && t.noted != nil && inCollections(r.node) && t.noted(r.node.Ref) {
+			mark = " ✎"
+		}
 		note := ""
 		if t.note != nil {
 			note = t.note(r.node)
@@ -426,18 +431,21 @@ func (t Tree) View() string {
 		if p := r.node.Parent; p != nil && p.Ref == library.CollectionsRef {
 			count = fmt.Sprintf("  %d", len(r.node.Children))
 		}
+		if mark != "" { // a long label gives way, so the marker is never cut off
+			label = truncate(label, t.w-lipgloss.Width(indent+marker+star+mark+note+count))
+		}
 
 		if idx == t.cursor && !t.focused {
 			// A quiet cursor: dim text and a › in the left margin.
-			s := truncate("›"+indent+marker+star+label+note+count, t.w)
+			s := truncate("›"+indent+marker+star+label+mark+note+count, t.w)
 			if r.depth > 0 {
-				s = truncate(indent[:len(indent)-1]+"›"+marker+star+label+note+count, t.w)
+				s = truncate(indent[:len(indent)-1]+"›"+marker+star+label+mark+note+count, t.w)
 			}
 			lines[i] = dim.Render(s)
 			continue
 		}
 		if idx == t.cursor {
-			s := truncate(indent+marker+star+label+note+count, t.w)
+			s := truncate(indent+marker+star+label+mark+note+count, t.w)
 			lines[i] = cur.Render(s + strings.Repeat(" ", t.w-lipgloss.Width(s)))
 			continue
 		}
@@ -459,6 +467,7 @@ func (t Tree) View() string {
 		} else {
 			put(label, normal)
 		}
+		put(mark, dim)
 		put(note, dim)
 		put(count, dim)
 		lines[i] = b.String()

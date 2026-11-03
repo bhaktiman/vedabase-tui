@@ -152,3 +152,44 @@ func TestItemEndsWithWebLink(t *testing.T) {
 		t.Errorf("link present with empty URL")
 	}
 }
+
+func TestNoteInItemAndText(t *testing.T) {
+	it := load(t, "verse-bg-2-13.json")
+	m := bgMeta
+	m.Note = "first line\nsecond line\n\nfourth"
+	want := "# Bhagavad-gītā As It Is 2.13\n\n> **Note:** first line\n> second line\n>\n> fourth\n\n"
+	for name, got := range map[string]string{
+		"markdown": ItemMarkdown(it, m, api.AllParts(), today),
+		"text":     ItemText(it, m, api.AllParts()),
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("%s lacks the note block right after the heading:\n%s", name, got)
+		}
+	}
+}
+
+func TestNoNoteNoBlock(t *testing.T) {
+	it := load(t, "verse-bg-2-13.json")
+	m := bgMeta
+	m.Note = "  \n "
+	for _, got := range []string{ItemMarkdown(it, m, api.AllParts(), today), ItemText(it, m, api.AllParts()),
+		CollectionMarkdown("c", "en", []Entry{{Ref: "bg/2/13", Item: &it, Meta: m}}, api.AllParts(), today)} {
+		if strings.Contains(got, "Note:") {
+			t.Errorf("blank note written:\n%s", got)
+		}
+	}
+	golden(t, "bg-2-13-all.md", ItemMarkdown(it, bgMeta, api.AllParts(), today))
+}
+
+func TestNoteInCollection(t *testing.T) {
+	it := load(t, "verse-bg-2-13.json")
+	m := bgMeta
+	m.Note = "a\nb"
+	got := CollectionMarkdown("c", "en", []Entry{{Ref: "bg/2/13", Item: &it, Meta: m}, {Ref: "bg/2/14", Item: &it, Meta: bgMeta}}, api.AllParts(), today)
+	if !strings.Contains(got, "## Bhagavad-gītā As It Is 2.13\n\n> **Note:** a\n> b\n\n") {
+		t.Errorf("note missing or misplaced:\n%s", got)
+	}
+	if strings.Count(got, "Note:") != 1 {
+		t.Errorf("note leaked to the other entry:\n%s", got)
+	}
+}

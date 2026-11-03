@@ -201,6 +201,7 @@ func New(o Options) *App {
 	a.picker = NewPicker(a.pal)
 	a.picker.now = a.now
 	a.colview = NewCollectionsView(a.pal)
+	a.picker.hasNote, a.colview.hasNote = a.hasNote, a.hasNote
 	a.gotoBar = NewGoto()
 	a.findBar = NewFindBar()
 	a.reader.setHighlight(a.pal)
@@ -394,6 +395,7 @@ func (a *App) onLibrary(m libraryMsg) tea.Cmd {
 		a.loadCachedTOCs(m.lib) // before the first frame
 		a.tree = NewTree(m.lib, a.starred, a.pal)
 		a.tree.note = a.treeNote
+		a.tree.noted = a.hasNote
 		a.layout()
 		cmds = append(cmds, a.openStart(), a.nextTOC())
 	} else {
@@ -471,6 +473,9 @@ func (a *App) refindNode() {
 	}
 	a.node = a.lib.Find(a.ref)
 }
+
+// hasNote reports whether r carries a note.
+func (a *App) hasNote(r string) bool { return a.noteOf(r) != "" }
 
 func (a *App) starred(ref string) bool { return a.cols != nil && a.cols.Contains(ref) }
 

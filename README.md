@@ -169,6 +169,24 @@ A collection is a named list of verses, chapters, letters or lectures.
 Collections work offline. They are saved in `collections.json` (see below); the file is written
 atomically, and one that cannot be parsed is set aside, never overwritten.
 
+## Notes
+
+A note is some text of your own on a verse, chapter, letter or lecture.
+
+- `a` opens a note editor on the current item (or on the item under the sidebar
+  cursor). `Enter` starts a new line. `Esc`, `Ctrl-s` and `Ctrl-c` all save the
+  note and close the editor; saving an empty note deletes it.
+- A note belongs to the verse, not to a collection: the same note shows wherever
+  the item is read or listed.
+- The note is shown at the top of the page, in a "Your note" block.
+- A `✎` after an item in the sidebar's collections, in the `c` picker and in
+  the `'` list marks the items that have a note.
+- Notes are included in exports (a quoted "Note" block right after the heading)
+  and in "Everything" in the copy menu.
+
+Notes work offline. They are saved in `notes.json` (see below); the file is written
+atomically, and one that cannot be parsed is set aside, never overwritten.
+
 ## Export
 
 `e` writes the current item to a Markdown file. In the tree, `e` on a
@@ -267,6 +285,7 @@ Paths follow the XDG variables when they are set.
 | Downloaded items | `~/.cache/vedabase-tui/items-v2/` (safe to delete; re-fetched after 30 days, or at once with `R`) |
 | Sitemap, index pages, year lists | `~/.cache/vedabase-tui/` |
 | Collections | `~/.local/share/vedabase-tui/collections.json` |
+| Notes | `~/.local/share/vedabase-tui/notes.json` |
 | Settings | `~/.config/vedabase-tui/config.toml` |
 | Last item, scroll, toggles | `~/.local/state/vedabase-tui/state.json` |
 | Exports | `~/vedabase-exports/` (configurable) |

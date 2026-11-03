@@ -15,8 +15,9 @@ import (
 )
 
 // Meta is what an item does not carry itself. An empty Chapter is omitted; an
-// empty Lang means English.
-type Meta struct{ BookTitle, Chapter, Lang string }
+// empty Lang means English. A non-empty Note is the reader's note on the item;
+// it is written as a quoted block right after the heading.
+type Meta struct{ BookTitle, Chapter, Lang, Note string }
 
 // Entry is one member of a collection; a nil Item means it could not be fetched.
 type Entry struct {
@@ -57,6 +58,23 @@ func label(it api.Item, r, bookTitle string) string {
 	return strings.TrimSpace(bookTitle + " " + rest)
 }
 
+// noteBlock is the reader's note as a quoted block, or "" when there is none.
+func noteBlock(note string) string {
+	note = strings.TrimSpace(strings.ReplaceAll(note, "\r\n", "\n"))
+	if note == "" {
+		return ""
+	}
+	lines := strings.Split(note, "\n")
+	for i, l := range lines {
+		l = strings.TrimRight(l, " \t")
+		if i == 0 {
+			l = "**Note:** " + l
+		}
+		lines[i] = strings.TrimRight("> "+l, " ")
+	}
+	return strings.Join(lines, "\n")
+}
+
 func readLink(url string) string { return "[Read on vedabase.cc](" + url + ")\n" }
 
 // parts returns the visible non-empty parts joined by blank lines. For a
@@ -81,6 +99,9 @@ func parts(it api.Item, p api.Parts) string {
 func ItemText(it api.Item, m Meta, p api.Parts) string {
 	var b strings.Builder
 	b.WriteString("# " + label(it, it.Ref, m.BookTitle) + "\n")
+	if s := noteBlock(m.Note); s != "" {
+		b.WriteString("\n" + s + "\n")
+	}
 	if s := parts(it, p); s != "" {
 		b.WriteString("\n" + s + "\n")
 	}
@@ -111,6 +132,9 @@ func ItemMarkdown(it api.Item, m Meta, p api.Parts, today time.Time) string {
 		kv(&b, "location", d.Location)
 	}
 	b.WriteString("---\n\n# " + label(it, it.Ref, m.BookTitle) + "\n")
+	if s := noteBlock(m.Note); s != "" {
+		b.WriteString("\n" + s + "\n")
+	}
 	if s := parts(it, p); s != "" {
 		b.WriteString("\n" + s + "\n")
 	}
@@ -137,6 +161,9 @@ func CollectionMarkdown(name string, lang string, entries []Entry, p api.Parts, 
 		}
 		it := *e.Item
 		b.WriteString("\n## " + label(it, e.Ref, e.Meta.BookTitle) + "\n")
+		if s := noteBlock(e.Meta.Note); s != "" {
+			b.WriteString("\n" + s + "\n")
+		}
 		if s := parts(it, p); s != "" {
 			b.WriteString("\n" + s + "\n")
 		}
