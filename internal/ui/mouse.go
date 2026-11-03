@@ -74,6 +74,8 @@ func (a *App) onMouse(m tea.Mouse, click bool) tea.Cmd {
 		switch {
 		case a.gotoBar.visible:
 			a.gotoBar.hide()
+		case a.findBar.visible:
+			a.hideFind()
 		case a.filtering:
 			a.filtering = false // keep the filter: the click may be on a match
 			a.filterIn.Blur()

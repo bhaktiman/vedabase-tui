@@ -14,7 +14,12 @@ type Reader struct {
 	lines  []string
 	links  []render.Link // Line indexes lines
 	offset int
-	w, h   int
+
+	find           string // the page find; matches are in document order
+	matches        []findMatch
+	cur            int
+	hlCur, hlOther lipgloss.Style
+	w, h           int
 }
 
 func (r *Reader) SetSize(w, h int) {
@@ -27,7 +32,10 @@ func (r *Reader) clamp() {
 }
 
 // Clear drops the content and scrolls to the top.
-func (r *Reader) Clear() { r.lines, r.links, r.offset = nil, nil, 0 }
+func (r *Reader) Clear() {
+	r.lines, r.links, r.offset = nil, nil, 0
+	r.ClearFind()
+}
 
 func (r *Reader) Empty() bool { return len(r.lines) == 0 }
 
@@ -48,6 +56,10 @@ func (r *Reader) SetContent(out string, links []render.Link, keepPlace bool) {
 		r.offset = r.offset * len(r.lines) / old
 	} else {
 		r.offset = 0
+	}
+	if r.find != "" {
+		q := r.find
+		r.SetFind(q, r.offset)
 	}
 	r.clamp()
 }
@@ -82,7 +94,7 @@ func (r *Reader) Lines() []string {
 	cut := lipgloss.NewStyle().MaxWidth(max(r.w, 1))
 	for i := range out {
 		if j := r.offset + i; j < len(r.lines) {
-			out[i] = cut.Render(r.lines[j])
+			out[i] = cut.Render(r.highlight(r.lines[j], j))
 		}
 	}
 	return out
@@ -122,4 +134,10 @@ func (r *Reader) VisibleLinks() []render.Link {
 		}
 	}
 	return out
+}
+
+// setHighlight sets the colours of the page find's matches.
+func (r *Reader) setHighlight(p render.Palette) {
+	r.hlCur = lipgloss.NewStyle().Background(p.Gold).Foreground(p.Bg).Bold(true)
+	r.hlOther = lipgloss.NewStyle().Underline(true).Foreground(p.Gold).Reverse(true)
 }

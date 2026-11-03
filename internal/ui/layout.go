@@ -495,6 +495,9 @@ func (a *App) bottomLayout() (string, []partHit) {
 	if a.gotoBar.visible {
 		return padTo(a.gotoBar.View(a.w), a.w), nil
 	}
+	if a.findBar.visible || a.reader.find != "" {
+		return padTo(a.findLine(), a.w), nil
+	}
 	dim := lipgloss.NewStyle().Foreground(a.pal.Dim)
 	on := lipgloss.NewStyle().Foreground(a.pal.Teal)
 	off := dim.Strikethrough(true)

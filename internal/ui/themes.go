@@ -34,9 +34,10 @@ func (a *App) setPalette(p render.Palette) tea.Cmd {
 	a.search.setPalette(p)
 	a.picker.pal = p
 	a.colview.pal = p
-	for _, in := range []*textinput.Model{&a.search.input, &a.picker.input, &a.colview.input, &a.filterIn, &a.gotoBar.input} {
+	for _, in := range []*textinput.Model{&a.search.input, &a.picker.input, &a.colview.input, &a.filterIn, &a.gotoBar.input, &a.findBar.input} {
 		themeInput(in, p)
 	}
+	a.reader.setHighlight(p)
 	a.rend.SetPalette(p)
 	return a.renderCmd()
 }

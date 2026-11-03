@@ -134,6 +134,7 @@ type App struct {
 	themes      themePicker
 	langs       langPicker
 	gotoBar     Goto
+	findBar     FindBar
 	filtering   bool // the tree filter line is being edited
 	filterIn    textinput.Model
 	help        bool
@@ -196,8 +197,10 @@ func New(o Options) *App {
 	a.picker.now = a.now
 	a.colview = NewCollectionsView(a.pal)
 	a.gotoBar = NewGoto()
+	a.findBar = NewFindBar()
+	a.reader.setHighlight(a.pal)
 	a.filterIn = lineInput("filter")
-	for _, in := range []*textinput.Model{&a.search.input, &a.picker.input, &a.colview.input, &a.filterIn, &a.gotoBar.input} {
+	for _, in := range []*textinput.Model{&a.search.input, &a.picker.input, &a.colview.input, &a.filterIn, &a.gotoBar.input, &a.findBar.input} {
 		themeInput(in, a.pal)
 	}
 	a.layout()
@@ -506,6 +509,7 @@ func (a *App) open(ref string, from *library.Node) tea.Cmd {
 	a.fwd = nil // back and forward put theirs back after opening
 	a.ref, a.hasItem = ref, false
 	a.reader.Clear()
+	a.hideFind()
 	if a.restoreRef != ref {
 		a.restoreRef = ""
 	}
@@ -814,6 +818,8 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 			return nil
 		case a.gotoBar.visible:
 			return a.gotoKey(kp)
+		case a.findBar.visible:
+			return a.findKey(kp)
 		case a.filtering:
 			return a.filterKey(kp)
 		}
@@ -886,6 +892,8 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 		return a.openSearch(true)
 	case ":":
 		return a.gotoBar.Show()
+	case "ctrl+f":
+		return a.startFind()
 	case "?":
 		a.help = true
 		return nil
@@ -966,11 +974,17 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 		return a.goBack()
 	case "]":
 		return a.goForward()
-	case "n":
-		return a.search.Next(1)
-	case "N":
-		return a.search.Next(-1)
+	case "n", "N":
+		if a.reader.find != "" {
+			a.reader.FindStep(map[string]int{"n": 1, "N": -1}[k])
+			return nil
+		}
+		return a.search.Next(map[string]int{"n": 1, "N": -1}[k])
 	case "esc":
+		if a.reader.find != "" {
+			a.reader.ClearFind()
+			return nil
+		}
 		if a.state.Zen {
 			return a.toggleZen()
 		}

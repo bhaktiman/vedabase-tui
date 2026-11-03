@@ -234,7 +234,8 @@ Press `?` in the app for the same list.
 | `f` (tree) | Filter the tree |
 | `z` | Collapse all in the tree |
 | `/` | Full-text search (`Ctrl-n` / `Ctrl-p` or arrows from the box into the results) |
-| `n` / `N` | Next / previous search result |
+| `Ctrl-f` | Find on the page: type to highlight every match live (case and diacritics ignored: `krsna` finds `Kṛṣṇa`); the bar shows `3/12`. `Enter` keeps the highlights and `n` / `N` step through them; `Esc` clears. A word split across a line wrap is not found (matches are per displayed line) |
+| `n` / `N` | Next / previous search result (find match while a find is active) |
 | `:` | Go to a reference |
 | `s` | Add the current item to a collection |
 | `'` | Open collections |
