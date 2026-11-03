@@ -184,3 +184,73 @@ func TestStateRoundTripAndCorrupt(t *testing.T) {
 		t.Fatalf("missing: %+v", got)
 	}
 }
+
+func TestDataDirSetting(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	p := filepath.Join(t.TempDir(), "config.toml")
+	if _, err := LoadSettings(p); err != nil { // writes the commented default
+		t.Fatal(err)
+	}
+	if b, _ := os.ReadFile(p); !strings.Contains(string(b), "# data_dir") {
+		t.Fatalf("default file lacks data_dir: %s", b)
+	}
+	def := filepath.Join(home, ".local/share/vedabase-tui")
+
+	s, _ := LoadSettings(p)
+	if d, w := DataDir(s, def); d != def || w != "" {
+		t.Fatalf("unset: %q %q", d, w)
+	}
+
+	os.WriteFile(p, []byte("data_dir = \"~/Dropbox/vb/\"\n"), 0o644)
+	s, err := LoadSettings(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if d, w := DataDir(s, def); d != filepath.Join(home, "Dropbox/vb") || w != "" {
+		t.Fatalf("home: %q %q", d, w)
+	}
+
+	os.WriteFile(p, []byte("data_dir = \"vb\"\n"), 0o644)
+	s, _ = LoadSettings(p)
+	if d, w := DataDir(s, def); d != def || !strings.Contains(w, "not an absolute path") {
+		t.Fatalf("relative: %q %q", d, w)
+	}
+}
+
+func TestLeftBehind(t *testing.T) {
+	t.Setenv("HOME", "/nonexistent-home")
+	old, dir := t.TempDir(), t.TempDir()
+	if m := LeftBehind(dir, old); m != "" {
+		t.Fatalf("nothing in old: %q", m)
+	}
+	os.WriteFile(filepath.Join(old, "notes.json"), []byte("{}"), 0o644)
+	os.WriteFile(filepath.Join(old, "collections.json"), []byte("{}"), 0o644)
+	if m := LeftBehind(old, old+"/"); m != "" {
+		t.Fatalf("same folder: %q", m)
+	}
+	m := LeftBehind(dir, old)
+	if !strings.HasPrefix(m, "Move collections.json and notes.json from "+old+" to "+dir) {
+		t.Fatalf("both: %q", m)
+	}
+	os.WriteFile(filepath.Join(dir, "collections.json"), []byte("{}"), 0o644)
+	if m := LeftBehind(dir, old); !strings.HasPrefix(m, "Move notes.json from") || strings.Contains(m, "collections.json") {
+		t.Fatalf("one: %q", m)
+	}
+	os.WriteFile(filepath.Join(dir, "notes.json"), []byte("{}"), 0o644)
+	if m := LeftBehind(dir, old); m != "" {
+		t.Fatalf("all moved: %q", m)
+	}
+}
+
+func TestLeftBehindWritesHomeAsTilde(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	old, dir := filepath.Join(home, ".local/share/vedabase-tui"), filepath.Join(home, "Sync/vb")
+	os.MkdirAll(old, 0o755)
+	os.WriteFile(filepath.Join(old, "notes.json"), []byte("{}"), 0o644)
+	want := "Move notes.json from ~/.local/share/vedabase-tui to ~/Sync/vb (data_dir)"
+	if m := LeftBehind(dir, old); m != want {
+		t.Fatalf("got %q\nwant %q", m, want)
+	}
+}

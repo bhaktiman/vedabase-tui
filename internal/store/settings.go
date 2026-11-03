@@ -2,6 +2,7 @@ package store
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,7 +14,10 @@ import (
 
 // Settings are the user-editable options in config.toml.
 type Settings struct {
-	ExportDir  string `toml:"export_dir"` // "~/" expanded on load
+	ExportDir string `toml:"export_dir"` // "~/" expanded on load
+	// DataDir holds collections.json and notes.json; "" means the XDG data
+	// folder. "~/" is expanded on load.
+	DataDir    string `toml:"data_dir"`
 	Animations bool   `toml:"animations"`
 	Mouse      bool   `toml:"mouse"` // click and wheel; false leaves text selection to the terminal
 	// ReadingWidth is the widest line of verse text; 0 means the whole pane.
@@ -24,6 +28,11 @@ const defaultConfig = `# vedabase-tui settings
 
 # Where Markdown exports are written. A leading "~/" means your home directory.
 # export_dir = "~/vedabase-exports"
+
+# Where your collections and notes are kept. A leading "~/" means your home
+# directory. Point it at a synced folder (Dropbox, OneDrive, Syncthing) to share
+# them between computers. Existing files are not moved for you.
+# data_dir = "~/.local/share/vedabase-tui"
 
 # Set to false to turn off all motion (fades, highlights, slides).
 # animations = true
@@ -70,7 +79,61 @@ func LoadSettings(path string) (Settings, error) {
 		s.ReadingWidth = 30
 	}
 	s.ExportDir = expandHome(s.ExportDir, home)
+	s.DataDir = expandHome(s.DataDir, home)
 	return s, nil
+}
+
+// DataFiles are the files kept in the data folder.
+var DataFiles = []string{"collections.json", "notes.json"}
+
+// DataDir is the folder for DataFiles: the data_dir setting when set, else
+// def. A relative setting would depend on the folder the app was started
+// from, so it is refused with a warning and def is used.
+func DataDir(s Settings, def string) (dir, warning string) {
+	switch {
+	case s.DataDir == "":
+		return def, ""
+	case !filepath.IsAbs(s.DataDir):
+		home, _ := os.UserHomeDir()
+		return def, fmt.Sprintf("config.toml: data_dir %q is not an absolute path; using %s", s.DataDir, tilde(def, home))
+	}
+	return filepath.Clean(s.DataDir), ""
+}
+
+// LeftBehind says which DataFiles are still in old but missing from dir,
+// after data_dir moved the data folder, so the user can move them; "" when
+// nothing was left behind. It leads with what to do, as a toast may be cut.
+func LeftBehind(dir, old string) string {
+	if filepath.Clean(dir) == filepath.Clean(old) {
+		return ""
+	}
+	var names []string
+	for _, n := range DataFiles {
+		if exists(filepath.Join(old, n)) && !exists(filepath.Join(dir, n)) {
+			names = append(names, n)
+		}
+	}
+	if len(names) == 0 {
+		return ""
+	}
+	home, _ := os.UserHomeDir()
+	return fmt.Sprintf("Move %s from %s to %s (data_dir)",
+		strings.Join(names, " and "), tilde(old, home), tilde(dir, home))
+}
+
+// tilde writes paths under home as ~/….
+func tilde(p, home string) string {
+	if home != "" {
+		if rel, err := filepath.Rel(home, p); err == nil && rel != "." && !strings.HasPrefix(rel, "..") {
+			return "~" + string(filepath.Separator) + rel
+		}
+	}
+	return p
+}
+
+func exists(p string) bool {
+	_, err := os.Stat(p)
+	return err == nil
 }
 
 // State is the last reading position and display toggles.

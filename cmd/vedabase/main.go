@@ -43,6 +43,17 @@ func run() error {
 	}
 	statePath := filepath.Join(paths.State, "state.json")
 
+	// Collections and notes live in data_dir when it is set. Files left in the
+	// old folder are never moved: a synced folder may already hold another
+	// computer's copy, so the user moves them.
+	dataDir, dwarn := store.DataDir(settings, paths.Data)
+	if dwarn != "" {
+		toasts = append(toasts, ui.ToastMsg{Text: dwarn, Error: true})
+	}
+	if msg := store.LeftBehind(dataDir, paths.Data); msg != "" {
+		toasts = append(toasts, ui.ToastMsg{Text: msg, Error: true})
+	}
+
 	// A failed lookup only turns updates off; the reader still works.
 	ver := version // as the sidebar shows it, and as the updater compares it
 	if ver != "" && ver[0] >= '0' && ver[0] <= '9' {
@@ -57,7 +68,7 @@ func run() error {
 		updater = &update.Updater{Repo: "bhaktiman/vedabase-tui", Current: ver, Exe: exe}
 	}
 
-	cols, warning, err := collections.Open(filepath.Join(paths.Data, "collections.json"))
+	cols, warning, err := collections.Open(filepath.Join(dataDir, "collections.json"))
 	switch {
 	case err != nil:
 		cols = nil // run with collections disabled
@@ -66,7 +77,7 @@ func run() error {
 		toasts = append(toasts, ui.ToastMsg{Text: warning, Error: true})
 	}
 
-	nts, nwarn, nerr := notes.Open(filepath.Join(paths.Data, "notes.json"))
+	nts, nwarn, nerr := notes.Open(filepath.Join(dataDir, "notes.json"))
 	switch {
 	case nerr != nil:
 		nts = nil // run with notes disabled
@@ -97,7 +108,7 @@ func run() error {
 	_, err = p.Run()
 	// A note still open when the program ended any way but a key.
 	if ferr := app.FlushNote(); ferr != nil {
-		keepUnsaved(app, paths.Data, ferr)
+		keepUnsaved(app, dataDir, ferr)
 	}
 	if err != nil {
 		return err
@@ -119,7 +130,11 @@ func keepUnsaved(app *ui.App, dataDir string, cause error) {
 		return
 	}
 	path := filepath.Join(dataDir, "notes.json.unsaved-"+time.Now().Format("20060102-150405"))
-	if err := os.WriteFile(path, []byte(text), 0o600); err != nil {
+	err := os.MkdirAll(dataDir, 0o755)
+	if err == nil {
+		err = os.WriteFile(path, []byte(text), 0o600)
+	}
+	if err != nil {
 		fmt.Fprintf(os.Stderr, "vedabase: could not save your note on %s: %v; and could not keep it in %s: %v\n", r, cause, path, err)
 		return
 	}
