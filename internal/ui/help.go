@@ -35,7 +35,7 @@ var helpGroups = []struct {
 		{"j / k", "Scroll line"}, {"h / l", "Previous / next item"},
 		{"Ctrl-d / Ctrl-u", "Half page"}, {"gg / G", "Top / bottom"},
 		{"1 – 5", "Toggle parts"}, {"o", "Open on vedabase.cc"},
-		{"R", "Re-fetch this item"}, {"y", "Copy reference / text…"},
+		{"R", "Re-fetch this item"}, {"y", "Copy link / verse / purport…"},
 		{"Backspace / [ / ]", "Back after following a link / Forward"},
 		{"f", "Key labels on links"}, {"Ctrl-f", "Find on the page (n / N, Esc)"},
 		{"a", "Note on this item"},

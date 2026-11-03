@@ -23,7 +23,7 @@ the public [vedabase.cc API](https://vedabase.cc/en/api/).
   jump to any of them with `c`, rename, delete and reorder them in place.
 - **Notes** on any verse, letter or lecture (`a`), shown at the top of the page.
 - **Find on the page** (`Ctrl-f`), ignoring case and diacritics.
-- **Copy** a reference with its link, the translation or the verse (`y`).
+- **Copy** the link, or the verse with its translation, purport or Devanagari (`y`).
 - **Markdown export** of one item or a whole collection, notes included.
 - **Keep your collections and notes where you like**, for example in a synced
   folder shared between computers (`data_dir`).
@@ -184,8 +184,7 @@ A note is some text of your own on a verse, chapter, letter or lecture.
 - The note is shown at the top of the page, in a "Your note" block.
 - A `✎` after an item in the sidebar's collections and in the `c` picker marks
   the items that have a note.
-- Notes are included in exports (a quoted "Note" block right after the heading)
-  and in "Everything" in the copy menu.
+- Notes are included in exports (a quoted "Note" block right after the heading).
 
 Notes work offline. They are saved in `notes.json` (see below); the file is written
 atomically, and one that cannot be parsed is set aside, never overwritten.
@@ -249,7 +248,7 @@ Press `?` in the app for the same list.
 | `gg` / `G` | Top / bottom (first / last in the tree) |
 | `1` – `5` | Toggle Devanagari, verse, synonyms, translation, purport |
 | `o` | Open the current item on vedabase.cc |
-| `y` | Copy menu: `1` reference + link, `2` translation, `3` verse, `4` everything (`Esc` closes). Uses the terminal clipboard (OSC 52) and, if installed, `clip.exe` / `pbcopy` / `wl-copy` / `xclip` / `xsel` |
+| `y` | Copy menu: `1` the link, `2` verse + translation, `3` verse + translation + purport, `4` Devanagari + verse + translation + purport, `5` Devanagari only (`4` and `5` when the item has Devanagari; letters, lectures and prose have `2` the whole text). Plain text, no synonyms. Uses the terminal clipboard (OSC 52) and, if installed, `clip.exe` / `pbcopy` / `wl-copy` / `xclip` / `xsel` |
 | `Backspace` / `[` | Back to where you were before following a link (scroll restored) |
 | `]` | Forward again |
 | `f` (reader) | Show key labels on the links on screen; type one to follow it, `Esc` cancels |

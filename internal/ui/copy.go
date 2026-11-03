@@ -12,7 +12,6 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"vedabase-tui/internal/export"
 	"vedabase-tui/internal/ref"
 	"vedabase-tui/internal/render"
 )
@@ -129,31 +128,51 @@ func (a *App) openCopyMenu() tea.Cmd {
 	if r == "" {
 		r = it.Ref
 	}
-	head := ref.Display(r)
-	if it.URL != "" {
-		head += " — " + it.URL
+	link := it.URL
+	if link == "" {
+		link = ref.Display(r)
 	}
-	rows := []copyRow{{"Reference + link", "reference", head}}
-	if s := strings.TrimSpace(render.PlainText(it.Translation)); s != "" {
-		rows = append(rows, copyRow{"Translation", "translation", s})
+	rows := []copyRow{{"Link", "link", link}}
+	// The item's own text as plain text: no [[ref|label]] markup, no ** bold.
+	part := func(s string) string { return strings.TrimSpace(render.PlainText(s)) }
+	join := func(parts ...string) string {
+		var out []string
+		for _, p := range parts {
+			if p != "" {
+				out = append(out, p)
+			}
+		}
+		return strings.Join(out, "\n\n")
 	}
-	var verse []string
-	for _, s := range []string{it.Devanagari, it.VerseText} {
-		if s = strings.TrimSpace(render.PlainText(s)); s != "" {
-			verse = append(verse, s)
+	deva, verse, trans, purport := part(unquote(it.Devanagari)), part(unquote(it.VerseText)), part(it.Translation), part(it.Purport)
+	if verse == "" {
+		// Letters, lectures and prose chapters: one row with the whole text.
+		if t := join(trans, purport); t != "" {
+			rows = append(rows, copyRow{"Text", "text", t})
+		}
+	} else {
+		// Fixed numbers for every verse: 3 is the same as 2 when there is no purport.
+		rows = append(rows,
+			copyRow{"Verse + translation", "verse and translation", join(verse, trans)},
+			copyRow{"Verse + translation + purport", "verse, translation and purport", join(verse, trans, purport)})
+		if deva != "" {
+			rows = append(rows,
+				copyRow{"Devanagari + verse + translation + purport", "Devanagari, verse, translation and purport", join(deva, verse, trans, purport)},
+				copyRow{"Devanagari only", "Devanagari", deva})
 		}
 	}
-	if len(verse) > 0 {
-		rows = append(rows, copyRow{"Verse", "verse", strings.Join(verse, "\n\n")})
-	}
-	// Links become labels in the item's own text only; the note is copied as typed.
-	plain := it
-	for _, f := range []*string{&plain.Devanagari, &plain.VerseText, &plain.Synonyms, &plain.Translation, &plain.Purport} {
-		*f = render.InlineLinks(*f)
-	}
-	rows = append(rows, copyRow{"Everything", "text", export.ItemText(plain, a.metaFor(r), a.state.Parts)})
 	a.copyMenu = copyMenu{visible: true, rows: rows}
 	return nil
+}
+
+// unquote drops the "> " the site puts before each line of a verse.
+func unquote(s string) string {
+	lines := strings.Split(s, "\n")
+	for i, l := range lines {
+		l = strings.TrimPrefix(l, ">")
+		lines[i] = strings.TrimPrefix(l, " ")
+	}
+	return strings.Join(lines, "\n")
 }
 
 func (a *App) copyChoose(i int) tea.Cmd {

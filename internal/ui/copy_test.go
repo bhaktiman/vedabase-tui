@@ -55,13 +55,13 @@ func TestCopyMenuOpensWithRows(t *testing.T) {
 	stubClip(a, "linux", nil)
 	drive(a, key("y"))
 	v := plain(a)
-	for _, w := range []string{"Copy", "1  Reference + link", "2  Translation", "Everything"} {
+	for _, w := range []string{"Copy", "1  Link", "2  Verse + translation", "3  Verse + translation + purport"} {
 		if !strings.Contains(v, w) {
 			t.Fatalf("missing %q:\n%s", w, v)
 		}
 	}
 	drive(a, key("esc"))
-	if a.copyMenu.visible || strings.Contains(plain(a), "Reference + link") {
+	if a.copyMenu.visible || strings.Contains(plain(a), "1  Link") {
 		t.Fatal("esc did not close")
 	}
 }
@@ -82,61 +82,85 @@ func TestCopyNumberCopiesAtOnce(t *testing.T) {
 	if a.copyMenu.visible {
 		t.Fatal("menu still open")
 	}
-	if len(*calls) != 1 || (*calls)[0].name != "wl-copy" || string((*calls)[0].input) != strings.TrimSpace(render.PlainText(a.item.Translation)) {
+	want := strings.TrimSpace(render.PlainText(unquote(a.item.VerseText))) + "\n\n" + strings.TrimSpace(render.PlainText(a.item.Translation))
+	if len(*calls) != 1 || (*calls)[0].name != "wl-copy" || string((*calls)[0].input) != want {
 		t.Fatalf("calls = %+v", *calls)
 	}
-	if !strings.Contains(plain(a), "Copied translation") {
+	if strings.Contains(want, "> ") {
+		t.Fatalf("quote markers copied: %q", want)
+	}
+	if !strings.Contains(plain(a), "Copied verse and translation") {
 		t.Fatal("no toast")
 	}
 }
 
-func TestCopyReferenceHasLink(t *testing.T) {
+func TestCopyLinkIsJustTheURL(t *testing.T) {
 	a := copyApp(t)
 	calls := stubClip(a, "darwin", nil, "pbcopy")
 	drive(a, key("y"), key("enter"))
-	if len(*calls) != 1 || (*calls)[0].name != "pbcopy" {
+	if len(*calls) != 1 || (*calls)[0].name != "pbcopy" || string((*calls)[0].input) != a.item.URL || !strings.HasPrefix(a.item.URL, "https://") {
 		t.Fatalf("calls = %+v", *calls)
 	}
-	got := string((*calls)[0].input)
-	if !strings.HasPrefix(got, "Bg 2.13 — ") || !strings.Contains(got, "https://vedabase.cc/") {
-		t.Fatalf("got %q", got)
+}
+
+func verseItem() api.Item {
+	return api.Item{Ref: "bg/2/13", URL: "https://vedabase.cc/en/library/bg/2/13/",
+		Devanagari: "> देहिनोऽस्मिन्\n> यथा देहे", VerseText: "> dehino 'smin\n> yathā dehe", Synonyms: "dehinaḥ—of the embodied",
+		Translation: "As the **embodied** soul…", Purport: "Since every living entity…"}
+}
+
+func TestCopyVerseRows(t *testing.T) {
+	a := copyApp(t)
+	for k, want := range map[string]string{
+		"2": "dehino 'smin\nyathā dehe\n\nAs the embodied soul…",
+		"3": "dehino 'smin\nyathā dehe\n\nAs the embodied soul…\n\nSince every living entity…",
+		"4": "देहिनोऽस्मिन्\nयथा देहे\n\ndehino 'smin\nyathā dehe\n\nAs the embodied soul…\n\nSince every living entity…",
+		"5": "देहिनोऽस्मिन्\nयथा देहे",
+	} {
+		calls := stubClip(a, "darwin", nil, "pbcopy")
+		a.item = verseItem()
+		drive(a, key("y"), key(k))
+		if len(*calls) != 1 || string((*calls)[0].input) != want {
+			t.Fatalf("%s: copied %q", k, (*calls)[0].input)
+		}
+		if strings.Contains(string((*calls)[0].input), "dehinaḥ") {
+			t.Fatalf("%s: synonyms copied", k)
+		}
 	}
 }
 
 func TestCopyJKEnter(t *testing.T) {
 	a := copyApp(t)
 	calls := stubClip(a, "darwin", nil, "pbcopy")
-	drive(a, key("y"), key("j"), key("enter"))
-	if len(*calls) != 1 || string((*calls)[0].input) != strings.TrimSpace(render.PlainText(a.item.Translation)) {
+	a.item = verseItem()
+	drive(a, key("y"), key("j"), key("j"), key("enter"))
+	if len(*calls) != 1 || !strings.HasSuffix(string((*calls)[0].input), "Since every living entity…") || strings.Contains(string((*calls)[0].input), "देहि") {
 		t.Fatalf("calls = %+v", *calls)
 	}
 }
 
-func TestCopyEverythingHasNoFrontMatter(t *testing.T) {
-	a := copyApp(t)
-	calls := stubClip(a, "darwin", nil, "pbcopy")
-	drive(a, key("y"), key("4"))
-	got := string((*calls)[0].input)
-	if len(a.copyMenu.rows) != 4 {
-		t.Skip("item has no verse row")
-	}
-	if strings.HasPrefix(got, "---") || strings.Contains(got, "exported:") {
-		t.Fatalf("front matter: %q", got)
-	}
-	if !strings.HasPrefix(got, "# ") || !strings.Contains(got, "[Read on vedabase.cc](") {
-		t.Fatalf("got %q", got)
-	}
-}
-
-func TestCopyVerseRowHiddenWhenNone(t *testing.T) {
+// Without Devanagari there are no rows 4 and 5; without a verse (letters,
+// lectures, prose) one Text row replaces the verse rows.
+func TestCopyRowsFollowTheItem(t *testing.T) {
 	a := copyApp(t)
 	stubClip(a, "linux", nil)
-	a.item.Devanagari, a.item.VerseText = "", ""
-	drive(a, key("y"))
-	for _, r := range a.copyMenu.rows {
-		if r.label == "Verse" {
-			t.Fatal("verse row shown")
+	labels := func() (out []string) {
+		for _, r := range a.copyMenu.rows {
+			out = append(out, r.label)
 		}
+		return
+	}
+	a.item = verseItem()
+	a.item.Devanagari = ""
+	drive(a, key("y"))
+	if got := strings.Join(labels(), "|"); got != "Link|Verse + translation|Verse + translation + purport" {
+		t.Fatalf("no devanagari: %s", got)
+	}
+	drive(a, key("esc"))
+	a.item = api.Item{Ref: "letters/x", URL: "u", Translation: "Dear son,", Purport: "Your servant"}
+	drive(a, key("y"))
+	if got := strings.Join(labels(), "|"); got != "Link|Text" || a.copyMenu.rows[1].text != "Dear son,\n\nYour servant" {
+		t.Fatalf("letter: %s %q", got, a.copyMenu.rows[1].text)
 	}
 }
 
@@ -240,7 +264,7 @@ func TestCopyMenuClickAndOutsideClick(t *testing.T) {
 func TestHelpMentionsCopy(t *testing.T) {
 	a := copyApp(t)
 	drive(a, key("?"))
-	if !strings.Contains(plain(a), "Copy reference") {
+	if !strings.Contains(plain(a), "Copy link / verse") {
 		t.Fatal("help lacks y")
 	}
 }
