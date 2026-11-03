@@ -937,7 +937,21 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 	case "o":
 		return a.openItemWeb()
 	case "R":
+		if name, ok := a.sidebarCollection(); ok {
+			return a.colview.StartRename(a.cols, name)
+		}
 		return a.refreshItem()
+	case "D":
+		if name, ok := a.sidebarCollection(); ok {
+			a.colview.StartDelete(a.cols, name)
+		}
+		return nil
+	case "d":
+		if n := a.sidebarSelected(); n != nil && n.Parent != nil && n.Parent.Parent != nil &&
+			n.Parent.Parent.Ref == library.CollectionsRef && !isHint(n) {
+			a.colview.StartRemove(a.cols, n.Parent.Seg, n.Ref)
+		}
+		return nil
 	case "backspace", "[":
 		return a.goBack()
 	case "]":
@@ -1037,6 +1051,24 @@ func (a *App) toggleZen() tea.Cmd {
 	}
 	a.persist()
 	return a.relayout()
+}
+
+// sidebarSelected is the sidebar's selected node while it has the focus and
+// collections are available, else nil.
+func (a *App) sidebarSelected() *library.Node {
+	if a.cols == nil || !a.focusTree || !a.treeVisible() {
+		return nil
+	}
+	return a.tree.Selected()
+}
+
+// sidebarCollection is the name of the collection row under the sidebar cursor.
+func (a *App) sidebarCollection() (string, bool) {
+	n := a.sidebarSelected()
+	if n == nil || n.Parent == nil || n.Parent.Ref != library.CollectionsRef || isHint(n) {
+		return "", false
+	}
+	return n.Seg, true
 }
 
 // jumpToCollection shows a collection: in the sidebar, opened with the cursor

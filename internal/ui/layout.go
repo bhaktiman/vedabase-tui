@@ -444,6 +444,11 @@ func (a *App) hintLine(room int) string {
 	// Display order.
 	order := []string{"⌫ back", "/ search", "s save", "e export", width, "t sidebar", "T theme",
 		"o web", ": go to", "h/l prev/next", "tab focus", "? help"}
+	if h, ok := a.collectionsHints(); ok {
+		keep, order = h, h
+		// Most important first for dropping; "? help" is last to display.
+		keep = append([]string{"? help"}, h[:len(h)-1]...)
+	}
 	for n := len(keep); n > 0; n-- {
 		var out []string
 		for _, h := range order {
@@ -459,6 +464,28 @@ func (a *App) hintLine(room int) string {
 		}
 	}
 	return ""
+}
+
+// collectionsHints is the hint set (display order, "? help" last) for the
+// sidebar cursor in the Collections section.
+func (a *App) collectionsHints() ([]string, bool) {
+	if !a.focusTree || !a.treeVisible() {
+		return nil, false
+	}
+	n := a.tree.Selected()
+	if n == nil {
+		return nil, false
+	}
+	switch {
+	case n.Ref == library.CollectionsRef || isHint(n):
+		return []string{"c jump", "' manage", "? help"}, true
+	case n.Parent != nil && n.Parent.Ref == library.CollectionsRef:
+		return []string{"R rename", "D delete", "e export", "c jump", "? help"}, true
+	}
+	if _, ok := library.InCollection(n); ok {
+		return []string{"d remove", "c jump", "? help"}, true
+	}
+	return nil, false
 }
 
 // bottomLayout is the bottom bar and the part labels' positions in it.

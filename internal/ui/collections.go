@@ -340,6 +340,48 @@ func (c *CollectionsView) ShowIn(st *collections.Store, name string) {
 	c.in = name
 }
 
+// atCollection opens the top level with the cursor on name; false if it is gone.
+func (c *CollectionsView) atCollection(st *collections.Store, name string) bool {
+	c.Show(st)
+	for i, col := range st.List() {
+		if col.Name == name {
+			c.cursor = i
+			return true
+		}
+	}
+	return false
+}
+
+// StartRename opens the overlay renaming the named collection.
+func (c *CollectionsView) StartRename(st *collections.Store, name string) tea.Cmd {
+	if !c.atCollection(st, name) {
+		return nil
+	}
+	c.rename = true
+	c.input.SetValue(name)
+	return c.input.Focus()
+}
+
+// StartDelete opens the overlay asking to delete the named collection.
+func (c *CollectionsView) StartDelete(st *collections.Store, name string) {
+	if c.atCollection(st, name) {
+		c.confirm = "D"
+	}
+}
+
+// StartRemove opens the overlay inside name asking to remove the item ref.
+func (c *CollectionsView) StartRemove(st *collections.Store, name, ref string) {
+	c.ShowIn(st, name)
+	col, _ := st.Get(name)
+	for i, it := range col.Items {
+		if it.Ref == ref {
+			c.cursor = i
+			c.confirm = "d"
+			return
+		}
+	}
+}
+
 func (c *CollectionsView) close() { c.visible = false; c.input.Blur() }
 
 func (c *CollectionsView) count() int {
