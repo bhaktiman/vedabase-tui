@@ -485,7 +485,7 @@ func (a *App) collectionsHints() ([]string, bool) {
 		return []string{"R rename", "D delete", "e export", "c jump", "? help"}, true
 	}
 	if _, ok := library.InCollection(n); ok {
-		return []string{"d remove", "c jump", "? help"}, true
+		return []string{"d remove", "J/K move", "c jump", "? help"}, true
 	}
 	return nil, false
 }

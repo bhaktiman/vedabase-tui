@@ -126,6 +126,35 @@ func (s *Store) Remove(name, ref string) error {
 	})
 }
 
+// Move shifts the item ref by delta places within the named collection,
+// clamping at the ends. A move that changes nothing writes nothing.
+func (s *Store) Move(name, ref string, delta int) error {
+	return s.mutate(func(cols []Collection) ([]Collection, error) {
+		i := find(cols, name)
+		if i < 0 {
+			return nil, fmt.Errorf("collections: no collection %q", strings.TrimSpace(name))
+		}
+		items := cols[i].Items
+		for j, it := range items {
+			if it.Ref != ref {
+				continue
+			}
+			k := max(0, min(len(items)-1, j+delta))
+			if k == j {
+				return nil, nil
+			}
+			if k > j {
+				copy(items[j:k], items[j+1:k+1])
+			} else {
+				copy(items[k+1:j+1], items[k:j])
+			}
+			items[k] = it
+			return cols, nil
+		}
+		return nil, fmt.Errorf("collections: %q is not in %q", ref, cols[i].Name)
+	})
+}
+
 // Rename fails if newName is blank or is another collection's name. Changing
 // only the case of a collection's own name is allowed.
 func (s *Store) Rename(old, newName string) error {

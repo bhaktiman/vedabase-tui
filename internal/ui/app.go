@@ -970,6 +970,16 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 			return a.removeFromSidebar(n.Parent.Seg, n.Ref)
 		}
 		return nil
+	case "J", "K":
+		if n := a.sidebarSelected(); n != nil && n.Parent != nil && n.Parent.Parent != nil &&
+			n.Parent.Parent.Ref == library.CollectionsRef && !isHint(n) {
+			d := 1
+			if k == "K" {
+				d = -1
+			}
+			return a.moveInSidebar(n.Parent.Seg, n.Ref, d)
+		}
+		return nil
 	case "backspace", "[":
 		return a.goBack()
 	case "]":
@@ -1141,6 +1151,24 @@ func (a *App) removeFromSidebar(name, r string) tea.Cmd {
 		a.tree.Reveal(target)
 	}
 	return a.Toast("Removed "+itemName(it)+" from "+name, false)
+}
+
+// moveInSidebar moves an item one place up (-1) or down (+1) in its
+// collection (sidebar K/J); the cursor stays on it.
+func (a *App) moveInSidebar(name, r string, delta int) tea.Cmd {
+	if err := a.cols.Move(name, r, delta); err != nil {
+		return a.Toast("Couldn't save: "+err.Error(), true)
+	}
+	a.syncCollections()
+	if n := a.collectionNode(name); n != nil {
+		for _, c := range n.Children {
+			if c.Ref == r {
+				a.tree.Reveal(c)
+				break
+			}
+		}
+	}
+	return nil
 }
 
 // openCollectionItem opens an item from the `c` picker the way the sidebar

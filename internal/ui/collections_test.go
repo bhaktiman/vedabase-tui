@@ -375,7 +375,7 @@ func TestHelpHasCollectionsGroupInTwoColumns(t *testing.T) {
 	a, _, _ := colApp(t, newFake(t), store.State{LastRef: "bg/2/13"})
 	drive(a, key("?"))
 	v := plain(a)
-	for _, w := range []string{"Collections", "Jump to collection / item", "Manage collections", "Remove item", "Export collection"} {
+	for _, w := range []string{"Collections", "Jump to collection / item", "Manage collections", "remove item", "Move item down / up", "Export collection"} {
 		if !strings.Contains(v, w) {
 			t.Errorf("help lacks %q", w)
 		}

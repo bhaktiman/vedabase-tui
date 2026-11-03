@@ -28,8 +28,8 @@ var helpGroups = []struct {
 	{"Collections", []helpRow{
 		{"s", "Add to collection"}, {"'", "Manage collections"},
 		{"c", "Jump to collection / item"}, {"R", "Rename (sidebar or ')"},
-		{"D", "Delete collection"}, {"d", "Remove item"},
-		{"e", "Export collection"},
+		{"D / d", "Delete collection / remove item"},
+		{"J / K", "Move item down / up"}, {"e", "Export collection"},
 	}},
 	{"Reader", []helpRow{
 		{"j / k", "Scroll line"}, {"h / l", "Previous / next item"},

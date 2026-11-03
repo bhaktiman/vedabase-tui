@@ -471,6 +471,23 @@ func (c *CollectionsView) Update(kp tea.KeyPressMsg) tea.Cmd {
 			c.close()
 			return func() tea.Msg { return searchOpenMsg{it.Ref} }
 		}
+	case "J", "K":
+		if it, ok := c.selectedItem(); ok {
+			d := 1
+			if k == "K" {
+				d = -1
+			}
+			if err := c.store.Move(c.in, it.Ref, d); err != nil {
+				return toastCmd("Couldn't save: "+err.Error(), true)
+			}
+			col, _ := c.store.Get(c.in)
+			for i, x := range col.Items {
+				if x.Ref == it.Ref {
+					c.cursor = i
+				}
+			}
+			c.clamp()
+		}
 	case "d":
 		if _, ok := c.selectedItem(); ok {
 			c.confirm = "d"
@@ -587,7 +604,7 @@ func (c CollectionsView) View() string {
 		}
 	} else {
 		title = c.in
-		hint = "enter open · d remove · e export · esc back"
+		hint = "enter open · J/K move · d remove · e export · esc back"
 		col, _ := c.store.Get(c.in)
 		for _, it := range col.Items {
 			rows = append(rows, fg.Render(it.Label)+dim.Render("  ·  "+it.Book))

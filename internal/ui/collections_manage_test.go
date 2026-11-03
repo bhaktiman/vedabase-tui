@@ -198,7 +198,7 @@ func TestBottomBarCollectionsHints(t *testing.T) {
 		t.Fatalf("collection row: %q", l)
 	}
 	selectNode(t, a, func(n *library.Node) bool { return n.Ref == "bg/1/1" })
-	if l := line(); !strings.Contains(l, "d remove · c jump · ? help") || strings.Contains(l, "R rename") {
+	if l := line(); !strings.Contains(l, "d remove · J/K move · c jump · ? help") || strings.Contains(l, "R rename") {
 		t.Fatalf("item row: %q", l)
 	}
 	for _, r := range a.lib.Roots {

@@ -161,7 +161,9 @@ A collection is a named list of verses, chapters, letters or lectures.
   `D` deletes it (both `d` and `D` ask for `y` to confirm), and `e` exports it.
   The same keys work on the sidebar's Collections rows: on a collection, `R`
   renames and `D` deletes (after `y`); on an item inside one, `d` removes it at
-  once, without asking, and the cursor stays in the sidebar.
+  once, without asking, and the cursor stays in the sidebar. `J` / `K` move the
+  selected item down / up within its collection (in the sidebar and in the
+  list); export, `c` and `h` / `l` follow the new order.
 - The same collections also appear in the tree under Collections.
 
 Collections work offline. They are saved in `collections.json` (see below); the file is written
@@ -243,6 +245,7 @@ Press `?` in the app for the same list.
 | `R` | Re-fetch the item you're reading from vedabase.cc (on a collection in the sidebar: rename it) |
 | `D` | Delete the collection under the sidebar cursor (asks `y`) |
 | `d` | Remove the collection item under the sidebar cursor (at once) |
+| `J` / `K` | Move the collection item under the cursor down / up (sidebar and collections list) |
 | `e` | Export the current item (or the selected collection) |
 | `T` | Choose a colour theme |
 | `L` | Choose the language |
