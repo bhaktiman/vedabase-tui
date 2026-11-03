@@ -382,6 +382,16 @@ func (c *CollectionsView) StartRemove(st *collections.Store, name, ref string) {
 	}
 }
 
+// itemName is how a confirm prompt names an item: its label up to the " — "
+// that starts the first line of text, or the reference when it has no label.
+func itemName(it collections.Item) string {
+	name, _, _ := strings.Cut(it.Label, " — ")
+	if name = strings.TrimSpace(name); name == "" {
+		return ref.Display(it.Ref)
+	}
+	return truncate(name, labelMax)
+}
+
 func (c *CollectionsView) close() { c.visible = false; c.input.Blur() }
 
 func (c *CollectionsView) count() int {
@@ -571,7 +581,7 @@ func (c CollectionsView) View() string {
 		hint = "enter rename · esc cancel"
 	case c.confirm == "d":
 		it, _ := c.selectedItem()
-		extra = lipgloss.NewStyle().Foreground(c.pal.Rose).Render("Remove " + ref.Display(it.Ref) + "? y/n")
+		extra = lipgloss.NewStyle().Foreground(c.pal.Rose).Render("Remove " + itemName(it) + "? y/n")
 	case c.confirm == "D":
 		name, _ := c.selectedName()
 		extra = lipgloss.NewStyle().Foreground(c.pal.Rose).Render("Delete " + name + "? y/n")

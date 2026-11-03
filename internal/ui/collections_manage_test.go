@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"vedabase-tui/internal/collections"
 	"vedabase-tui/internal/library"
 	"vedabase-tui/internal/store"
 )
@@ -212,4 +213,25 @@ func jumpFill(t *testing.T, a *App) {
 		}
 	}
 	drive(a, key("l"))
+}
+
+// The remove prompt names the item as the list shows it: a letter by its
+// title, a verse by its reference, not by a raw ref like "letters letter-to-x".
+func TestRemovePromptUsesLabel(t *testing.T) {
+	for _, c := range []struct{ ref, label, want string }{
+		{"letters/letter-to-aditi", "Letter to: Aditi", "Remove Letter to: Aditi? y/n"},
+		{"bg/2/2", "Bg 2.2 — My dear Arjuna", "Remove Bg 2.2? y/n"},
+		{"bg/2/3", "", "Remove Bg 2.3? y/n"},
+	} {
+		a, cs := jumpApp(t, store.State{LastRef: "bg/2/13"})
+		if _, err := cs.Add("Gamma", collections.Item{Ref: c.ref, Book: "bg", Label: c.label}); err != nil {
+			t.Fatal(err)
+		}
+		drive(a, key("l"))
+		selectNode(t, a, func(n *library.Node) bool { return n.Ref == c.ref && n.Parent.Seg == "Gamma" })
+		drive(a, key("d"))
+		if v := plain(a); !strings.Contains(v, c.want) {
+			t.Errorf("label %q: prompt lacks %q:\n%s", c.label, c.want, v)
+		}
+	}
 }
