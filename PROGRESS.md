@@ -30,7 +30,7 @@
 
 **v0.3.2 released (2026-11-03):** collections management, study tools, data_dir; 5 archives + checksums + install.sh; `main` and `feat/vedabase-tui` pushed at 866e8d6.
 
-**Next action:** open questions for the user: user to verify a real `y` paste on WSL; close the `'` overlay after sidebar R/D? Type-to-filter in `c`?
+**Next action:** open questions for the user: user to verify a real `y` paste on WSL; close the collections overlay after sidebar R/D (it no longer has a key: `'` removed 2026-11-03 in 4d99083, unreleased; `c` + sidebar cover it)? Type-to-filter in `c`?
 
 **Out of scope, future:** a terminal audio player for lectures (via mpv) and "Lectures on this verse" (index built from lecture titles; maybe ask the maintainer for a verse → lectures field). Collapse button not wanted.
 
