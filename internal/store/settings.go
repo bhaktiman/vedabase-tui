@@ -2,7 +2,9 @@ package store
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,7 +19,10 @@ type Settings struct {
 	ExportDir string `toml:"export_dir"` // "~/" expanded on load
 	// DataDir holds collections.json and notes.json; "" means the XDG data
 	// folder. "~/" is expanded on load.
-	DataDir    string `toml:"data_dir"`
+	DataDir string `toml:"data_dir"`
+	// DataDirErr is set when config.toml has a data_dir line that could not
+	// be read: the data folder is then unknown, not the default.
+	DataDirErr string `toml:"-"`
 	Animations bool   `toml:"animations"`
 	Mouse      bool   `toml:"mouse"` // click and wheel; false leaves text selection to the terminal
 	// ReadingWidth is the widest line of verse text; 0 means the whole pane.
@@ -31,7 +36,8 @@ const defaultConfig = `# vedabase-tui settings
 
 # Where your collections and notes are kept. A leading "~/" means your home
 # directory. Point it at a synced folder (Dropbox, OneDrive, Syncthing) to share
-# them between computers. Existing files are not moved for you.
+# them between computers. Existing files are not moved for you. On Windows
+# use single quotes or forward slashes: 'C:\Users\me\Dropbox\vb'.
 # data_dir = "~/.local/share/vedabase-tui"
 
 # Set to false to turn off all motion (fades, highlights, slides).
@@ -49,10 +55,30 @@ func expandHome(p, home string) string {
 	switch {
 	case p == "~":
 		return home
-	case strings.HasPrefix(p, "~/"):
+	case strings.HasPrefix(p, "~/"), strings.HasPrefix(p, "~"+string(filepath.Separator)):
 		return filepath.Join(home, p[2:])
 	}
 	return p
+}
+
+// salvageDataDir reads the data_dir line on its own when the whole file does
+// not parse, so one bad setting elsewhere never moves the data folder.
+func salvageDataDir(b []byte, home string) (dir, problem string) {
+	for _, line := range strings.Split(string(b), "\n") {
+		t := strings.TrimSpace(line)
+		rest, ok := strings.CutPrefix(t, "data_dir")
+		if !ok || !strings.HasPrefix(strings.TrimSpace(rest), "=") {
+			continue
+		}
+		var x struct {
+			DataDir string `toml:"data_dir"`
+		}
+		if err := toml.Unmarshal([]byte(t), &x); err != nil {
+			return "", err.Error()
+		}
+		return expandHome(x.DataDir, home), ""
+	}
+	return "", ""
 }
 
 // LoadSettings reads path. A missing file yields the defaults and writes a
@@ -71,7 +97,9 @@ func LoadSettings(path string) (Settings, error) {
 		return s, err
 	}
 	if err := toml.Unmarshal(b, &s); err != nil {
-		return Settings{ExportDir: filepath.Join(home, "vedabase-exports"), Animations: true, Mouse: true, ReadingWidth: 80}, err
+		d := Settings{ExportDir: filepath.Join(home, "vedabase-exports"), Animations: true, Mouse: true, ReadingWidth: 80}
+		d.DataDir, d.DataDirErr = salvageDataDir(b, home)
+		return d, err
 	}
 	if s.ReadingWidth < 0 {
 		s.ReadingWidth = 80
@@ -87,29 +115,44 @@ func LoadSettings(path string) (Settings, error) {
 var DataFiles = []string{"collections.json", "notes.json"}
 
 // DataDir is the folder for DataFiles: the data_dir setting when set, else
-// def. A relative setting would depend on the folder the app was started
-// from, so it is refused with a warning and def is used.
-func DataDir(s Settings, def string) (dir, warning string) {
+// def. ok is false when data_dir is set but unusable (unreadable, not a full
+// path, not a folder): collections and notes must then stay off for the run,
+// since saving them in def would strand them where the app will not look once
+// data_dir is fixed. warning is for a toast.
+func DataDir(s Settings, def string) (dir, warning string, ok bool) {
+	home, _ := os.UserHomeDir()
+	const off = "; collections and notes are off until it is fixed"
 	switch {
+	case s.DataDirErr != "":
+		return "", "config.toml: data_dir could not be read (" + s.DataDirErr + ")" + off, false
 	case s.DataDir == "":
-		return def, ""
+		return def, "", true
 	case !filepath.IsAbs(s.DataDir):
-		home, _ := os.UserHomeDir()
-		return def, fmt.Sprintf("config.toml: data_dir %q is not an absolute path; using %s", s.DataDir, tilde(def, home))
+		return "", fmt.Sprintf("config.toml: data_dir %q is not a full path (start it with ~/ or /)", s.DataDir) + off, false
 	}
-	return filepath.Clean(s.DataDir), ""
+	dir = filepath.Clean(s.DataDir)
+	fi, err := os.Stat(dir)
+	switch {
+	case errors.Is(err, fs.ErrNotExist):
+		return dir, fmt.Sprintf("data_dir %s does not exist yet: it is created when you first save", tilde(dir, home)), true
+	case err != nil:
+		return "", fmt.Sprintf("data_dir %s: %v", tilde(dir, home), err) + off, false
+	case !fi.IsDir():
+		return "", fmt.Sprintf("data_dir %s is not a folder", tilde(dir, home)) + off, false
+	}
+	return dir, "", true
 }
 
-// LeftBehind says which DataFiles are still in old but missing from dir,
-// after data_dir moved the data folder, so the user can move them; "" when
-// nothing was left behind. It leads with what to do, as a toast may be cut.
+// LeftBehind names the DataFiles still in old when data_dir points elsewhere:
+// the app no longer reads them, so the user should move or merge them; ""
+// when there are none.
 func LeftBehind(dir, old string) string {
-	if filepath.Clean(dir) == filepath.Clean(old) {
+	if sameDir(dir, old) {
 		return ""
 	}
 	var names []string
 	for _, n := range DataFiles {
-		if exists(filepath.Join(old, n)) && !exists(filepath.Join(dir, n)) {
+		if exists(filepath.Join(old, n)) {
 			names = append(names, n)
 		}
 	}
@@ -117,8 +160,17 @@ func LeftBehind(dir, old string) string {
 		return ""
 	}
 	home, _ := os.UserHomeDir()
-	return fmt.Sprintf("Move %s from %s to %s (data_dir)",
+	return fmt.Sprintf("Not used: %s in %s (data_dir is %s)",
 		strings.Join(names, " and "), tilde(old, home), tilde(dir, home))
+}
+
+func sameDir(a, b string) bool {
+	if filepath.Clean(a) == filepath.Clean(b) {
+		return true
+	}
+	fa, err1 := os.Stat(a)
+	fb, err2 := os.Stat(b)
+	return err1 == nil && err2 == nil && os.SameFile(fa, fb)
 }
 
 // tilde writes paths under home as ~/….

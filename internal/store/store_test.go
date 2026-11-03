@@ -196,25 +196,66 @@ func TestDataDirSetting(t *testing.T) {
 		t.Fatalf("default file lacks data_dir: %s", b)
 	}
 	def := filepath.Join(home, ".local/share/vedabase-tui")
+	load := func(cfg string) Settings {
+		t.Helper()
+		os.WriteFile(p, []byte(cfg), 0o644)
+		s, _ := LoadSettings(p)
+		return s
+	}
 
 	s, _ := LoadSettings(p)
-	if d, w := DataDir(s, def); d != def || w != "" {
-		t.Fatalf("unset: %q %q", d, w)
+	if d, w, ok := DataDir(s, def); d != def || w != "" || !ok {
+		t.Fatalf("unset: %q %q %v", d, w, ok)
 	}
 
-	os.WriteFile(p, []byte("data_dir = \"~/Dropbox/vb/\"\n"), 0o644)
+	// Missing folder: used, with a note that it is created on first save.
+	s = load("data_dir = \"~/Dropbox/vb/\"\n")
+	if d, w, ok := DataDir(s, def); d != filepath.Join(home, "Dropbox/vb") || !ok || !strings.Contains(w, "does not exist yet") {
+		t.Fatalf("missing: %q %q %v", d, w, ok)
+	}
+	os.MkdirAll(filepath.Join(home, "Dropbox/vb"), 0o755)
+	if d, w, ok := DataDir(s, def); d != filepath.Join(home, "Dropbox/vb") || w != "" || !ok {
+		t.Fatalf("home: %q %q %v", d, w, ok)
+	}
+
+	// Unusable settings turn the stores off; they never fall back to def.
+	for name, cfg := range map[string]string{
+		"relative":   "data_dir = \"vb\"\n",
+		"bad value":  "data_dir = \"C:\\Users\\me\"\n", // \U needs 8 hex digits
+		"not folder": "data_dir = \"" + p + "\"\n",
+	} {
+		s = load(cfg)
+		if d, w, ok := DataDir(s, def); ok || d != "" || !strings.Contains(w, "collections and notes are off") {
+			t.Fatalf("%s: %q %q %v", name, d, w, ok)
+		}
+	}
+}
+
+// One bad setting elsewhere in the file must not move the data folder.
+func TestDataDirSurvivesParseErrorElsewhere(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	p := filepath.Join(t.TempDir(), "config.toml")
+	os.WriteFile(p, []byte("reading_width = \"80\"\ndata_dir = '~/Sync/vb' # mine\n"), 0o644)
 	s, err := LoadSettings(p)
-	if err != nil {
-		t.Fatal(err)
+	if err == nil {
+		t.Fatal("want parse error")
 	}
-	if d, w := DataDir(s, def); d != filepath.Join(home, "Dropbox/vb") || w != "" {
-		t.Fatalf("home: %q %q", d, w)
+	if d, _, ok := DataDir(s, "/def"); !ok || d != filepath.Join(home, "Sync/vb") {
+		t.Fatalf("got %q %v", d, ok)
 	}
-
-	os.WriteFile(p, []byte("data_dir = \"vb\"\n"), 0o644)
+	// No data_dir line at all: the default, as before.
+	os.WriteFile(p, []byte("reading_width = \"80\"\n# data_dir = \"~/x\"\n"), 0o644)
 	s, _ = LoadSettings(p)
-	if d, w := DataDir(s, def); d != def || !strings.Contains(w, "not an absolute path") {
-		t.Fatalf("relative: %q %q", d, w)
+	if d, w, ok := DataDir(s, "/def"); !ok || d != "/def" || w != "" {
+		t.Fatalf("no line: %q %q %v", d, w, ok)
+	}
+}
+
+func TestExpandHomeBackslash(t *testing.T) {
+	want := filepath.Join("/h", "vb")
+	if got := expandHome("~"+string(filepath.Separator)+"vb", "/h"); got != want {
+		t.Fatalf("got %q", got)
 	}
 }
 
@@ -229,15 +270,27 @@ func TestLeftBehind(t *testing.T) {
 	if m := LeftBehind(old, old+"/"); m != "" {
 		t.Fatalf("same folder: %q", m)
 	}
-	m := LeftBehind(dir, old)
-	if !strings.HasPrefix(m, "Move collections.json and notes.json from "+old+" to "+dir) {
+	link := filepath.Join(t.TempDir(), "link")
+	if os.Symlink(old, link) == nil {
+		if m := LeftBehind(link, old); m != "" {
+			t.Fatalf("symlink to old: %q", m)
+		}
+	}
+	if m := LeftBehind(dir, old); m != "Not used: collections.json and notes.json in "+old+" (data_dir is "+dir+")" {
 		t.Fatalf("both: %q", m)
 	}
+	// Still reported once data_dir has its own files: a second computer's
+	// synced copy, or a note saved before the user saw the first toast.
 	os.WriteFile(filepath.Join(dir, "collections.json"), []byte("{}"), 0o644)
-	if m := LeftBehind(dir, old); !strings.HasPrefix(m, "Move notes.json from") || strings.Contains(m, "collections.json") {
+	os.WriteFile(filepath.Join(dir, "notes.json"), []byte("{}"), 0o644)
+	if m := LeftBehind(dir, old); !strings.HasPrefix(m, "Not used: collections.json and notes.json") {
+		t.Fatalf("both exist: %q", m)
+	}
+	os.Remove(filepath.Join(old, "collections.json"))
+	if m := LeftBehind(dir, old); !strings.HasPrefix(m, "Not used: notes.json in") {
 		t.Fatalf("one: %q", m)
 	}
-	os.WriteFile(filepath.Join(dir, "notes.json"), []byte("{}"), 0o644)
+	os.Remove(filepath.Join(old, "notes.json"))
 	if m := LeftBehind(dir, old); m != "" {
 		t.Fatalf("all moved: %q", m)
 	}
@@ -249,7 +302,7 @@ func TestLeftBehindWritesHomeAsTilde(t *testing.T) {
 	old, dir := filepath.Join(home, ".local/share/vedabase-tui"), filepath.Join(home, "Sync/vb")
 	os.MkdirAll(old, 0o755)
 	os.WriteFile(filepath.Join(old, "notes.json"), []byte("{}"), 0o644)
-	want := "Move notes.json from ~/.local/share/vedabase-tui to ~/Sync/vb (data_dir)"
+	want := "Not used: notes.json in ~/.local/share/vedabase-tui (data_dir is ~/Sync/vb)"
 	if m := LeftBehind(dir, old); m != want {
 		t.Fatalf("got %q\nwant %q", m, want)
 	}

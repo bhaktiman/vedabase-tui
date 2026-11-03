@@ -293,11 +293,15 @@ Paths follow the XDG variables when they are set.
 Collections and notes are the only files worth backing up. To keep them
 somewhere else, for example in a synced folder to share them between
 computers, set `data_dir` (below). The app does not move existing files: move
-`collections.json` and `notes.json` into the new folder yourself. Until you do,
-it says at startup which files are still in the old folder. With the app open
-on two computers, a note or collection changed on one is never overwritten by
-the other, but a sync tool can still make its own conflict copy if both save
-at the same moment.
+`collections.json` and `notes.json` into the new folder yourself. As long as
+either is still in the old folder, a message at startup says it is not used.
+On a second computer whose synced folder already has files, merge or delete
+the local ones. If `data_dir` cannot be used (not a full path, not a folder, or
+a line that does not parse), collections and notes are off until it is fixed,
+so nothing is saved to the wrong folder. With the app open on two computers, a
+note or collection changed on one is never overwritten by the other, but a
+sync tool can still make its own conflict copy if both save at the same
+moment.
 
 To install elsewhere or pin a version, set `INSTALL_DIR` or `VERSION` before
 `sh` in the install command. To uninstall, delete the binary.
@@ -313,7 +317,8 @@ by an older version lacks the newer options; add them by hand.
 
 # Where your collections and notes are kept. A leading "~/" means your home
 # directory. Point it at a synced folder (Dropbox, OneDrive, Syncthing) to share
-# them between computers. Existing files are not moved for you.
+# them between computers. Existing files are not moved for you. On Windows
+# use single quotes or forward slashes: 'C:\Users\me\Dropbox\vb'.
 # data_dir = "~/.local/share/vedabase-tui"
 
 # Set to false to turn off all motion (fades, highlights, slides).

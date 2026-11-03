@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
@@ -46,12 +47,16 @@ func run() error {
 	// Collections and notes live in data_dir when it is set. Files left in the
 	// old folder are never moved: a synced folder may already hold another
 	// computer's copy, so the user moves them.
-	dataDir, dwarn := store.DataDir(settings, paths.Data)
+	// An unusable data_dir turns both stores off rather than falling back to
+	// the default folder, where saves would be stranded.
+	dataDir, dwarn, dataOK := store.DataDir(settings, paths.Data)
 	if dwarn != "" {
 		toasts = append(toasts, ui.ToastMsg{Text: dwarn, Error: true})
 	}
-	if msg := store.LeftBehind(dataDir, paths.Data); msg != "" {
-		toasts = append(toasts, ui.ToastMsg{Text: msg, Error: true})
+	if dataOK {
+		if msg := store.LeftBehind(dataDir, paths.Data); msg != "" {
+			toasts = append(toasts, ui.ToastMsg{Text: msg, Error: true})
+		}
 	}
 
 	// A failed lookup only turns updates off; the reader still works.
@@ -68,22 +73,29 @@ func run() error {
 		updater = &update.Updater{Repo: "bhaktiman/vedabase-tui", Current: ver, Exe: exe}
 	}
 
-	cols, warning, err := collections.Open(filepath.Join(dataDir, "collections.json"))
-	switch {
-	case err != nil:
-		cols = nil // run with collections disabled
-		toasts = append(toasts, ui.ToastMsg{Text: "collections disabled: " + err.Error(), Error: true})
-	case warning != "":
-		toasts = append(toasts, ui.ToastMsg{Text: warning, Error: true})
-	}
+	var cols *collections.Store
+	var nts *notes.Store
+	if dataOK {
+		var warning string
+		cols, warning, err = collections.Open(filepath.Join(dataDir, "collections.json"))
+		switch {
+		case err != nil:
+			cols = nil // run with collections disabled
+			toasts = append(toasts, ui.ToastMsg{Text: "collections disabled: " + err.Error(), Error: true})
+		case warning != "":
+			toasts = append(toasts, ui.ToastMsg{Text: warning, Error: true})
+		}
 
-	nts, nwarn, nerr := notes.Open(filepath.Join(dataDir, "notes.json"))
-	switch {
-	case nerr != nil:
-		nts = nil // run with notes disabled
-		toasts = append(toasts, ui.ToastMsg{Text: "notes disabled: " + nerr.Error(), Error: true})
-	case nwarn != "":
-		toasts = append(toasts, ui.ToastMsg{Text: nwarn, Error: true})
+		var nwarn string
+		var nerr error
+		nts, nwarn, nerr = notes.Open(filepath.Join(dataDir, "notes.json"))
+		switch {
+		case nerr != nil:
+			nts = nil // run with notes disabled
+			toasts = append(toasts, ui.ToastMsg{Text: "notes disabled: " + nerr.Error(), Error: true})
+		case nwarn != "":
+			toasts = append(toasts, ui.ToastMsg{Text: nwarn, Error: true})
+		}
 	}
 
 	svc := &service.Service{
@@ -108,7 +120,7 @@ func run() error {
 	_, err = p.Run()
 	// A note still open when the program ended any way but a key.
 	if ferr := app.FlushNote(); ferr != nil {
-		keepUnsaved(app, dataDir, ferr)
+		keepUnsaved(app, []string{dataDir, paths.Data, os.TempDir()}, ferr)
 	}
 	if err != nil {
 		return err
@@ -122,21 +134,32 @@ func run() error {
 	return nil
 }
 
-// keepUnsaved writes the note text that could not be saved next to the notes
-// file, so closing the program never loses it, and says where it went.
-func keepUnsaved(app *ui.App, dataDir string, cause error) {
+// keepUnsaved writes the note text that could not be saved to the first of
+// dirs that takes it (the data folder can be the very place that failed), and
+// says where it went. If none does, the text itself goes to stderr, so closing
+// the program never loses it.
+func keepUnsaved(app *ui.App, dirs []string, cause error) {
 	r, text, ok := app.OpenNote()
 	if !ok {
 		return
 	}
-	path := filepath.Join(dataDir, "notes.json.unsaved-"+time.Now().Format("20060102-150405"))
-	err := os.MkdirAll(dataDir, 0o755)
-	if err == nil {
-		err = os.WriteFile(path, []byte(text), 0o600)
+	name := "notes.json.unsaved-" + time.Now().Format("20060102-150405")
+	var errs []string
+	for _, dir := range dirs {
+		if dir == "" {
+			continue
+		}
+		path := filepath.Join(dir, name)
+		err := os.MkdirAll(dir, 0o755)
+		if err == nil {
+			err = os.WriteFile(path, []byte(text), 0o600)
+		}
+		if err == nil {
+			fmt.Fprintf(os.Stderr, "vedabase: could not save your note on %s: %v; kept in %s\n", r, cause, path)
+			return
+		}
+		errs = append(errs, err.Error())
 	}
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "vedabase: could not save your note on %s: %v; and could not keep it in %s: %v\n", r, cause, path, err)
-		return
-	}
-	fmt.Fprintf(os.Stderr, "vedabase: could not save your note on %s: %v; kept in %s\n", r, cause, path)
+	fmt.Fprintf(os.Stderr, "vedabase: could not save your note on %s: %v; and could not keep it in a file (%s). Your note:\n%s\n",
+		r, cause, strings.Join(errs, "; "), text)
 }
