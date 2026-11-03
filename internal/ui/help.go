@@ -27,7 +27,7 @@ var helpGroups = []struct {
 	}},
 	{"Collections", []helpRow{
 		{"s", "Add to collection"}, {"'", "Manage collections"},
-		{"c", "Jump to collection"}, {"R", "Rename (sidebar or ')"},
+		{"c", "Jump to collection / item"}, {"R", "Rename (sidebar or ')"},
 		{"D", "Delete collection"}, {"d", "Remove item"},
 		{"e", "Export collection"},
 	}},

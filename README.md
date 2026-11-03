@@ -153,9 +153,10 @@ A collection is a named list of verses, chapters, letters or lectures.
   collection you last added to comes first; `Tab` switches the list to A–Z.
 - `'` opens the collections list. `Enter` on a collection shows its items;
   `Enter` on an item opens it. `Esc` goes back.
-- `c` jumps to a collection: a picker (recent first, `Tab` for A–Z) lists them
-  with their item counts. `Enter` opens that collection in the sidebar and moves
-  focus there; if the sidebar is hidden, it opens the `'` list inside that collection.
+- `c` jumps to a collection or anything in one: a picker (recent first, `Tab`
+  for A–Z) lists each collection with its item count and its items beneath it.
+  `Enter` on an item opens it; `Enter` on a collection opens it in the sidebar
+  and moves focus there (if the sidebar is hidden, the `'` list opens inside it).
 - Inside the list: `d` removes the selected item, `R` renames a collection,
   `D` deletes it (both `d` and `D` ask for `y` to confirm), and `e` exports it.
   The same keys work on the sidebar's Collections rows: on a collection, `R`
@@ -236,7 +237,7 @@ Press `?` in the app for the same list.
 | `:` | Go to a reference |
 | `s` | Add the current item to a collection |
 | `'` | Open collections |
-| `c` | Jump to a collection |
+| `c` | Jump to a collection or an item in one |
 | `R` | Re-fetch the item you're reading from vedabase.cc (on a collection in the sidebar: rename it) |
 | `D` | Delete the collection under the sidebar cursor (asks `y`) |
 | `d` | Remove the collection item under the sidebar cursor (at once) |

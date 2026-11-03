@@ -21,8 +21,13 @@ const (
 	labelMax         = 60
 )
 
-// jumpCollectionMsg asks the App to show a collection (the `c` picker's Enter).
-type jumpCollectionMsg struct{ name string }
+// jumpCollectionMsg asks the App to show a collection (the `c` picker's
+// Enter), or, when ref is set, to open that item inside it.
+type jumpCollectionMsg struct{ name, ref string }
+
+// jumpRow is one row of the `c` picker: a collection, or (ref set) one of
+// its items.
+type jumpRow struct{ col, ref string }
 
 // exportCollectionMsg asks the App to export a collection to one file.
 type exportCollectionMsg struct{ name string }
@@ -109,6 +114,7 @@ type Picker struct {
 	alpha    bool // A–Z instead of most recently used first; kept while the app runs
 	item     collections.Item
 	names    []string
+	rows     []jumpRow // jump mode: each collection, then its items
 	cursor   int
 	typing   bool
 	input    textinput.Model
@@ -137,6 +143,7 @@ func (p *Picker) Show(st *collections.Store, it collections.Item) tea.Cmd {
 func (p *Picker) ShowJump(st *collections.Store) tea.Cmd {
 	p.Show(st, collections.Item{})
 	p.jump = true
+	p.sortNames()
 	return nil
 }
 
@@ -144,7 +151,7 @@ func (p *Picker) ShowJump(st *collections.Store) tea.Cmd {
 // new-collection row unless jumping.
 func (p *Picker) rowCount() int {
 	if p.jump {
-		return len(p.names)
+		return len(p.rows)
 	}
 	return len(p.names) + 1
 }
@@ -175,9 +182,15 @@ func (p *Picker) sortNames() {
 		}
 		return strings.Compare(strings.ToLower(a.Name), strings.ToLower(b.Name))
 	})
-	p.names = p.names[:0]
+	p.names, p.rows = p.names[:0], p.rows[:0]
 	for _, c := range cols {
 		p.names = append(p.names, c.Name)
+		if p.jump {
+			p.rows = append(p.rows, jumpRow{col: c.Name})
+			for _, it := range c.Items {
+				p.rows = append(p.rows, jumpRow{col: c.Name, ref: it.Ref})
+			}
+		}
 	}
 }
 
@@ -220,7 +233,19 @@ func (p *Picker) Update(kp tea.KeyPressMsg) tea.Cmd {
 		p.cursor = min(p.cursor+1, max(p.rowCount()-1, 0))
 	case "k", "up":
 		p.cursor = max(p.cursor-1, 0)
-	case "tab": // the cursor stays on the same collection
+	case "tab": // the cursor stays on the same collection (or item)
+		if p.jump {
+			var cur jumpRow
+			if p.cursor < len(p.rows) {
+				cur = p.rows[p.cursor]
+			}
+			p.alpha = !p.alpha
+			p.sortNames()
+			if i := slices.Index(p.rows, cur); i >= 0 {
+				p.cursor = i
+			}
+			return nil
+		}
 		cur := ""
 		if p.cursor < len(p.names) {
 			cur = p.names[p.cursor]
@@ -232,10 +257,10 @@ func (p *Picker) Update(kp tea.KeyPressMsg) tea.Cmd {
 		}
 	case "enter":
 		if p.jump {
-			if p.cursor < len(p.names) {
-				name := p.names[p.cursor]
+			if p.cursor < len(p.rows) {
+				r := p.rows[p.cursor]
 				p.close()
-				return func() tea.Msg { return jumpCollectionMsg{name} }
+				return func() tea.Msg { return jumpCollectionMsg{r.col, r.ref} }
 			}
 			return nil
 		}
@@ -284,12 +309,22 @@ func (p Picker) View() string {
 	if p.jump {
 		dim := lipgloss.NewStyle().Foreground(p.pal.Dim)
 		fg := lipgloss.NewStyle().Foreground(p.pal.Fg)
+		bold := fg.Bold(true)
 		rows = rows[:0]
-		for _, n := range p.names {
-			col, _ := p.store.Get(n)
-			rows = append(rows, fg.Render(n)+dim.Render(fmt.Sprintf("  ·  %d", len(col.Items))))
+		for _, r := range p.rows {
+			col, _ := p.store.Get(r.col)
+			if r.ref == "" {
+				rows = append(rows, bold.Render(r.col)+dim.Render(fmt.Sprintf("  ·  %d", len(col.Items))))
+				continue
+			}
+			for _, it := range col.Items {
+				if it.Ref == r.ref {
+					rows = append(rows, "  "+fg.Render(it.Label)+dim.Render("  ·  "+it.Book))
+					break
+				}
+			}
 		}
-		hint = "enter go · j/k move · " + sort + " · esc close"
+		hint = "enter open · j/k move · " + sort + " · esc close"
 		return listBox(p.pal, p.w, p.h, "Go to collection", rows, p.cursor, "", hint)
 	}
 	if p.typing {

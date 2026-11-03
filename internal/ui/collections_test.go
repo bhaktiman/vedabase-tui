@@ -258,7 +258,7 @@ func TestJumpPickerListsAndOrders(t *testing.T) {
 	a, _ := jumpApp(t, store.State{LastRef: "bg/2/13"})
 	drive(a, key("c"))
 	v := plain(a)
-	for _, w := range []string{"Go to collection", "Beta  ·  2", "Alpha  ·  1", "enter go", "recent first (tab: A–Z)"} {
+	for _, w := range []string{"Go to collection", "Beta  ·  2", "Alpha  ·  1", "enter open", "recent first (tab: A–Z)"} {
 		if !strings.Contains(v, w) {
 			t.Errorf("view lacks %q:\n%s", w, v)
 		}
@@ -273,13 +273,14 @@ func TestJumpPickerListsAndOrders(t *testing.T) {
 	if !slices.Equal(a.picker.names, []string{"Alpha", "Beta"}) {
 		t.Fatalf("A–Z order %v", a.picker.names)
 	}
-	// The cursor stops at the last collection, not on a phantom row.
-	drive(a, key("j"), key("j"), key("j"))
-	if a.picker.cursor != 1 {
+	// Rows: Alpha, its item, Beta, its two items. The cursor stops at the
+	// last row, not on a phantom one.
+	drive(a, key("j"), key("j"), key("j"), key("j"), key("j"), key("j"))
+	if a.picker.cursor != 4 {
 		t.Fatalf("cursor %d", a.picker.cursor)
 	}
 	a.picker.Wheel(5)
-	if a.picker.cursor != 1 {
+	if a.picker.cursor != 4 {
 		t.Fatalf("wheel cursor %d", a.picker.cursor)
 	}
 	// A normal `s` picker afterwards still has its extra row.
@@ -296,7 +297,7 @@ func TestJumpPickerClick(t *testing.T) {
 	if a.picker.cursor != 1 {
 		t.Fatalf("cursor %d", a.picker.cursor)
 	}
-	if cmd := a.picker.Click(5, 4); cmd != nil { // below the last row
+	if cmd := a.picker.Click(5, 7); cmd != nil { // below the last row
 		t.Fatal("clicked a phantom row")
 	}
 	drive(a, a.picker.Click(5, 3))
@@ -322,7 +323,7 @@ func TestJumpToastsWhenEmptyOrUnavailable(t *testing.T) {
 func TestJumpRevealsInSidebar(t *testing.T) {
 	a, _ := jumpApp(t, store.State{LastRef: "bg/2/13"})
 	a.focusTree = false
-	drive(a, key("c"), key("j"), key("enter")) // Alpha
+	drive(a, key("c"), key("j"), key("j"), key("j"), key("enter")) // Alpha
 	n := a.tree.Selected()
 	if n == nil || n.Seg != "Alpha" || n.Parent == nil || n.Parent.Ref != library.CollectionsRef {
 		t.Fatalf("selected %+v", n)
@@ -350,7 +351,7 @@ func TestJumpWithoutSidebarOpensOverlayInside(t *testing.T) {
 		"zen":    {LastRef: "bg/2/13", Zen: true},
 	} {
 		a, _ := jumpApp(t, st)
-		drive(a, key("c"), key("j"), key("enter")) // Alpha
+		drive(a, key("c"), key("j"), key("j"), key("j"), key("enter")) // Alpha
 		if !a.colview.visible || a.colview.in != "Alpha" || a.picker.visible {
 			t.Fatalf("%s: colview %v in %q", name, a.colview.visible, a.colview.in)
 		}
@@ -374,7 +375,7 @@ func TestHelpHasCollectionsGroupInTwoColumns(t *testing.T) {
 	a, _, _ := colApp(t, newFake(t), store.State{LastRef: "bg/2/13"})
 	drive(a, key("?"))
 	v := plain(a)
-	for _, w := range []string{"Collections", "Jump to collection", "Manage collections", "Remove item", "Export collection"} {
+	for _, w := range []string{"Collections", "Jump to collection / item", "Manage collections", "Remove item", "Export collection"} {
 		if !strings.Contains(v, w) {
 			t.Errorf("help lacks %q", w)
 		}
@@ -393,5 +394,41 @@ func TestHelpHasCollectionsGroupInTwoColumns(t *testing.T) {
 	}
 	if strings.Contains(v, "Open collections") {
 		t.Error("stale Overlays rows")
+	}
+}
+
+// The `c` picker lists each collection's items under it; Enter on an item
+// opens it as the sidebar would, inside its collection.
+func TestJumpPickerListsAndOpensItems(t *testing.T) {
+	a, _ := jumpApp(t, store.State{LastRef: "bg/1/1"})
+	drive(a, key("c"))
+	want := []jumpRow{{"Beta", ""}, {"Beta", "bg/2/13"}, {"Beta", "bg/2/1"}, {"Alpha", ""}, {"Alpha", "bg/1/1"}}
+	if !slices.Equal(a.picker.rows, want) {
+		t.Fatalf("rows %v", a.picker.rows)
+	}
+	v := plain(a)
+	for _, w := range []string{"Beta  ·  2", "    L bg/2/13  ·  bg", "enter open"} {
+		if !strings.Contains(v, w) {
+			t.Errorf("view lacks %q:\n%s", w, v)
+		}
+	}
+	drive(a, key("j"), key("j"), key("enter")) // Beta's bg/2/1
+	if a.picker.visible || a.colview.visible {
+		t.Fatal("overlay still open")
+	}
+	if a.ref != "bg/2/1" || a.focusTree {
+		t.Fatalf("ref %q focusTree %v", a.ref, a.focusTree)
+	}
+	if name, ok := library.InCollection(a.node); !ok || name != "Beta" {
+		t.Fatalf("node %+v not under Beta", a.node)
+	}
+	if n := a.tree.Selected(); n != a.node {
+		t.Fatalf("sidebar cursor on %+v", n)
+	}
+	// Without a sidebar it still opens the item, no overlay.
+	b, _ := jumpApp(t, store.State{LastRef: "bg/1/1", Zen: true})
+	drive(b, key("c"), key("j"), key("enter"))
+	if b.ref != "bg/2/13" || b.colview.visible || b.picker.visible {
+		t.Fatalf("zen: ref %q colview %v", b.ref, b.colview.visible)
 	}
 }

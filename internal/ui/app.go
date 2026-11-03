@@ -303,6 +303,9 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case yearPageMsg:
 		return a, a.onYearPage(m)
 	case jumpCollectionMsg:
+		if m.ref != "" {
+			return a, a.openCollectionItem(m.name, m.ref)
+		}
 		a.jumpToCollection(m.name)
 		return a, nil
 	case searchOpenMsg:
@@ -1117,6 +1120,17 @@ func (a *App) removeFromSidebar(name, r string) tea.Cmd {
 		a.tree.Reveal(target)
 	}
 	return a.Toast("Removed "+itemName(it)+" from "+name, false)
+}
+
+// openCollectionItem opens an item from the `c` picker the way the sidebar
+// does: inside its collection, with the reader focused.
+func (a *App) openCollectionItem(name, ref string) tea.Cmd {
+	a.focusTree = false
+	var from *library.Node
+	if a.lib != nil {
+		from = a.lib.CollectionItem(name, ref)
+	}
+	return a.open(ref, from)
 }
 
 // jumpToCollection shows a collection: in the sidebar, opened with the cursor
