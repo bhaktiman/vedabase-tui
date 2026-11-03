@@ -2,6 +2,7 @@ package ui
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -314,5 +315,160 @@ func TestFindSeesTheNote(t *testing.T) {
 	drive(a, key("enter"))
 	if len(a.reader.matches) != 1 || !strings.Contains(ansiRe.ReplaceAllString(a.reader.lines[a.reader.matches[0].line], ""), "Bg. 4.2") {
 		t.Fatalf("matches = %+v", a.reader.matches)
+	}
+}
+
+func twoStores(t *testing.T) (a, b *notes.Store, path string) {
+	t.Helper()
+	path = filepath.Join(t.TempDir(), "notes.json")
+	var err error
+	if a, _, err = notes.Open(path); err != nil {
+		t.Fatal(err)
+	}
+	if b, _, err = notes.Open(path); err != nil {
+		t.Fatal(err)
+	}
+	return
+}
+
+func freshNote(t *testing.T, path, ref string) string {
+	t.Helper()
+	r, _, err := notes.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return noteText(r, ref)
+}
+
+// Opening the editor on a note another window wrote, then closing it
+// untouched, must not delete that note.
+func TestStaleEditorDoesNotClobberOtherWindow(t *testing.T) {
+	sa, sb, path := twoStores(t)
+	a, _, _ := noteAppWith(t, newFake(t), sa)
+	if err := sb.Set("bg/2/13", "from B", noteNow); err != nil {
+		t.Fatal(err)
+	}
+	drive(a, key("a"))
+	if a.noteEd.ta.Value() != "from B" {
+		t.Fatalf("prefill %q", a.noteEd.ta.Value())
+	}
+	drive(a, key("esc"))
+	if a.noteEd.visible || freshNote(t, path, "bg/2/13") != "from B" {
+		t.Fatalf("visible=%v note=%q", a.noteEd.visible, freshNote(t, path, "bg/2/13"))
+	}
+}
+
+// B writes while A's editor is already open and A closes it unchanged.
+func TestUnchangedCloseNeverWrites(t *testing.T) {
+	sa, sb, path := twoStores(t)
+	a, _, _ := noteAppWith(t, newFake(t), sa)
+	sa.Set("bg/2/13", "old", noteNow)
+	drive(a, key("a"))
+	sb.Set("bg/2/13", "newer from B", noteNow)
+	rev := a.noteRev
+	drive(a, key("esc"))
+	if freshNote(t, path, "bg/2/13") != "newer from B" || a.noteRev != rev || a.noteEd.visible {
+		t.Fatalf("note=%q rev %d->%d", freshNote(t, path, "bg/2/13"), rev, a.noteRev)
+	}
+}
+
+func TestEditedConflictAsksThenOverwrites(t *testing.T) {
+	sa, sb, path := twoStores(t)
+	a, _, _ := noteAppWith(t, newFake(t), sa)
+	sa.Set("bg/2/13", "old", noteNow)
+	drive(a, key("a"))
+	typeKeys(a, "!")
+	sb.Set("bg/2/13", "B's edit", noteNow)
+	drive(a, key("esc"))
+	if !a.noteEd.visible || a.noteEd.ta.Value() != "old!" || !strings.Contains(toastText(a), "changed in another window") {
+		t.Fatalf("visible=%v value=%q toast=%q", a.noteEd.visible, a.noteEd.ta.Value(), toastText(a))
+	}
+	if freshNote(t, path, "bg/2/13") != "B's edit" {
+		t.Fatal("conflict wrote")
+	}
+	drive(a, key("esc"))
+	if a.noteEd.visible || freshNote(t, path, "bg/2/13") != "old!" {
+		t.Fatalf("visible=%v note=%q", a.noteEd.visible, freshNote(t, path, "bg/2/13"))
+	}
+}
+
+func TestFlushNote(t *testing.T) {
+	sa, sb, path := twoStores(t)
+	a, _, _ := noteAppWith(t, newFake(t), sa)
+	if err := a.FlushNote(); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, ok := a.OpenNote(); ok {
+		t.Fatal("OpenNote with no editor")
+	}
+	drive(a, key("a"))
+	if err := a.FlushNote(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(path); err == nil {
+		t.Fatal("unchanged flush wrote a file")
+	}
+	typeKeys(a, "late")
+	if r, text, ok := a.OpenNote(); !ok || r != "bg/2/13" || text != "late" {
+		t.Fatalf("OpenNote %q %q %v", r, text, ok)
+	}
+	if err := a.FlushNote(); err != nil || freshNote(t, path, "bg/2/13") != "late" {
+		t.Fatalf("err=%v note=%q", err, freshNote(t, path, "bg/2/13"))
+	}
+	// a conflicting flush reports it and keeps the text
+	sb.Set("bg/2/13", "B again", noteNow)
+	typeKeys(a, "!")
+	if err := a.FlushNote(); !errors.Is(err, notes.ErrConflict) {
+		t.Fatalf("err = %v", err)
+	}
+	if _, text, ok := a.OpenNote(); !ok || text != "late!" {
+		t.Fatalf("text %q", text)
+	}
+}
+
+func TestFlushNoteStoreFailure(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root can write anywhere")
+	}
+	dir := t.TempDir()
+	ns, _, err := notes.Open(filepath.Join(dir, "notes.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	a, _, _ := noteAppWith(t, newFake(t), ns)
+	drive(a, key("a"))
+	typeKeys(a, "precious")
+	if err := os.Chmod(dir, 0o500); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chmod(dir, 0o700)
+	if err := a.FlushNote(); err == nil {
+		t.Fatal("no error")
+	}
+	if r, text, ok := a.OpenNote(); !ok || r != "bg/2/13" || text != "precious" {
+		t.Fatalf("OpenNote %q %q %v", r, text, ok)
+	}
+}
+
+// Saving a note on another item (sidebar focus) must not drop an in-flight
+// render of the item that is open.
+func TestNoteOnOtherItemKeepsInFlightRender(t *testing.T) {
+	a, _, _ := noteApp(t, nil)
+	msg := a.renderCmd()().(renderedMsg)
+	msg.out = "INFLIGHTRENDER"
+	n := a.lib.Find("bg/2/1")
+	if n == nil {
+		t.Skip("no bg/2/1 in library")
+	}
+	a.focusTree = true
+	a.tree.Reveal(n)
+	drive(a, key("a"))
+	if !a.noteEd.visible || a.noteEd.ref != "bg/2/1" {
+		t.Fatalf("editor on %q", a.noteEd.ref)
+	}
+	typeKeys(a, "elsewhere")
+	drive(a, key("esc"), msg)
+	if !strings.Contains(plain(a), "INFLIGHTRENDER") {
+		t.Fatal("in-flight render of the open item was dropped")
 	}
 }

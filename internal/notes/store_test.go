@@ -327,3 +327,74 @@ func TestConcurrentSet(t *testing.T) {
 		t.Fatalf("notes = %d", n)
 	}
 }
+
+func TestRefreshAdoptsExternalChange(t *testing.T) {
+	p := tmpPath(t)
+	a := mustOpen(t, p)
+	b := mustOpen(t, p)
+	b.Set("a/2", "from b", t0)
+	if a.Has("a/2") {
+		t.Fatal("precondition")
+	}
+	if err := a.Refresh(); err != nil {
+		t.Fatal(err)
+	}
+	if n, _ := a.Get("a/2"); n.Text != "from b" {
+		t.Fatalf("got %q", n.Text)
+	}
+}
+
+func TestRefreshMovesCorruptFileAside(t *testing.T) {
+	p := tmpPath(t)
+	a := mustOpen(t, p)
+	a.Set("a/1", "mine", t0)
+	if err := os.WriteFile(p, []byte("{garbage"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.Refresh(); err == nil || !strings.Contains(err.Error(), "kept as") {
+		t.Fatalf("err = %v", err)
+	}
+	bad, _ := filepath.Glob(p + ".bad-*")
+	if len(bad) != 1 {
+		t.Fatalf("bad files %v", bad)
+	}
+	if n, _ := a.Get("a/1"); n.Text != "mine" {
+		t.Fatal("memory lost")
+	}
+	if r := mustOpen(t, p); !r.Has("a/1") {
+		t.Fatal("our copy not restored")
+	}
+}
+
+func TestSetIf(t *testing.T) {
+	p := tmpPath(t)
+	a := mustOpen(t, p)
+	b := mustOpen(t, p)
+	// absent counts as ""
+	if err := a.SetIf("a/1", "", "one", t0); err != nil {
+		t.Fatal(err)
+	}
+	// B changed it under A: conflict, nothing written
+	b.Set("a/1", "two", t0)
+	if err := a.SetIf("a/1", "one", "three", t0); err != ErrConflict {
+		t.Fatalf("err = %v", err)
+	}
+	if r := mustOpen(t, p); func() string { n, _ := r.Get("a/1"); return n.Text }() != "two" {
+		t.Fatal("conflict wrote")
+	}
+	// matching orig after the reload: ok, and deleting works
+	if err := a.SetIf("a/1", "two", "", t0); err != nil {
+		t.Fatal(err)
+	}
+	if r := mustOpen(t, p); r.Has("a/1") {
+		t.Fatal("not deleted")
+	}
+	// B wrote a note where A saw none: A's delete-of-nothing conflicts
+	b.Set("a/2", "b's", t0)
+	if err := a.SetIf("a/2", "", "", t0); err != ErrConflict {
+		t.Fatalf("err = %v", err)
+	}
+	if r := mustOpen(t, p); !r.Has("a/2") {
+		t.Fatal("b's note deleted")
+	}
+}

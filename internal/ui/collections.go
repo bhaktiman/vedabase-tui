@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -480,6 +481,10 @@ func (c *CollectionsView) Update(kp tea.KeyPressMsg) tea.Cmd {
 				d = -1
 			}
 			if err := c.store.Move(c.in, it.Ref, d); err != nil {
+				if errors.Is(err, collections.ErrNotFound) { // another window removed it
+					c.clamp()
+					return toastCmd("That item is no longer in "+c.in, false)
+				}
 				return toastCmd("Couldn't save: "+err.Error(), true)
 			}
 			col, _ := c.store.Get(c.in)

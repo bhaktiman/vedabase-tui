@@ -116,38 +116,10 @@ func (s *Store) mutate(fn func(notes map[string]Note) (map[string]Note, error)) 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	changed, err := s.fileChanged()
-	if err != nil {
+	if err := s.sync(); err != nil {
 		return err
 	}
 	base := s.notes
-	if changed {
-		notes, err := s.load()
-		var pe *parseError
-		switch {
-		case err == nil:
-			// Memory catches up to what is on disk together with the
-			// fingerprint, even if fn or the write below then fails.
-			s.notes = notes
-			base = notes
-		case errors.As(err, &pe):
-			// Never overwrite what we cannot read. Memory stays as it was, so
-			// the next mutation (file now absent) writes it back.
-			bad, mvErr := moveAside(s.path)
-			if mvErr != nil {
-				return fmt.Errorf("notes: file changed on disk and is unreadable (%v); could not move it aside: %w", pe.err, mvErr)
-			}
-			// Put our copy back at once so quitting now does not leave only
-			// the garbage file. The mutation itself is still refused.
-			if wErr := s.write(base); wErr != nil {
-				s.noteFile()
-				return fmt.Errorf("notes: file changed on disk and is unreadable (%v); kept as %s; could not restore: %w", pe.err, bad, wErr)
-			}
-			return fmt.Errorf("notes: file changed on disk and is unreadable (%v); kept as %s", pe.err, bad)
-		default:
-			return err
-		}
-	}
 
 	next, err := fn(maps.Clone(base))
 	if err != nil {
@@ -163,6 +135,78 @@ func (s *Store) mutate(fn func(notes map[string]Note) (map[string]Note, error)) 
 	}
 	s.notes = next
 	return nil
+}
+
+// sync adopts the file if another process changed it; a file that cannot be
+// parsed is moved aside and the error says so. Caller holds s.mu.
+func (s *Store) sync() error {
+	changed, err := s.fileChanged()
+	if err != nil {
+		return err
+	}
+	if !changed {
+		return nil
+	}
+	notes, err := s.load()
+	var pe *parseError
+	switch {
+	case err == nil:
+		// Memory catches up to what is on disk together with the
+		// fingerprint, even if the caller's change or write then fails.
+		s.notes = notes
+		return nil
+	case errors.As(err, &pe):
+		// Never overwrite what we cannot read. Memory stays as it was, so
+		// the next mutation (file now absent) writes it back.
+		bad, mvErr := moveAside(s.path)
+		if mvErr != nil {
+			return fmt.Errorf("notes: file changed on disk and is unreadable (%v); could not move it aside: %w", pe.err, mvErr)
+		}
+		// Put our copy back at once so quitting now does not leave only
+		// the garbage file. The mutation itself is still refused.
+		if wErr := s.write(s.notes); wErr != nil {
+			s.noteFile()
+			return fmt.Errorf("notes: file changed on disk and is unreadable (%v); kept as %s; could not restore: %w", pe.err, bad, wErr)
+		}
+		return fmt.Errorf("notes: file changed on disk and is unreadable (%v); kept as %s", pe.err, bad)
+	default:
+		return err
+	}
+}
+
+// Refresh adopts changes another process made to the file, so Get is current.
+func (s *Store) Refresh() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.sync()
+}
+
+// ErrConflict is returned by SetIf when the note is not what the caller saw.
+var ErrConflict = errors.New("notes: note changed elsewhere")
+
+// SetIf is Set, but only when the stored text on ref (after catching up with
+// the file; absent counts as "") equals orig. Otherwise it returns ErrConflict
+// and changes nothing.
+func (s *Store) SetIf(ref, orig, text string, now time.Time) error {
+	del := strings.TrimSpace(text) == ""
+	return s.mutate(func(notes map[string]Note) (map[string]Note, error) {
+		have, ok := notes[ref]
+		if have.Text != orig {
+			return nil, ErrConflict
+		}
+		if del {
+			if !ok {
+				return nil, nil
+			}
+			delete(notes, ref)
+			return notes, nil
+		}
+		if ok && have.Text == text {
+			return nil, nil
+		}
+		notes[ref] = Note{Text: text, Updated: now.UTC()}
+		return notes, nil
+	})
 }
 
 // write persists notes atomically and records the new fingerprint. It does not

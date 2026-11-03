@@ -146,7 +146,12 @@ func (a *App) openCopyMenu() tea.Cmd {
 	if len(verse) > 0 {
 		rows = append(rows, copyRow{"Verse", "verse", strings.Join(verse, "\n\n")})
 	}
-	rows = append(rows, copyRow{"Everything", "text", render.InlineLinks(export.ItemText(it, a.metaFor(r), a.state.Parts))})
+	// Links become labels in the item's own text only; the note is copied as typed.
+	plain := it
+	for _, f := range []*string{&plain.Devanagari, &plain.VerseText, &plain.Synonyms, &plain.Translation, &plain.Purport} {
+		*f = render.InlineLinks(*f)
+	}
+	rows = append(rows, copyRow{"Everything", "text", export.ItemText(plain, a.metaFor(r), a.state.Parts)})
 	a.copyMenu = copyMenu{visible: true, rows: rows}
 	return nil
 }

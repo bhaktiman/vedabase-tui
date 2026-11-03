@@ -1178,6 +1178,10 @@ func (a *App) removeFromSidebar(name, r string) tea.Cmd {
 // collection (sidebar K/J); the cursor stays on it.
 func (a *App) moveInSidebar(name, r string, delta int) tea.Cmd {
 	if err := a.cols.Move(name, r, delta); err != nil {
+		if errors.Is(err, collections.ErrNotFound) { // another window removed it
+			a.syncCollections()
+			return a.Toast("That item is no longer in "+name, false)
+		}
 		return a.Toast("Couldn't save: "+err.Error(), true)
 	}
 	a.syncCollections()

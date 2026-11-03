@@ -126,3 +126,23 @@ func TestCopyEverythingHasNote(t *testing.T) {
 	}
 	t.Fatal("no Everything row")
 }
+
+// A [[x|y]] the user typed in a note is copied as typed; the item's own
+// links still become labels.
+func TestCopyEverythingKeepsNoteLiteral(t *testing.T) {
+	a, ns, _ := markApp(t)
+	if err := ns.Set("bg/2/13", "see [[bg/1/1|Bg 1.1]]", noteNow); err != nil {
+		t.Fatal(err)
+	}
+	a.item.Translation = "As in [[bg/2/12|Bg 2.12]]."
+	a.openCopyMenu()
+	for _, r := range a.copyMenu.rows {
+		if r.label == "Everything" {
+			if !strings.Contains(r.text, "see [[bg/1/1|Bg 1.1]]") || !strings.Contains(r.text, "As in Bg 2.12.") {
+				t.Fatalf("Everything:\n%s", r.text)
+			}
+			return
+		}
+	}
+	t.Fatal("no Everything row")
+}

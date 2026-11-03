@@ -110,6 +110,9 @@ func (s *Store) Add(name string, it Item) (added bool, err error) {
 	return added && err == nil, err
 }
 
+// ErrNotFound is wrapped by Remove and Move when the item is not in the collection.
+var ErrNotFound = errors.New("not in collection")
+
 func (s *Store) Remove(name, ref string) error {
 	return s.mutate(func(cols []Collection) ([]Collection, error) {
 		i := find(cols, name)
@@ -122,7 +125,7 @@ func (s *Store) Remove(name, ref string) error {
 				return cols, nil
 			}
 		}
-		return nil, fmt.Errorf("collections: %q is not in %q", ref, cols[i].Name)
+		return nil, fmt.Errorf("collections: %q is not in %q: %w", ref, cols[i].Name, ErrNotFound)
 	})
 }
 
@@ -151,7 +154,7 @@ func (s *Store) Move(name, ref string, delta int) error {
 			items[k] = it
 			return cols, nil
 		}
-		return nil, fmt.Errorf("collections: %q is not in %q", ref, cols[i].Name)
+		return nil, fmt.Errorf("collections: %q is not in %q: %w", ref, cols[i].Name, ErrNotFound)
 	})
 }
 

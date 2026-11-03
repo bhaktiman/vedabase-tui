@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 
@@ -91,8 +92,13 @@ func run() error {
 		Updater:     updater,
 		InstallDir:  installDir,
 	})
-	_, err = tea.NewProgram(app).Run()
-	app.FlushNote() // a note still open when the program ended any way but a key
+	p := tea.NewProgram(app)
+	quitOnHangup(p)
+	_, err = p.Run()
+	// A note still open when the program ended any way but a key.
+	if ferr := app.FlushNote(); ferr != nil {
+		keepUnsaved(app, paths.Data, ferr)
+	}
 	if err != nil {
 		return err
 	}
@@ -103,4 +109,19 @@ func run() error {
 		return nil
 	}
 	return nil
+}
+
+// keepUnsaved writes the note text that could not be saved next to the notes
+// file, so closing the program never loses it, and says where it went.
+func keepUnsaved(app *ui.App, dataDir string, cause error) {
+	r, text, ok := app.OpenNote()
+	if !ok {
+		return
+	}
+	path := filepath.Join(dataDir, "notes.json.unsaved-"+time.Now().Format("20060102-150405"))
+	if err := os.WriteFile(path, []byte(text), 0o600); err != nil {
+		fmt.Fprintf(os.Stderr, "vedabase: could not save your note on %s: %v; and could not keep it in %s: %v\n", r, cause, path, err)
+		return
+	}
+	fmt.Fprintf(os.Stderr, "vedabase: could not save your note on %s: %v; kept in %s\n", r, cause, path)
 }
