@@ -226,6 +226,7 @@ Press `?` in the app for the same list.
 | `gg` / `G` | Top / bottom (first / last in the tree) |
 | `1` – `5` | Toggle Devanagari, verse, synonyms, translation, purport |
 | `o` | Open the current item on vedabase.cc |
+| `y` | Copy menu: `1` reference + link, `2` translation, `3` verse, `4` everything (`Esc` closes). Uses the terminal clipboard (OSC 52) and, if installed, `clip.exe` / `pbcopy` / `wl-copy` / `xclip` / `xsel` |
 | `Backspace` / `[` | Back to where you were before following a link (scroll restored) |
 | `]` | Forward again |
 | `f` (reader) | Show key labels on the links on screen; type one to follow it, `Esc` cancels |

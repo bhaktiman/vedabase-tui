@@ -128,6 +128,8 @@ type App struct {
 
 	search      Search
 	picker      Picker
+	copyMenu    copyMenu
+	clip        clipEnv
 	colview     CollectionsView
 	themes      themePicker
 	langs       langPicker
@@ -189,6 +191,7 @@ func New(o Options) *App {
 	a.search = NewSearch(a.pal)
 	a.search.be = o.Backend
 	a.search.lang = func() string { return a.lang }
+	a.clip = defaultClipEnv()
 	a.picker = NewPicker(a.pal)
 	a.picker.now = a.now
 	a.colview = NewCollectionsView(a.pal)
@@ -820,6 +823,8 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 	}
 	if a.lib != nil && kp.String() != "ctrl+c" {
 		switch {
+		case a.copyMenu.visible:
+			return a.copyKey(kp)
 		case a.picker.visible:
 			return a.picker.Update(kp)
 		case a.colview.visible:
@@ -939,6 +944,8 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 		return nil
 	case "o":
 		return a.openItemWeb()
+	case "y":
+		return a.openCopyMenu()
 	case "R":
 		if name, ok := a.sidebarCollection(); ok {
 			return a.colview.StartRename(a.cols, name)

@@ -76,6 +76,20 @@ func parts(it api.Item, p api.Parts) string {
 	return strings.Join(out, "\n\n")
 }
 
+// ItemText is an item as Markdown without front matter: heading, the visible
+// parts and the read link. It is what the reader copies to the clipboard.
+func ItemText(it api.Item, m Meta, p api.Parts) string {
+	var b strings.Builder
+	b.WriteString("# " + label(it, it.Ref, m.BookTitle) + "\n")
+	if s := parts(it, p); s != "" {
+		b.WriteString("\n" + s + "\n")
+	}
+	if it.URL != "" {
+		b.WriteString("\n" + readLink(it.URL))
+	}
+	return b.String()
+}
+
 // ItemMarkdown renders one item with front matter.
 func ItemMarkdown(it api.Item, m Meta, p api.Parts, today time.Time) string {
 	var b strings.Builder
