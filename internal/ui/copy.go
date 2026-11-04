@@ -61,12 +61,12 @@ func (e clipEnv) wsl() bool {
 	return err == nil && strings.Contains(strings.ToLower(string(b)), "microsoft")
 }
 
-// utf16LE is s as UTF-16LE with a byte order mark, which clip.exe needs to
-// read anything beyond ASCII.
+// utf16LE is s as UTF-16LE, which clip.exe needs to read anything beyond
+// ASCII. No byte order mark: clip.exe detects UTF-16 without one and keeps a
+// mark as an invisible first character, which breaks a pasted URL.
 func utf16LE(s string) []byte {
 	u := utf16.Encode([]rune(s))
-	out := make([]byte, 0, 2+2*len(u))
-	out = append(out, 0xFF, 0xFE)
+	out := make([]byte, 0, 2*len(u))
 	for _, c := range u {
 		out = append(out, byte(c), byte(c>>8))
 	}

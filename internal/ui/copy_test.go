@@ -172,7 +172,7 @@ func TestCopyWSLClipExeGetsUTF16(t *testing.T) {
 	if len(*calls) != 1 || (*calls)[0].name != "clip.exe" {
 		t.Fatalf("calls = %+v", *calls)
 	}
-	want := []byte{0xFF, 0xFE}
+	var want []byte // no byte order mark: clip.exe would keep it as a character
 	for _, r := range "Śrīmad-Bhāgavatam ॐ" {
 		want = append(want, byte(r), byte(r>>8)) // all in the BMP
 	}
