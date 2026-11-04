@@ -55,8 +55,8 @@ func TestCopyMenuOpensWithRows(t *testing.T) {
 	a.item = verseItem()
 	drive(a, key("y"))
 	v := plain(a)
-	if !strings.Contains(v, "Copy") || !strings.Contains(v, "Press y again or Enter to copy") ||
-		strings.Index(v, "Press y again") > strings.Index(v, "1 [x] Devanagari") {
+	if !strings.Contains(v, "Copy") || !strings.Contains(v, "Press y or Enter again to copy") ||
+		strings.Index(v, "Press y or Enter again") > strings.Index(v, "1 [x] Devanagari") {
 		t.Fatalf("copy line not at the top:\n%s", v)
 	}
 	for _, w := range []string{"Copy", "1 [x] Devanagari", "2 [x] Verse", "3 [x] Translation", "4 [x] Purport", "5 [x] Link"} {

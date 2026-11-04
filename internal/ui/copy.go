@@ -297,7 +297,7 @@ func (a *App) copyView() string {
 		rows[i] = fmt.Sprintf("%d %s %s", i+1, box, r.label)
 	}
 	// How to copy goes first, under the title: it is the one key that matters.
-	top := lipgloss.NewStyle().Foreground(a.pal.Accent).Bold(true).Render("Press y again or Enter to copy")
+	top := lipgloss.NewStyle().Foreground(a.pal.Accent).Bold(true).Render("Press y or Enter again to copy")
 	return listBox(a.pal, a.w, a.h, "Copy", rows, a.copyMenu.cursor, top,
 		"space or 1-"+fmt.Sprint(len(rows))+" tick · esc close")
 }
