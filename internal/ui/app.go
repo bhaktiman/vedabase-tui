@@ -54,6 +54,7 @@ type Options struct {
 	Version     string     // this build's, shown in the sidebar tag
 	Updater     Updater    // nil: no update check, no U
 	InstallDir  string     // the running binary's directory, for the permission-error hint
+	Changelog   string     // CHANGELOG.md, for "What's new" after an update
 }
 
 // Updater finds and installs a newer release.
@@ -134,6 +135,7 @@ type App struct {
 	search      Search
 	picker      Picker
 	copyMenu    copyMenu
+	whatsNew    whatsNew
 	clip        clipEnv
 	colview     CollectionsView
 	themes      themePicker
@@ -210,12 +212,13 @@ func New(o Options) *App {
 		themeInput(in, a.pal)
 	}
 	a.layout()
+	a.maybeShowWhatsNew(o.Changelog)
 	return a
 }
 
 // State is what gets persisted on quit.
 func (a *App) State() store.State {
-	s := store.State{LastRef: a.ref, Scroll: a.reader.offset, Parts: a.parts, PartsSet: true, TreeHidden: a.state.TreeHidden, Wide: a.state.Wide, HideHints: a.state.HideHints, Zen: a.state.Zen, Theme: a.state.Theme, Lang: a.lang, TreeWidth: a.state.TreeWidth, CopyOff: a.state.CopyOff}
+	s := store.State{LastRef: a.ref, Scroll: a.reader.offset, Parts: a.parts, PartsSet: true, TreeHidden: a.state.TreeHidden, Wide: a.state.Wide, HideHints: a.state.HideHints, Zen: a.state.Zen, Theme: a.state.Theme, Lang: a.lang, TreeWidth: a.state.TreeWidth, CopyOff: a.state.CopyOff, SeenVersion: a.state.SeenVersion}
 	if a.restoreRef == a.ref {
 		s.Scroll = a.restore // the first render has not happened yet
 	}
@@ -848,6 +851,8 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 	}
 	if a.lib != nil && kp.String() != "ctrl+c" {
 		switch {
+		case a.whatsNew.visible:
+			return a.whatsNewKey(kp)
 		case a.copyMenu.visible:
 			return a.copyKey(kp)
 		case a.picker.visible:

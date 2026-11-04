@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	vedabasetui "vedabase-tui"
 
 	tea "charm.land/bubbletea/v2"
 
@@ -114,6 +115,7 @@ func run() error {
 		Version:     ver,
 		Updater:     updater,
 		InstallDir:  installDir,
+		Changelog:   vedabasetui.Changelog,
 	})
 	p := tea.NewProgram(app)
 	quitOnHangup(p)

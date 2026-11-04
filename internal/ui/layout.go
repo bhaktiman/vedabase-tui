@@ -143,6 +143,8 @@ func (a *App) content() string {
 // overlayBox is the box of the open overlay, or "" when none is open.
 func (a *App) overlayBox() string {
 	switch {
+	case a.whatsNew.visible:
+		return a.whatsNewView()
 	case a.help:
 		return a.helpView()
 	case a.search.visible:

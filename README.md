@@ -41,6 +41,8 @@ curl -fsSL https://github.com/bhaktiman/vedabase-tui/releases/latest/download/in
 
 It installs to `~/.local/bin`; then run `vedabase`. When a new version is out,
 the app tells you: press `U` to update. `U` also checks for one at any time.
+After an update, a "What's new" list opens once (`j` / `k` scroll, `Esc`
+closes); the full history is in [CHANGELOG.md](CHANGELOG.md).
 
 Windows without WSL: download `vedabase_windows_amd64.zip` from the
 [latest release](https://github.com/bhaktiman/vedabase-tui/releases/latest),

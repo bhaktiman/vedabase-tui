@@ -203,6 +203,9 @@ type State struct {
 	// CopyOff lists the parts the `y` menu leaves unticked, comma-separated
 	// (devanagari, verse, translation, purport, text, link); empty = all on.
 	CopyOff string `json:"copy_off,omitempty"`
+	// SeenVersion is the last release that ran, so "What's new" opens once
+	// after an update.
+	SeenVersion string `json:"seen_version,omitempty"`
 	// PartsSet marks Parts as chosen by the user, so that "all off" is not mistaken
 	// for an old file with no parts saved.
 	PartsSet bool `json:"parts_set"`

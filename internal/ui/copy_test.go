@@ -150,7 +150,7 @@ func TestCopyOnePartHasNoLabelAndLinkAloneIsTheURL(t *testing.T) {
 	if got := string((*calls)[1].input); got != tURL {
 		t.Fatalf("link only: %q", got)
 	}
-	drive(a, key("y"), key("5"), key("y")) // nothing ticked
+	drive(a, key("y"), key("5"), key("y"))       // nothing ticked
 	if len(*calls) != 2 || !a.copyMenu.visible { // stays open, copies nothing
 		t.Fatalf("nothing ticked: calls %d visible %v", len(*calls), a.copyMenu.visible)
 	}
