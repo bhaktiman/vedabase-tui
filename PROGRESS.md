@@ -30,7 +30,9 @@
 
 **v0.3.2 released (2026-11-03):** collections management, study tools, data_dir; 5 archives + checksums + install.sh; `main` and `feat/vedabase-tui` pushed at 866e8d6.
 
-**Next action:** open questions for the user: user to verify a real `y` paste on WSL; close the collections overlay after sidebar R/D (it no longer has a key: `'` removed 2026-11-03 in 4d99083, unreleased; `c` + sidebar cover it)? Type-to-filter in `c`?
+**v0.3.3 (2026-11-03):** `'` removed (c + sidebar manage collections); `y` is a remembered tick-box menu (Devanagari, Verse, Translation, Purport, Link; letters/prose: Whole text, Link; `copy_off` in state.json), verse copies start with the reference and label parts; clip.exe gets UTF-16LE without a BOM (the BOM broke pasted links); "What's new" dialog after an update from the built-in CHANGELOG.md (root `changelog.go`, `seen_version` in state.json), `W` opens it any time. Release notes = the version's CHANGELOG.md entry.
+
+**Next action:** open questions for the user: close the collections overlay after sidebar R/D? Type-to-filter in `c`?
 
 **Out of scope, future:** a terminal audio player for lectures (via mpv) and "Lectures on this verse" (index built from lecture titles; maybe ask the maintainer for a verse → lectures field). Collapse button not wanted.
 
