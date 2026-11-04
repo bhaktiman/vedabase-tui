@@ -215,7 +215,7 @@ func New(o Options) *App {
 
 // State is what gets persisted on quit.
 func (a *App) State() store.State {
-	s := store.State{LastRef: a.ref, Scroll: a.reader.offset, Parts: a.parts, PartsSet: true, TreeHidden: a.state.TreeHidden, Wide: a.state.Wide, HideHints: a.state.HideHints, Zen: a.state.Zen, Theme: a.state.Theme, Lang: a.lang, TreeWidth: a.state.TreeWidth}
+	s := store.State{LastRef: a.ref, Scroll: a.reader.offset, Parts: a.parts, PartsSet: true, TreeHidden: a.state.TreeHidden, Wide: a.state.Wide, HideHints: a.state.HideHints, Zen: a.state.Zen, Theme: a.state.Theme, Lang: a.lang, TreeWidth: a.state.TreeWidth, CopyOff: a.state.CopyOff}
 	if a.restoreRef == a.ref {
 		s.Scroll = a.restore // the first render has not happened yet
 	}

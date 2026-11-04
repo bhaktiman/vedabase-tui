@@ -200,6 +200,9 @@ type State struct {
 	HideHints  bool      `json:"hide_hints"`
 	Zen        bool      `json:"zen"`                  // distraction-free reading: only the text column
 	TreeWidth  int       `json:"tree_width,omitempty"` // sidebar width dragged by the user; 0 = automatic
+	// CopyOff lists the parts the `y` menu leaves unticked, comma-separated
+	// (devanagari, verse, translation, purport, text, link); empty = all on.
+	CopyOff string `json:"copy_off,omitempty"`
 	// PartsSet marks Parts as chosen by the user, so that "all off" is not mistaken
 	// for an old file with no parts saved.
 	PartsSet bool `json:"parts_set"`

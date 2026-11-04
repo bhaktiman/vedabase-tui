@@ -11,17 +11,22 @@ import (
 	"unicode/utf16"
 
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 
 	"vedabase-tui/internal/ref"
 	"vedabase-tui/internal/render"
 )
 
-// copyRow is one choice of the `y` menu: what it is called, what is copied,
-// and the word for the toast.
-type copyRow struct{ label, noun, text string }
+// copyRow is one part the `y` menu can copy: its key in State.CopyOff, its
+// name, its text, and whether it is ticked.
+type copyRow struct {
+	key, label, text string
+	on               bool
+}
 
 type copyMenu struct {
 	visible bool
+	ref     string // the reference heading a verse copy starts with
 	rows    []copyRow
 	cursor  int
 }
@@ -118,7 +123,8 @@ func (a *App) copyText(s string) tea.Cmd {
 	return tea.Batch(cmds...)
 }
 
-// openCopyMenu opens the `y` menu for the item shown.
+// openCopyMenu opens the `y` menu for the item shown: a tick box per part the
+// item has, all ticked unless the user turned one off before (remembered).
 func (a *App) openCopyMenu() tea.Cmd {
 	if !a.hasItem {
 		return a.Toast("Nothing to copy", false)
@@ -132,93 +138,71 @@ func (a *App) openCopyMenu() tea.Cmd {
 	if link == "" {
 		link = ref.Display(r)
 	}
-	// Most first, peeling a part off each row, the link last. A row that
-	// would copy nothing, or the same as a row above it, is left out.
-	var rows []copyRow
-	add := func(label, noun, text string) {
-		if text == "" {
-			return
-		}
-		for _, x := range rows {
-			if x.text == text {
-				return
-			}
-		}
-		rows = append(rows, copyRow{label, noun, text})
-	}
 	// The item's own text as plain text: no [[ref|label]] markup, no ** bold.
 	part := func(s string) string { return strings.TrimSpace(render.PlainText(s)) }
-	deva, verse, trans, purport := part(unquote(it.Devanagari)), part(unquote(it.VerseText)), part(it.Translation), part(it.Purport)
+	off := map[string]bool{}
+	for _, k := range strings.Split(a.state.CopyOff, ",") {
+		off[k] = true
+	}
+	var rows []copyRow
+	add := func(key, label, text string) {
+		if text != "" {
+			rows = append(rows, copyRow{key: key, label: label, text: text, on: !off[key]})
+		}
+	}
+	verse := part(unquote(it.VerseText))
+	m := copyMenu{visible: true}
 	if verse == "" {
 		// Letters, lectures and prose chapters: the whole text, unlabelled.
 		var t []string
-		for _, x := range []string{trans, purport} {
+		for _, x := range []string{part(it.Translation), part(it.Purport)} {
 			if x != "" {
 				t = append(t, x)
 			}
 		}
-		add("Whole text", "text", strings.Join(t, "\n\n"))
+		add("text", "Whole text", strings.Join(t, "\n\n"))
 	} else {
-		// A verse copy starts with its reference; when it has more than one
-		// part, each is labelled as on the page.
-		type sec struct{ label, text string }
-		sDeva, sVerse, sTrans, sPurp := sec{"Devanagari", deva}, sec{"Verse", verse}, sec{"Translation", trans}, sec{"Purport", purport}
-		quote := func(secs ...sec) string {
-			var have []sec
-			for _, x := range secs {
-				if x.text != "" {
-					have = append(have, x)
-				}
-			}
-			if len(have) == 0 {
-				return ""
-			}
-			out := []string{ref.Display(r)}
-			for _, x := range have {
-				if len(have) > 1 {
-					out = append(out, x.label+"\n"+x.text)
-				} else {
-					out = append(out, x.text)
-				}
-			}
-			return strings.Join(out, "\n\n")
-		}
-		// Each row is named by what it copies: "Devanagari + verse + translation".
-		row := func(secs ...sec) {
-			var names []string
-			for _, x := range secs {
-				if x.text == "" {
-					continue
-				}
-				n := x.label
-				if n != "Devanagari" {
-					n = strings.ToLower(n)
-				}
-				names = append(names, n)
-			}
-			if len(names) == 0 {
-				return
-			}
-			label := strings.Join(names, " + ")
-			label = strings.ToUpper(label[:1]) + label[1:]
-			if len(names) == 1 {
-				label += " only"
-			}
-			noun := strings.Join(names, ", ")
-			if len(names) > 1 {
-				noun = strings.Join(names[:len(names)-1], ", ") + " and " + names[len(names)-1]
-			}
-			add(label, noun, quote(secs...))
-		}
-		row(sDeva, sVerse, sTrans, sPurp)
-		row(sDeva, sVerse, sTrans)
-		row(sVerse, sTrans)
-		row(sTrans)
-		row(sDeva)
+		m.ref = ref.Display(r)
+		add("devanagari", "Devanagari", part(unquote(it.Devanagari)))
+		add("verse", "Verse", verse)
+		add("translation", "Translation", part(it.Translation))
+		add("purport", "Purport", part(it.Purport))
 	}
-	add("Link", "link", link)
-	a.copyMenu = copyMenu{visible: true, rows: rows}
+	add("link", "Link", link)
+	m.rows = rows
+	a.copyMenu = m
 	return nil
+}
+
+// copyBody is what the ticked parts copy. A verse starts with its reference
+// and labels each part when there is more than one; the link comes last. The
+// link alone is just the URL.
+func (m copyMenu) copyBody() (text string, names []string) {
+	var on []copyRow
+	for _, r := range m.rows {
+		if r.on {
+			on = append(on, r)
+			names = append(names, strings.ToLower(r.label))
+		}
+	}
+	var parts []string
+	var body []copyRow
+	for _, r := range on {
+		if r.key != "link" {
+			body = append(body, r)
+		}
+	}
+	if len(body) > 0 && m.ref != "" {
+		parts = append(parts, m.ref)
+	}
+	for _, r := range on {
+		if len(body) > 1 && r.key != "link" {
+			parts = append(parts, r.label+"\n"+r.text)
+		} else {
+			parts = append(parts, r.text)
+		}
+	}
+	return strings.Join(parts, "\n\n"), names
 }
 
 // unquote drops the "> " the site puts before each line of a verse.
@@ -231,13 +215,43 @@ func unquote(s string) string {
 	return strings.Join(lines, "\n")
 }
 
-func (a *App) copyChoose(i int) tea.Cmd {
-	if i < 0 || i >= len(a.copyMenu.rows) {
-		return nil
+func (a *App) copyToggle(i int) {
+	m := &a.copyMenu
+	if i < 0 || i >= len(m.rows) {
+		return
 	}
-	row := a.copyMenu.rows[i]
+	m.cursor = i
+	m.rows[i].on = !m.rows[i].on
+	// Remember: CopyOff lists the parts turned off, so the default is all on.
+	off := map[string]bool{}
+	for _, k := range strings.Split(a.state.CopyOff, ",") {
+		if k != "" {
+			off[k] = true
+		}
+	}
+	off[m.rows[i].key] = !m.rows[i].on
+	var keys []string
+	for _, k := range []string{"devanagari", "verse", "translation", "purport", "text", "link"} {
+		if off[k] {
+			keys = append(keys, k)
+		}
+	}
+	a.state.CopyOff = strings.Join(keys, ",")
+	a.persist()
+}
+
+func (a *App) copyDo() tea.Cmd {
+	text, names := a.copyMenu.copyBody()
+	if text == "" {
+		return a.Toast("Nothing ticked — space ticks a part", false)
+	}
 	a.copyMenu.visible = false
-	return tea.Batch(a.copyText(row.text), a.Toast("Copied "+row.noun, false))
+	noun := strings.Join(names, ", ")
+	if n := len(names); n > 1 {
+		noun = strings.Join(names[:n-1], ", ") + " and " + names[n-1]
+	}
+	noun = strings.ReplaceAll(noun, "devanagari", "Devanagari")
+	return tea.Batch(a.copyText(text), a.Toast("Copied "+noun, false))
 }
 
 func (a *App) copyKey(kp tea.KeyPressMsg) tea.Cmd {
@@ -249,36 +263,38 @@ func (a *App) copyKey(kp tea.KeyPressMsg) tea.Cmd {
 		m.cursor = min(m.cursor+1, len(m.rows)-1)
 	case "k", "up":
 		m.cursor = max(m.cursor-1, 0)
-	case "enter":
-		return a.copyChoose(m.cursor)
+	case "space", " ", "x":
+		a.copyToggle(m.cursor)
+	case "enter", "y":
+		return a.copyDo()
 	default:
 		if len(k) == 1 && k[0] >= '1' && k[0] <= '9' {
-			return a.copyChoose(int(k[0] - '1'))
+			a.copyToggle(int(k[0] - '1'))
 		}
 	}
 	return nil
 }
 
-// copyClick selects the row under the click, and chooses it when it already
-// was selected.
+// copyClick ticks or unticks the row under the click.
 func (a *App) copyClick(x, y int) tea.Cmd {
 	i := y - 2
 	vis, top := listView(a.h, len(a.copyMenu.rows), a.copyMenu.cursor)
 	if y < 2 || y-2 >= vis || top+i >= len(a.copyMenu.rows) {
 		return nil
 	}
-	i += top
-	if i == a.copyMenu.cursor {
-		return a.copyChoose(i)
-	}
-	a.copyMenu.cursor = i
+	a.copyToggle(top + i)
 	return nil
 }
 
 func (a *App) copyView() string {
 	rows := make([]string, len(a.copyMenu.rows))
 	for i, r := range a.copyMenu.rows {
-		rows[i] = fmt.Sprintf("%d  %s", i+1, r.label)
+		box := "[ ]"
+		if r.on {
+			box = lipgloss.NewStyle().Foreground(a.pal.Accent).Render("[x]")
+		}
+		rows[i] = fmt.Sprintf("%d %s %s", i+1, box, r.label)
 	}
-	return listBox(a.pal, a.w, a.h, "Copy", rows, a.copyMenu.cursor, "", "1-"+fmt.Sprint(len(rows))+" or enter copy · j/k move · esc close")
+	return listBox(a.pal, a.w, a.h, "Copy", rows, a.copyMenu.cursor, "",
+		"space or 1-"+fmt.Sprint(len(rows))+" tick · y or enter copy · esc close")
 }

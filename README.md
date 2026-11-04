@@ -23,7 +23,7 @@ the public [vedabase.cc API](https://vedabase.cc/en/api/).
   jump to any of them with `c`, rename, delete and reorder them in place.
 - **Notes** on any verse, letter or lecture (`a`), shown at the top of the page.
 - **Find on the page** (`Ctrl-f`), ignoring case and diacritics.
-- **Copy** a verse with its translation, purport or Devanagari, or just the link (`y`).
+- **Copy** the parts you tick, from the Devanagari to the link; the choice is remembered (`y`).
 - **Markdown export** of one item or a whole collection, notes included.
 - **Keep your collections and notes where you like**, for example in a synced
   folder shared between computers (`data_dir`).
@@ -248,7 +248,7 @@ Press `?` in the app for the same list.
 | `gg` / `G` | Top / bottom (first / last in the tree) |
 | `1` – `5` | Toggle Devanagari, verse, synonyms, translation, purport |
 | `o` | Open the current item on vedabase.cc |
-| `y` | Copy menu, most first, each row named by what it copies: `1` Devanagari + verse + translation + purport, then without the purport, verse + translation, translation only, Devanagari only, and the link last. Rows an item doesn't have are left out (letters, lectures and prose: whole text, link). A verse copy starts with its reference (`Bg 6.19`) and labels each part; plain text, no synonyms. Uses the terminal clipboard (OSC 52) and, if installed, `clip.exe` / `pbcopy` / `wl-copy` / `xclip` / `xsel` |
+| `y` | Copy: a tick box for each part the item has (Devanagari, Verse, Translation, Purport, Link; letters, lectures and prose: Whole text, Link). All are ticked at first; `Space` or the row's number ticks and unticks, and your choice is remembered. `y` or `Enter` copies, `Esc` closes. A verse copy starts with its reference (`Bg 6.19`), labels each part when there is more than one, and puts the link last; the link alone is just the URL. Plain text, no synonyms. Uses the terminal clipboard (OSC 52) and, if installed, `clip.exe` / `pbcopy` / `wl-copy` / `xclip` / `xsel` |
 | `Backspace` / `[` | Back to where you were before following a link (scroll restored) |
 | `]` | Forward again |
 | `f` (reader) | Show key labels on the links on screen; type one to follow it, `Esc` cancels |
