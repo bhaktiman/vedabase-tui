@@ -43,7 +43,7 @@ var helpGroups = []struct {
 	{"Overlays", []helpRow{
 		{"/", "Search (ctrl-n/p to results)"}, {"n / N", "Next / previous result"},
 		{":", "Go to reference"}, {"e", "Export item"},
-		{"T", "Choose theme"}, {"L", "Language"}, {"U", "Check for / install updates"},
+		{"T", "Choose theme"}, {"L", "Language"}, {"U / W", "Update / what's new"},
 		{"?", "This help"}, {"q / Esc", "Close overlay; quit"},
 	}},
 }

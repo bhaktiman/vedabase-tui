@@ -42,7 +42,8 @@ curl -fsSL https://github.com/bhaktiman/vedabase-tui/releases/latest/download/in
 It installs to `~/.local/bin`; then run `vedabase`. When a new version is out,
 the app tells you: press `U` to update. `U` also checks for one at any time.
 After an update, a "What's new" list opens once (`j` / `k` scroll, `Esc`
-closes); the full history is in [CHANGELOG.md](CHANGELOG.md).
+closes); `W` opens it again at any time. The full history is in
+[CHANGELOG.md](CHANGELOG.md).
 
 Windows without WSL: download `vedabase_windows_amd64.zip` from the
 [latest release](https://github.com/bhaktiman/vedabase-tui/releases/latest),
@@ -272,6 +273,7 @@ Press `?` in the app for the same list.
 | `T` | Choose a colour theme |
 | `L` | Choose the language |
 | `U` | Check for a new version; when one is out, `U` installs it |
+| `W` | What's new: this version's changes and the few before it |
 | `?` | Help |
 | `q` / `Esc` | Close overlay; quit |
 | Mouse | Drag the line between the sidebar and the reader to resize the sidebar. Click a pane to focus it, a tree row to select or open it, a part label to toggle it, a reference in the text to follow it, `↗ vedabase.cc` (reader) or the `vedabase.cc` tag (sidebar) to open the website; the wheel scrolls |

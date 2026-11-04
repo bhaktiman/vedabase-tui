@@ -136,6 +136,7 @@ type App struct {
 	picker      Picker
 	copyMenu    copyMenu
 	whatsNew    whatsNew
+	changelog   string
 	clip        clipEnv
 	colview     CollectionsView
 	themes      themePicker
@@ -212,6 +213,7 @@ func New(o Options) *App {
 		themeInput(in, a.pal)
 	}
 	a.layout()
+	a.changelog = o.Changelog
 	a.maybeShowWhatsNew(o.Changelog)
 	return a
 }
@@ -944,6 +946,8 @@ func (a *App) onKey(kp tea.KeyPressMsg) tea.Cmd {
 		return a.openPicker()
 	case "a":
 		return a.openNote()
+	case "W":
+		return a.openWhatsNew()
 	case "c":
 		if a.cols == nil {
 			return a.Toast("Collections are unavailable", true)

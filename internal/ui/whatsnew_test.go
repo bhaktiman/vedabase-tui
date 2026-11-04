@@ -152,3 +152,26 @@ func TestBuiltInChangelog(t *testing.T) {
 		}
 	}
 }
+
+// W opens the dialog at any time; a dev build shows the newest entries.
+func TestWOpensWhatsNew(t *testing.T) {
+	a, _ := bootVersion(t, store.State{LastRef: "bg/2/13", SeenVersion: "v0.3.2"}, "v0.3.2", testLog)
+	if a.whatsNew.visible {
+		t.Fatal("shown without an update")
+	}
+	drive(a, key("W"))
+	if v := plain(a); !a.whatsNew.visible || !strings.Contains(v, "What's new in v0.3.2") || strings.Contains(v, "v0.3.3 —") {
+		t.Fatalf("W on v0.3.2:\n%s", v)
+	}
+	drive(a, key("esc"))
+	d, _ := bootVersion(t, store.State{LastRef: "bg/2/13"}, "dev", testLog)
+	drive(d, key("W"))
+	if v := plain(d); !strings.Contains(v, "What's new in v0.3.3") || !strings.Contains(v, "v0.2.1") {
+		t.Fatalf("W on dev:\n%s", v)
+	}
+	n, _ := bootVersion(t, store.State{LastRef: "bg/2/13"}, "dev", "")
+	drive(n, key("W"))
+	if n.whatsNew.visible {
+		t.Fatal("opened with no changelog")
+	}
+}

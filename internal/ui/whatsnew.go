@@ -18,6 +18,7 @@ const whatsNewVersions = 4
 // running version back a few, scrolled with j/k, closed with Esc.
 type whatsNew struct {
 	visible bool
+	title   string // the version in the title
 	md      string // the entries shown, as Markdown
 	top     int    // first body line shown
 }
@@ -58,8 +59,34 @@ func (a *App) maybeShowWhatsNew(changelog string) {
 		return
 	}
 	if md, ok := changelogSince(changelog, a.version, whatsNewVersions); ok {
-		a.whatsNew = whatsNew{visible: true, md: md}
+		a.whatsNew = whatsNew{visible: true, title: a.version, md: md}
 	}
+}
+
+// openWhatsNew is `W`: the same dialog at any time. A build that is not in
+// the changelog (dev) shows the newest entries.
+func (a *App) openWhatsNew() tea.Cmd {
+	v := a.version
+	md, ok := changelogSince(a.changelog, v, whatsNewVersions)
+	if !ok {
+		v = newestVersion(a.changelog)
+		md, ok = changelogSince(a.changelog, v, whatsNewVersions)
+	}
+	if !ok {
+		return a.Toast("No changelog in this build", false)
+	}
+	a.whatsNew = whatsNew{visible: true, title: v, md: md}
+	return nil
+}
+
+// newestVersion is the first "## vX.Y.Z" heading of the changelog.
+func newestVersion(md string) string {
+	for _, l := range strings.Split(md, "\n") {
+		if f := strings.Fields(strings.TrimPrefix(l, "## ")); strings.HasPrefix(l, "## ") && len(f) > 0 {
+			return f[0]
+		}
+	}
+	return ""
 }
 
 var (
@@ -141,7 +168,7 @@ func (a *App) whatsNewView() string {
 	inner, vis, lines := a.whatsNewGeom()
 	top := min(a.whatsNew.top, max(len(lines)-vis, 0))
 	dim := lipgloss.NewStyle().Foreground(a.pal.Dim)
-	body := []string{gradientBold("What's new in "+a.version, stops(a.pal)...), ""}
+	body := []string{gradientBold("What's new in "+a.whatsNew.title, stops(a.pal)...), ""}
 	body = append(body, lines[top:min(top+vis, len(lines))]...)
 	hint := "esc close"
 	if len(lines) > vis {

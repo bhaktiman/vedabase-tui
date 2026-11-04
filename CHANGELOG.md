@@ -6,7 +6,7 @@ after an update; the release notes are copied from here. -->
 
 ## v0.3.3 — 2026-11-03
 
-- **What's new.** After an update, this list opens once so you can see what changed. `Esc` closes it.
+- **What's new.** After an update, this list opens once so you can see what changed. `Esc` closes it, and `W` opens it again at any time.
 - **Copy what you tick.** `y` opens a tick box for each part: Devanagari, Verse, Translation, Purport and Link. All are ticked at first, and your choice is remembered. Press `y` or `Enter` again to copy. A verse copy starts with its reference and labels each part.
 - **Pasting on Windows (WSL) works.** Copied text no longer starts with an invisible character, which broke pasted links in the browser.
 - **One key for collections.** `'` is gone: `c` jumps to a collection or anything in one, and the sidebar renames, deletes and reorders them.
