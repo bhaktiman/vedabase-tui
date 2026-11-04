@@ -82,7 +82,7 @@ func TestCopyNumberCopiesAtOnce(t *testing.T) {
 	if a.copyMenu.visible {
 		t.Fatal("menu still open")
 	}
-	want := strings.TrimSpace(render.PlainText(unquote(a.item.VerseText))) + "\n\n" + strings.TrimSpace(render.PlainText(a.item.Translation))
+	want := "Bg 2.13\n\nVerse\n" + strings.TrimSpace(render.PlainText(unquote(a.item.VerseText))) + "\n\nTranslation\n" + strings.TrimSpace(render.PlainText(a.item.Translation))
 	if len(*calls) != 1 || (*calls)[0].name != "wl-copy" || string((*calls)[0].input) != want {
 		t.Fatalf("calls = %+v", *calls)
 	}
@@ -112,10 +112,10 @@ func verseItem() api.Item {
 func TestCopyVerseRows(t *testing.T) {
 	a := copyApp(t)
 	for k, want := range map[string]string{
-		"2": "dehino 'smin\nyathā dehe\n\nAs the embodied soul…",
-		"3": "dehino 'smin\nyathā dehe\n\nAs the embodied soul…\n\nSince every living entity…",
-		"4": "देहिनोऽस्मिन्\nयथा देहे\n\ndehino 'smin\nyathā dehe\n\nAs the embodied soul…\n\nSince every living entity…",
-		"5": "देहिनोऽस्मिन्\nयथा देहे",
+		"2": "Bg 2.13\n\nVerse\ndehino 'smin\nyathā dehe\n\nTranslation\nAs the embodied soul…",
+		"3": "Bg 2.13\n\nVerse\ndehino 'smin\nyathā dehe\n\nTranslation\nAs the embodied soul…\n\nPurport\nSince every living entity…",
+		"4": "Bg 2.13\n\nDevanagari\nदेहिनोऽस्मिन्\nयथा देहे\n\nVerse\ndehino 'smin\nyathā dehe\n\nTranslation\nAs the embodied soul…\n\nPurport\nSince every living entity…",
+		"5": "Bg 2.13\n\nदेहिनोऽस्मिन्\nयथा देहे",
 	} {
 		calls := stubClip(a, "darwin", nil, "pbcopy")
 		a.item = verseItem()

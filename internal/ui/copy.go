@@ -151,14 +151,35 @@ func (a *App) openCopyMenu() tea.Cmd {
 			rows = append(rows, copyRow{"Text", "text", t})
 		}
 	} else {
+		// A verse copy starts with its reference; when it has more than one
+		// part, each is labelled as on the page.
+		type sec struct{ label, text string }
+		sDeva, sVerse, sTrans, sPurp := sec{"Devanagari", deva}, sec{"Verse", verse}, sec{"Translation", trans}, sec{"Purport", purport}
+		quote := func(secs ...sec) string {
+			var have []sec
+			for _, x := range secs {
+				if x.text != "" {
+					have = append(have, x)
+				}
+			}
+			out := []string{ref.Display(r)}
+			for _, x := range have {
+				if len(have) > 1 {
+					out = append(out, x.label+"\n"+x.text)
+				} else {
+					out = append(out, x.text)
+				}
+			}
+			return strings.Join(out, "\n\n")
+		}
 		// Fixed numbers for every verse: 3 is the same as 2 when there is no purport.
 		rows = append(rows,
-			copyRow{"Verse + translation", "verse and translation", join(verse, trans)},
-			copyRow{"Verse + translation + purport", "verse, translation and purport", join(verse, trans, purport)})
+			copyRow{"Verse + translation", "verse and translation", quote(sVerse, sTrans)},
+			copyRow{"Verse + translation + purport", "verse, translation and purport", quote(sVerse, sTrans, sPurp)})
 		if deva != "" {
 			rows = append(rows,
-				copyRow{"Devanagari + verse + translation + purport", "Devanagari, verse, translation and purport", join(deva, verse, trans, purport)},
-				copyRow{"Devanagari only", "Devanagari", deva})
+				copyRow{"Devanagari + verse + translation + purport", "Devanagari, verse, translation and purport", quote(sDeva, sVerse, sTrans, sPurp)},
+				copyRow{"Devanagari only", "Devanagari", quote(sDeva)})
 		}
 	}
 	a.copyMenu = copyMenu{visible: true, rows: rows}
