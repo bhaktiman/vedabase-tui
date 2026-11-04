@@ -55,6 +55,10 @@ func TestCopyMenuOpensWithRows(t *testing.T) {
 	a.item = verseItem()
 	drive(a, key("y"))
 	v := plain(a)
+	if !strings.Contains(v, "Copy") || !strings.Contains(v, "Press y again or Enter to copy") ||
+		strings.Index(v, "Press y again") > strings.Index(v, "1 [x] Devanagari") {
+		t.Fatalf("copy line not at the top:\n%s", v)
+	}
 	for _, w := range []string{"Copy", "1 [x] Devanagari", "2 [x] Verse", "3 [x] Translation", "4 [x] Purport", "5 [x] Link"} {
 		if !strings.Contains(v, w) {
 			t.Fatalf("missing %q:\n%s", w, v)
@@ -265,11 +269,15 @@ func TestCopyMenuClickAndOutsideClick(t *testing.T) {
 	click := func(x, y int) {
 		drive(a, tea.MouseClickMsg{Button: tea.MouseLeft, X: x, Y: y})
 	}
-	click(r.x+3, r.y+3) // row 2: unticks Verse
+	click(r.x+3, r.y+2) // the "press y" line: nothing
+	if a.copyMenu.cursor != 0 || !a.copyMenu.rows[0].on {
+		t.Fatal("click on the top line ticked a row")
+	}
+	click(r.x+3, r.y+4) // row 2: unticks Verse
 	if a.copyMenu.cursor != 1 || a.copyMenu.rows[1].on || len(*calls) != 0 {
 		t.Fatalf("cursor %d rows %+v calls %v", a.copyMenu.cursor, a.copyMenu.rows, *calls)
 	}
-	click(r.x+3, r.y+3) // again: ticks it back
+	click(r.x+3, r.y+4) // again: ticks it back
 	if !a.copyMenu.rows[1].on || !a.copyMenu.visible {
 		t.Fatal("second click")
 	}

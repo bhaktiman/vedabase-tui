@@ -275,11 +275,12 @@ func (a *App) copyKey(kp tea.KeyPressMsg) tea.Cmd {
 	return nil
 }
 
-// copyClick ticks or unticks the row under the click.
+// copyClick ticks or unticks the row under the click. Rows start on line 3
+// of the box: border, title, the "press y" line.
 func (a *App) copyClick(x, y int) tea.Cmd {
-	i := y - 2
+	i := y - 3
 	vis, top := listView(a.h, len(a.copyMenu.rows), a.copyMenu.cursor)
-	if y < 2 || y-2 >= vis || top+i >= len(a.copyMenu.rows) {
+	if y < 3 || i >= vis || top+i >= len(a.copyMenu.rows) {
 		return nil
 	}
 	a.copyToggle(top + i)
@@ -295,6 +296,8 @@ func (a *App) copyView() string {
 		}
 		rows[i] = fmt.Sprintf("%d %s %s", i+1, box, r.label)
 	}
-	return listBox(a.pal, a.w, a.h, "Copy", rows, a.copyMenu.cursor, "",
-		"space or 1-"+fmt.Sprint(len(rows))+" tick · y or enter copy · esc close")
+	// How to copy goes first, under the title: it is the one key that matters.
+	top := lipgloss.NewStyle().Foreground(a.pal.Accent).Bold(true).Render("Press y again or Enter to copy")
+	return listBox(a.pal, a.w, a.h, "Copy", rows, a.copyMenu.cursor, top,
+		"space or 1-"+fmt.Sprint(len(rows))+" tick · esc close")
 }
