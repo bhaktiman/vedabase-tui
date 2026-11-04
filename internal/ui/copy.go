@@ -132,24 +132,32 @@ func (a *App) openCopyMenu() tea.Cmd {
 	if link == "" {
 		link = ref.Display(r)
 	}
-	rows := []copyRow{{"Link", "link", link}}
-	// The item's own text as plain text: no [[ref|label]] markup, no ** bold.
-	part := func(s string) string { return strings.TrimSpace(render.PlainText(s)) }
-	join := func(parts ...string) string {
-		var out []string
-		for _, p := range parts {
-			if p != "" {
-				out = append(out, p)
+	// Most first, peeling a part off each row, the link last. A row that
+	// would copy nothing, or the same as a row above it, is left out.
+	var rows []copyRow
+	add := func(label, noun, text string) {
+		if text == "" {
+			return
+		}
+		for _, x := range rows {
+			if x.text == text {
+				return
 			}
 		}
-		return strings.Join(out, "\n\n")
+		rows = append(rows, copyRow{label, noun, text})
 	}
+	// The item's own text as plain text: no [[ref|label]] markup, no ** bold.
+	part := func(s string) string { return strings.TrimSpace(render.PlainText(s)) }
 	deva, verse, trans, purport := part(unquote(it.Devanagari)), part(unquote(it.VerseText)), part(it.Translation), part(it.Purport)
 	if verse == "" {
-		// Letters, lectures and prose chapters: one row with the whole text.
-		if t := join(trans, purport); t != "" {
-			rows = append(rows, copyRow{"Text", "text", t})
+		// Letters, lectures and prose chapters: the whole text, unlabelled.
+		var t []string
+		for _, x := range []string{trans, purport} {
+			if x != "" {
+				t = append(t, x)
+			}
 		}
+		add("Whole text", "text", strings.Join(t, "\n\n"))
 	} else {
 		// A verse copy starts with its reference; when it has more than one
 		// part, each is labelled as on the page.
@@ -162,6 +170,9 @@ func (a *App) openCopyMenu() tea.Cmd {
 					have = append(have, x)
 				}
 			}
+			if len(have) == 0 {
+				return ""
+			}
 			out := []string{ref.Display(r)}
 			for _, x := range have {
 				if len(have) > 1 {
@@ -172,16 +183,40 @@ func (a *App) openCopyMenu() tea.Cmd {
 			}
 			return strings.Join(out, "\n\n")
 		}
-		// Fixed numbers for every verse: 3 is the same as 2 when there is no purport.
-		rows = append(rows,
-			copyRow{"Verse + translation", "verse and translation", quote(sVerse, sTrans)},
-			copyRow{"Verse + translation + purport", "verse, translation and purport", quote(sVerse, sTrans, sPurp)})
-		if deva != "" {
-			rows = append(rows,
-				copyRow{"Devanagari + verse + translation + purport", "Devanagari, verse, translation and purport", quote(sDeva, sVerse, sTrans, sPurp)},
-				copyRow{"Devanagari only", "Devanagari", quote(sDeva)})
+		// Each row is named by what it copies: "Devanagari + verse + translation".
+		row := func(secs ...sec) {
+			var names []string
+			for _, x := range secs {
+				if x.text == "" {
+					continue
+				}
+				n := x.label
+				if n != "Devanagari" {
+					n = strings.ToLower(n)
+				}
+				names = append(names, n)
+			}
+			if len(names) == 0 {
+				return
+			}
+			label := strings.Join(names, " + ")
+			label = strings.ToUpper(label[:1]) + label[1:]
+			if len(names) == 1 {
+				label += " only"
+			}
+			noun := strings.Join(names, ", ")
+			if len(names) > 1 {
+				noun = strings.Join(names[:len(names)-1], ", ") + " and " + names[len(names)-1]
+			}
+			add(label, noun, quote(secs...))
 		}
+		row(sDeva, sVerse, sTrans, sPurp)
+		row(sDeva, sVerse, sTrans)
+		row(sVerse, sTrans)
+		row(sTrans)
+		row(sDeva)
 	}
+	add("Link", "link", link)
 	a.copyMenu = copyMenu{visible: true, rows: rows}
 	return nil
 }

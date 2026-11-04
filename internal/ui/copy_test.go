@@ -53,15 +53,18 @@ func copyApp(t *testing.T) *App {
 func TestCopyMenuOpensWithRows(t *testing.T) {
 	a := copyApp(t)
 	stubClip(a, "linux", nil)
+	a.item = verseItem()
+	a.item.Devanagari = ""
 	drive(a, key("y"))
 	v := plain(a)
-	for _, w := range []string{"Copy", "1  Link", "2  Verse + translation", "3  Verse + translation + purport"} {
+	// No Devanagari: most first, named by what it copies, link last.
+	for _, w := range []string{"Copy", "1  Verse + translation + purport", "2  Verse + translation", "3  Translation only", "4  Link"} {
 		if !strings.Contains(v, w) {
 			t.Fatalf("missing %q:\n%s", w, v)
 		}
 	}
 	drive(a, key("esc"))
-	if a.copyMenu.visible || strings.Contains(plain(a), "1  Link") {
+	if a.copyMenu.visible || strings.Contains(plain(a), "4  Link") {
 		t.Fatal("esc did not close")
 	}
 }
@@ -78,7 +81,7 @@ func TestCopyNoItemNoMenu(t *testing.T) {
 func TestCopyNumberCopiesAtOnce(t *testing.T) {
 	a := copyApp(t)
 	calls := stubClip(a, "linux", map[string]string{"WAYLAND_DISPLAY": "w"}, "wl-copy")
-	drive(a, key("y"), key("2"))
+	drive(a, key("y"), key("3")) // the shown verse has Devanagari: 3 is verse + translation
 	if a.copyMenu.visible {
 		t.Fatal("menu still open")
 	}
@@ -89,15 +92,17 @@ func TestCopyNumberCopiesAtOnce(t *testing.T) {
 	if strings.Contains(want, "> ") {
 		t.Fatalf("quote markers copied: %q", want)
 	}
-	if !strings.Contains(plain(a), "Copied verse and translation") {
+	if !strings.Contains(plain(a), "Copied verse and translation") { // toast says what was copied
 		t.Fatal("no toast")
 	}
 }
 
-func TestCopyLinkIsJustTheURL(t *testing.T) {
+func TestCopyLinkIsJustTheURLAndLast(t *testing.T) {
 	a := copyApp(t)
 	calls := stubClip(a, "darwin", nil, "pbcopy")
-	drive(a, key("y"), key("enter"))
+	drive(a, key("y"))
+	n := len(a.copyMenu.rows)
+	drive(a, key(fmt.Sprint(n)))
 	if len(*calls) != 1 || (*calls)[0].name != "pbcopy" || string((*calls)[0].input) != a.item.URL || !strings.HasPrefix(a.item.URL, "https://") {
 		t.Fatalf("calls = %+v", *calls)
 	}
@@ -111,11 +116,14 @@ func verseItem() api.Item {
 
 func TestCopyVerseRows(t *testing.T) {
 	a := copyApp(t)
+	deva, verse := "देहिनोऽस्मिन्\nयथा देहे", "dehino 'smin\nyathā dehe"
 	for k, want := range map[string]string{
-		"2": "Bg 2.13\n\nVerse\ndehino 'smin\nyathā dehe\n\nTranslation\nAs the embodied soul…",
-		"3": "Bg 2.13\n\nVerse\ndehino 'smin\nyathā dehe\n\nTranslation\nAs the embodied soul…\n\nPurport\nSince every living entity…",
-		"4": "Bg 2.13\n\nDevanagari\nदेहिनोऽस्मिन्\nयथा देहे\n\nVerse\ndehino 'smin\nyathā dehe\n\nTranslation\nAs the embodied soul…\n\nPurport\nSince every living entity…",
-		"5": "Bg 2.13\n\nदेहिनोऽस्मिन्\nयथा देहे",
+		"1": "Bg 2.13\n\nDevanagari\n" + deva + "\n\nVerse\n" + verse + "\n\nTranslation\nAs the embodied soul…\n\nPurport\nSince every living entity…",
+		"2": "Bg 2.13\n\nDevanagari\n" + deva + "\n\nVerse\n" + verse + "\n\nTranslation\nAs the embodied soul…",
+		"3": "Bg 2.13\n\nVerse\n" + verse + "\n\nTranslation\nAs the embodied soul…",
+		"4": "Bg 2.13\n\nAs the embodied soul…",
+		"5": "Bg 2.13\n\n" + deva,
+		"6": "https://vedabase.cc/en/library/bg/2/13/",
 	} {
 		calls := stubClip(a, "darwin", nil, "pbcopy")
 		a.item = verseItem()
@@ -134,33 +142,39 @@ func TestCopyJKEnter(t *testing.T) {
 	calls := stubClip(a, "darwin", nil, "pbcopy")
 	a.item = verseItem()
 	drive(a, key("y"), key("j"), key("j"), key("enter"))
-	if len(*calls) != 1 || !strings.HasSuffix(string((*calls)[0].input), "Since every living entity…") || strings.Contains(string((*calls)[0].input), "देहि") {
+	if got := string((*calls)[0].input); len(*calls) != 1 || !strings.HasPrefix(got, "Bg 2.13\n\nVerse\n") || strings.Contains(got, "Purport") {
 		t.Fatalf("calls = %+v", *calls)
 	}
 }
 
-// Without Devanagari there are no rows 4 and 5; without a verse (letters,
-// lectures, prose) one Text row replaces the verse rows.
+// Rows are named by what they copy and follow the item: a row that would
+// repeat one above, or copy nothing, is left out.
 func TestCopyRowsFollowTheItem(t *testing.T) {
 	a := copyApp(t)
 	stubClip(a, "linux", nil)
-	labels := func() (out []string) {
+	labels := func() string {
+		var out []string
 		for _, r := range a.copyMenu.rows {
 			out = append(out, r.label)
 		}
-		return
+		return strings.Join(out, "|")
 	}
 	a.item = verseItem()
-	a.item.Devanagari = ""
 	drive(a, key("y"))
-	if got := strings.Join(labels(), "|"); got != "Link|Verse + translation|Verse + translation + purport" {
-		t.Fatalf("no devanagari: %s", got)
+	if got := labels(); got != "Devanagari + verse + translation + purport|Devanagari + verse + translation|Verse + translation|Translation only|Devanagari only|Link" {
+		t.Fatalf("full verse: %s", got)
+	}
+	drive(a, key("esc"))
+	a.item.Purport = "" // rows 1 and 2 would be the same
+	drive(a, key("y"))
+	if got := labels(); got != "Devanagari + verse + translation|Verse + translation|Translation only|Devanagari only|Link" {
+		t.Fatalf("no purport: %s", got)
 	}
 	drive(a, key("esc"))
 	a.item = api.Item{Ref: "letters/x", URL: "u", Translation: "Dear son,", Purport: "Your servant"}
 	drive(a, key("y"))
-	if got := strings.Join(labels(), "|"); got != "Link|Text" || a.copyMenu.rows[1].text != "Dear son,\n\nYour servant" {
-		t.Fatalf("letter: %s %q", got, a.copyMenu.rows[1].text)
+	if got := labels(); got != "Whole text|Link" || a.copyMenu.rows[0].text != "Dear son,\n\nYour servant" {
+		t.Fatalf("letter: %s %q", got, a.copyMenu.rows[0].text)
 	}
 }
 
@@ -168,7 +182,7 @@ func TestCopyWSLClipExeGetsUTF16(t *testing.T) {
 	a := copyApp(t)
 	calls := stubClip(a, "linux", map[string]string{"WSL_DISTRO_NAME": "Ubuntu"}, "clip.exe", "xclip")
 	a.item = api.Item{Ref: "bg/2/13", Translation: "Śrīmad-Bhāgavatam ॐ"}
-	drive(a, key("y"), key("2"))
+	drive(a, key("y"), key("1"))
 	if len(*calls) != 1 || (*calls)[0].name != "clip.exe" {
 		t.Fatalf("calls = %+v", *calls)
 	}
@@ -195,13 +209,13 @@ func TestCopyUTF8ForOthersAndXToolOrder(t *testing.T) {
 	a := copyApp(t)
 	a.item = api.Item{Ref: "bg/2/13", Translation: "Śrīmad ॐ"}
 	calls := stubClip(a, "linux", map[string]string{"DISPLAY": ":0"}, "xsel", "xclip")
-	drive(a, key("y"), key("2"))
+	drive(a, key("y"), key("1"))
 	c := (*calls)[0]
 	if c.name != "xclip" || strings.Join(c.args, " ") != "-selection clipboard" || string(c.input) != "Śrīmad ॐ" {
 		t.Fatalf("%+v", c)
 	}
 	calls = stubClip(a, "linux", map[string]string{"DISPLAY": ":0"}, "xsel")
-	drive(a, key("y"), key("2"))
+	drive(a, key("y"), key("1"))
 	if c := (*calls)[0]; c.name != "xsel" || strings.Join(c.args, " ") != "--clipboard --input" {
 		t.Fatalf("%+v", c)
 	}
@@ -264,7 +278,7 @@ func TestCopyMenuClickAndOutsideClick(t *testing.T) {
 func TestHelpMentionsCopy(t *testing.T) {
 	a := copyApp(t)
 	drive(a, key("?"))
-	if !strings.Contains(plain(a), "Copy link / verse") {
+	if !strings.Contains(plain(a), "Copy verse / translation") {
 		t.Fatal("help lacks y")
 	}
 }
@@ -277,7 +291,7 @@ func TestCopyStripsMarkup(t *testing.T) {
 	a := copyApp(t)
 	calls := stubClip(a, "linux", map[string]string{"DISPLAY": ":0"}, "xclip")
 	a.item = api.Item{Ref: "bg/2/13", Translation: "As **Kṛṣṇa** says in [[bg/2/12|Bg 2.12]] and [[sb/1/1/1]]."}
-	drive(a, key("y"), key("2"))
+	drive(a, key("y"), key("1"))
 	if len(*calls) != 1 {
 		t.Fatalf("calls = %+v", *calls)
 	}
